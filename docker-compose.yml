@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:18.3-alpine3.23
+    environment:
+      POSTGRES_DB: automarket
+      POSTGRES_USER: automarket
+      POSTGRES_PASSWORD: automarket
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U automarket -d automarket"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/automarket
+      SPRING_DATASOURCE_USERNAME: automarket
+      SPRING_DATASOURCE_PASSWORD: automarket
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
