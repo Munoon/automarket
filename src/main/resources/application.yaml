@@ -1,3 +1,7 @@
 spring:
   application:
     name: automarket
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/automarket
+    username: automarket
+    password: automarket

@@ -23,9 +23,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/automarket
-      SPRING_DATASOURCE_USERNAME: automarket
-      SPRING_DATASOURCE_PASSWORD: automarket
+      SPRING_R2DBC_URL: r2dbc:postgresql://db:5432/automarket
+      SPRING_R2DBC_USERNAME: automarket
+      SPRING_R2DBC_PASSWORD: automarket
     depends_on:
       db:
         condition: service_healthy
