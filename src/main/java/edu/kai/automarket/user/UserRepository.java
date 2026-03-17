@@ -7,25 +7,25 @@ import reactor.core.publisher.Mono;
 @Repository
 public class UserRepository {
     //language=postgresql
-    private static final String SELECT_USER_COUNT_BY_EMAIL_QUERY = "SELECT COUNT(*) FROM users WHERE email = :email";
+    private static final String SELECT_USER_COUNT_BY_USERNAME_QUERY = "SELECT COUNT(*) FROM users WHERE username = :username";
 
     //language=postgresql
     private static final String CREATE_USER_QUERY = """
-            INSERT INTO users (email, password_hash, display_name, created_at, is_active)
-            VALUES (:email, :passwordHash, :displayName, :createdAt, :active)
+            INSERT INTO users (username, phone_number, password_hash, display_name, created_at, is_active)
+            VALUES (:username, :phoneNumber, :passwordHash, :displayName, :createdAt, :active)
             RETURNING id
             """;
 
     //language=postgresql
-    private static final String SELECT_BY_EMAIL_QUERY = """
-            SELECT id, email, password_hash, display_name, created_at, is_active
+    private static final String SELECT_BY_USERNAME_QUERY = """
+            SELECT id, username, phone_number, password_hash, display_name, created_at, is_active
             FROM users
-            WHERE email = :email
+            WHERE username = :username
             """;
 
     //language=postgresql
     private static final String SELECT_BY_ID_QUERY = """
-            SELECT id, email, password_hash, display_name, created_at, is_active
+            SELECT id, username, phone_number, password_hash, display_name, created_at, is_active
             FROM users
             WHERE id = :id
             """;
@@ -36,9 +36,9 @@ public class UserRepository {
         this.client = client;
     }
 
-    public Mono<Boolean> existsByEmail(String email) {
-        return client.sql(SELECT_USER_COUNT_BY_EMAIL_QUERY)
-                .bind("email", email)
+    public Mono<Boolean> existsByUsername(String username) {
+        return client.sql(SELECT_USER_COUNT_BY_USERNAME_QUERY)
+                .bind("username", username)
                 .map(row -> row.get(0, Long.class))
                 .one()
                 .map(count -> count > 0);
@@ -46,14 +46,16 @@ public class UserRepository {
 
     public Mono<User> save(User user) {
         return client.sql(CREATE_USER_QUERY)
-                .bind("email", user.email())
+                .bind("username", user.username())
+                .bind("phoneNumber", user.phoneNumber())
                 .bind("passwordHash", user.passwordHash())
                 .bind("displayName", user.displayName())
                 .bind("createdAt", user.createdAt())
                 .bind("active", user.active())
                 .map(row -> new User(
                         row.get(0, Long.class),
-                        user.email(),
+                        user.username(),
+                        user.phoneNumber(),
                         user.passwordHash(),
                         user.displayName(),
                         user.createdAt(),
@@ -62,16 +64,17 @@ public class UserRepository {
                 .one();
     }
 
-    public Mono<User> findByEmail(String email) {
-        return client.sql(SELECT_BY_EMAIL_QUERY)
-                .bind("email", email)
+    public Mono<User> findByUsername(String username) {
+        return client.sql(SELECT_BY_USERNAME_QUERY)
+                .bind("username", username)
                 .map(row -> new User(
                         row.get(0, Long.class),
                         row.get(1, String.class),
                         row.get(2, String.class),
                         row.get(3, String.class),
-                        row.get(4, Long.class),
-                        Boolean.TRUE.equals(row.get(5, Boolean.class))
+                        row.get(4, String.class),
+                        row.get(5, Long.class),
+                        Boolean.TRUE.equals(row.get(6, Boolean.class))
                 ))
                 .one();
     }
@@ -84,8 +87,9 @@ public class UserRepository {
                         row.get(1, String.class),
                         row.get(2, String.class),
                         row.get(3, String.class),
-                        row.get(4, Long.class),
-                        Boolean.TRUE.equals(row.get(5, Boolean.class))
+                        row.get(4, String.class),
+                        row.get(5, Long.class),
+                        Boolean.TRUE.equals(row.get(6, Boolean.class))
                 ))
                 .one();
     }

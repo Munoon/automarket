@@ -30,7 +30,7 @@ public class UserController {
 
     @PostMapping("/auth")
     public Mono<AuthResponseDTO> authenticate(@RequestBody AuthRequestDTO request) {
-        return userService.getUserByEmail(request.email())
+        return userService.getUserByUsername(request.username())
                 .filter(user -> user.active() && user.passwordHash().equals(request.passwordHash()))
                 .map(user -> {
                     String jwtToken = jwtService.generateToken(user.id());

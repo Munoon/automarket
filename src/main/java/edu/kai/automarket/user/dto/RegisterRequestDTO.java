@@ -1,7 +1,8 @@
 package edu.kai.automarket.user.dto;
 
 public record RegisterRequestDTO(
-        String email,
+        String username,
+        String phoneNumber,
         String passwordHash,
         String displayName
 ) {

@@ -4,12 +4,13 @@ import edu.kai.automarket.user.User;
 
 public record UserDTO(
         Long id,
-        String email,
+        String username,
+        String phoneNumber,
         String displayName,
         long createdAt,
         boolean active
 ) {
     public UserDTO(User user) {
-        this(user.id(), user.email(), user.displayName(), user.createdAt(), user.active());
+        this(user.id(), user.username(), user.phoneNumber(), user.displayName(), user.createdAt(), user.active());
     }
 }

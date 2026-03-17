@@ -15,15 +15,16 @@ public class UserService {
     }
 
     public Mono<User> register(RegisterRequestDTO request) {
-        return userRepository.existsByEmail(request.email())
+        return userRepository.existsByUsername(request.username())
                 .flatMap(exists -> {
                     if (exists) {
-                        return Mono.error(new ResponseStatusException(HttpStatus.CONFLICT, "Email already in use"));
+                        return Mono.error(new ResponseStatusException(HttpStatus.CONFLICT, "Username already in use"));
                     }
 
                     User user = new User(
                             null,
-                            request.email(),
+                            request.username(),
+                            request.phoneNumber(),
                             request.passwordHash(),
                             request.displayName(),
                             System.currentTimeMillis(),
@@ -33,8 +34,8 @@ public class UserService {
                 });
     }
 
-    public Mono<User> getUserByEmail(String email) {
-        return userRepository.findByEmail(email);
+    public Mono<User> getUserByUsername(String username) {
+        return userRepository.findByUsername(username);
     }
 
     public Mono<User> getUserByIdOrThrow(Long userId) {
