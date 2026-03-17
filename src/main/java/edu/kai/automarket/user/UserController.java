@@ -7,6 +7,7 @@ import edu.kai.automarket.user.dto.RegisterRequestDTO;
 import edu.kai.automarket.user.dto.UserDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
@@ -24,12 +25,12 @@ public class UserController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<UserDTO> register(@RequestBody RegisterRequestDTO request) {
+    public Mono<UserDTO> register(@Valid @RequestBody RegisterRequestDTO request) {
         return userService.register(request).map(UserDTO::new);
     }
 
     @PostMapping("/auth")
-    public Mono<AuthResponseDTO> authenticate(@RequestBody AuthRequestDTO request) {
+    public Mono<AuthResponseDTO> authenticate(@Valid @RequestBody AuthRequestDTO request) {
         return userService.getUserByUsername(request.username())
                 .filter(user -> user.active() && user.passwordHash().equals(request.passwordHash()))
                 .map(user -> {
