@@ -9,7 +9,7 @@
 		<version>4.0.3</version>
 	</parent>
 
-	<groupId>edu.kai</groupId>
+	<groupId>edu</groupId>
 	<artifactId>automarket</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 
