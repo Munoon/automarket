@@ -1,0 +1,221 @@
+package edu.automarket.listing;
+
+import edu.automarket.AbstractIntegrationTest;
+import edu.automarket.TestUtils;
+import edu.automarket.listing.dto.CarListingListItemDTO;
+import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
+import edu.automarket.listing.model.CarBrand;
+import edu.automarket.listing.model.CarListing;
+import edu.automarket.listing.model.ListingStatus;
+import edu.automarket.user.UserRepository;
+import org.assertj.core.data.Offset;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import reactor.test.StepVerifier;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class CarListingServiceTest extends AbstractIntegrationTest {
+
+    @Autowired
+    private CarListingService carListingService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Test
+    void createReturnsDraftListingWithCorrectUserId() {
+        long createdAt = System.currentTimeMillis();
+        long userId = userRepository.save(TestUtils.testUser("svcuser1")).block().id();
+
+        StepVerifier.create(carListingService.create(userId))
+                .assertNext(listing -> {
+                    assertThat(listing.id()).isGreaterThan(0);
+                    assertThat(listing.authorUserId()).isEqualTo(userId);
+                    assertThat(listing.status()).isEqualTo(ListingStatus.DRAFT);
+                    assertThat(listing.createdAt()).isCloseTo(createdAt, Offset.offset(1000L));
+                    assertThat(listing.updatedAt()).isEqualTo(listing.createdAt());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void getOwnListingsReturnsTotalElementsAndContent() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser2")).block().id();
+        CarListing listing1 = carListingService.create(userId).block();
+        CarListing listing2 = carListingService.create(userId).block();
+
+        StepVerifier.create(carListingService.getOwnListings(userId, null, 0, 20))
+                .assertNext(page -> {
+                    assertThat(page.totalElements()).isEqualTo(2);
+                    assertThat(page.content()).hasSize(2);
+                    assertThat(page.content().get(0).id()).isEqualTo(listing2.id());
+                    assertThat(page.content().get(1).id()).isEqualTo(listing1.id());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void getOwnListingsWithNullStatusesReturnsAllListings() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser3")).block().id();
+        carListingService.create(userId).block();
+
+        StepVerifier.create(carListingService.getOwnListings(userId, null, 0, 20))
+                .assertNext(page -> assertThat(page.totalElements()).isEqualTo(1))
+                .verifyComplete();
+    }
+
+    @Test
+    void getOwnListingsWithEmptyStatusesReturnsAllListings() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser4")).block().id();
+        carListingService.create(userId).block();
+
+        StepVerifier.create(carListingService.getOwnListings(userId, new ListingStatus[]{}, 0, 20))
+                .assertNext(page -> assertThat(page.totalElements()).isEqualTo(1))
+                .verifyComplete();
+    }
+
+    @Test
+    void getOwnListingsWithDraftFilterReturnsDraftListings() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser5")).block().id();
+        CarListing draft = carListingService.create(userId).block();
+        CarListing published = carListingService.create(userId).block();
+        carListingService.updateStatus(published.id(), ListingStatus.PUBLISHED).block();
+
+        StepVerifier.create(carListingService.getOwnListings(
+                        userId, new ListingStatus[]{ListingStatus.DRAFT}, 0, 20))
+                .assertNext(page -> {
+                    assertThat(page.totalElements()).isEqualTo(1);
+                    assertThat(page.content().get(0).id()).isEqualTo(draft.id());
+                    assertThat(page.content().get(0).status()).isEqualTo(ListingStatus.DRAFT);
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void getOwnListingsWithPublishedFilterReturnsOnlyPublishedListings() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser6")).block().id();
+        carListingService.create(userId).block();
+        CarListing published = carListingService.create(userId).block();
+        carListingService.updateStatus(published.id(), ListingStatus.PUBLISHED).block();
+
+        StepVerifier.create(carListingService.getOwnListings(
+                        userId, new ListingStatus[]{ListingStatus.PUBLISHED}, 0, 20))
+                .assertNext(page -> {
+                    assertThat(page.totalElements()).isEqualTo(1);
+                    assertThat(page.content().get(0).id()).isEqualTo(published.id());
+                    assertThat(page.content().get(0).status()).isEqualTo(ListingStatus.PUBLISHED);
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void getOwnListingsWithMultipleStatusesReturnsMatchingListings() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser10")).block().id();
+        CarListing draft = carListingService.create(userId).block();
+        CarListing published = carListingService.create(userId).block();
+        CarListing archived = carListingService.create(userId).block();
+        carListingService.updateStatus(published.id(), ListingStatus.PUBLISHED).block();
+        carListingService.updateStatus(archived.id(), ListingStatus.ARCHIVED).block();
+
+        StepVerifier.create(carListingService.getOwnListings(
+                        userId, new ListingStatus[]{ListingStatus.DRAFT, ListingStatus.PUBLISHED}, 0, 20))
+                .assertNext(page -> {
+                    assertThat(page.totalElements()).isEqualTo(2);
+                    assertThat(page.content()).extracting(CarListingListItemDTO::status)
+                            .containsExactlyInAnyOrder(ListingStatus.DRAFT, ListingStatus.PUBLISHED);
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void getOwnListingsPaginatesCorrectly() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser7")).block().id();
+        CarListing listing1 = carListingService.create(userId).block();
+        CarListing listing2 = carListingService.create(userId).block();
+        CarListing listing3 = carListingService.create(userId).block();
+
+        StepVerifier.create(carListingService.getOwnListings(userId, null, 0, 2))
+                .assertNext(page -> {
+                    assertThat(page.totalElements()).isEqualTo(3);
+                    assertThat(page.content()).hasSize(2);
+                    assertThat(page.content().get(0).id()).isEqualTo(listing3.id());
+                    assertThat(page.content().get(1).id()).isEqualTo(listing2.id());
+                })
+                .verifyComplete();
+
+        StepVerifier.create(carListingService.getOwnListings(userId, null, 1, 2))
+                .assertNext(page -> {
+                    assertThat(page.totalElements()).isEqualTo(3);
+                    assertThat(page.content()).hasSize(1);
+                    assertThat(page.content().get(0).id()).isEqualTo(listing1.id());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void deleteRemovesListing() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser11")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+
+        carListingService.delete(listing.id()).block();
+
+        StepVerifier.create(carListingService.getListingByIdOrThrow(listing.id()))
+                .expectErrorMatches(e -> e instanceof ResponseStatusException ex
+                        && ex.getStatusCode() == HttpStatus.NOT_FOUND)
+                .verify();
+    }
+
+    @Test
+    void updateStatusPersistsNewStatus() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser8a")).block().id();
+        CarListing created = carListingService.create(userId).block();
+
+        carListingService.updateStatus(created.id(), ListingStatus.PUBLISHED).block();
+
+        StepVerifier.create(carListingService.getListingByIdOrThrow(created.id()))
+                .assertNext(listing -> assertThat(listing.status()).isEqualTo(ListingStatus.PUBLISHED))
+                .verifyComplete();
+    }
+
+    @Test
+    void getListingByIdOrThrowReturnsListing() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser8")).block().id();
+        CarListing created = carListingService.create(userId).block();
+
+        StepVerifier.create(carListingService.getListingByIdOrThrow(created.id()))
+                .assertNext(listing -> assertThat(listing.id()).isEqualTo(created.id()))
+                .verifyComplete();
+    }
+
+    @Test
+    void getListingByIdOrThrowThrowsNotFoundForMissingId() {
+        StepVerifier.create(carListingService.getListingByIdOrThrow(9999))
+                .expectErrorMatches(e -> e instanceof ResponseStatusException ex
+                        && ex.getStatusCode() == HttpStatus.NOT_FOUND)
+                .verify();
+    }
+
+    @Test
+    void updateReturnsUpdatedListing() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser9")).block().id();
+        CarListing created = carListingService.create(userId).block();
+
+        var request = new UpdateCarListingRequestDTO(
+                "Updated Title", null, CarBrand.TOYOTA, null, "Corolla", null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        carListingService.update(created.id(), request).block();
+        StepVerifier.create(carListingService.getListingByIdOrThrow(created.id()))
+                .assertNext(listing -> {
+                    assertThat(listing.id()).isEqualTo(created.id());
+                    assertThat(listing.title()).isEqualTo("Updated Title");
+                    assertThat(listing.brand()).isEqualTo(CarBrand.TOYOTA);
+                    assertThat(listing.model()).isEqualTo("Corolla");
+                })
+                .verifyComplete();
+    }
+}

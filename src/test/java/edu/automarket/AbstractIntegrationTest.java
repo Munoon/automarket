@@ -15,7 +15,7 @@ public abstract class AbstractIntegrationTest {
 
     @BeforeEach
     void truncateTables() {
-        databaseClient.sql("TRUNCATE TABLE users RESTART IDENTITY")
+        databaseClient.sql("TRUNCATE TABLE car_listings, users RESTART IDENTITY CASCADE")
                 .fetch()
                 .rowsUpdated()
                 .block();

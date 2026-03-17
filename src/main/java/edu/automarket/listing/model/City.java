@@ -1,0 +1,32 @@
+package edu.automarket.listing.model;
+
+public enum City {
+    KYIV,
+    KHARKIV,
+    ODESA,
+    DNIPRO,
+    ZAPORIZHZHIA,
+    LVIV,
+    KRYVYI_RIH,
+    MYKOLAIV,
+    MARIUPOL,
+    VINNYTSIA,
+    KHERSON,
+    POLTAVA,
+    CHERNIHIV,
+    CHERKASY,
+    SUMY,
+    KHMELNYTSKYI,
+    IVANO_FRANKIVSK,
+    RIVNE,
+    ZHYTOMYR,
+    TERNOPIL,
+    LUTSK,
+    UZHHOROD,
+    CHERNIVTSI,
+    KREMENCHUK,
+    BILA_TSERKVA,
+    MELITOPOL,
+    MUKACHEVO,
+    DROHOBYCH
+}
