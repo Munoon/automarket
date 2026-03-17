@@ -51,7 +51,7 @@ public class AuthenticationService {
 
     public Long validateAndExtractUserId(String token) {
         if (!token.startsWith(HEADER)) {
-            return null;
+            throw new SecurityException("Invalid JWT token");
         }
 
         String[] parts = token.split("\\.");
