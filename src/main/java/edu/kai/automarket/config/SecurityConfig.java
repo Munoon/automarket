@@ -1,5 +1,6 @@
-package edu.kai.automarket.security;
+package edu.kai.automarket.config;
 
+import edu.kai.automarket.authentication.AuthenticationWebFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -10,9 +11,9 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 @Configuration
 @EnableWebFluxSecurity
 public class SecurityConfig {
-    private final JwtAuthenticationWebFilter jwtAuthFilter;
+    private final AuthenticationWebFilter jwtAuthFilter;
 
-    public SecurityConfig(JwtAuthenticationWebFilter jwtAuthFilter) {
+    public SecurityConfig(AuthenticationWebFilter jwtAuthFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
     }
 

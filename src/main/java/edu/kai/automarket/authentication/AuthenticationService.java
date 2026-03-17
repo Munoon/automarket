@@ -1,4 +1,4 @@
-package edu.kai.automarket.security;
+package edu.kai.automarket.authentication;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,16 +16,16 @@ import java.util.Map;
 import java.util.Random;
 
 @Service
-public class JwtService {
-    private static final Logger log = LoggerFactory.getLogger(JwtService.class);
+public class AuthenticationService {
+    private static final Logger log = LoggerFactory.getLogger(AuthenticationService.class);
     private static final String HEADER = base64url("{\"alg\":\"HS256\",\"typ\":\"JWT\"}") + ".";
     private final byte[] secretBytes;
     private final long expirationSeconds;
     private final ObjectMapper objectMapper;
 
-    public JwtService(@Value("${app.jwt.secret:}") String secret,
-                      @Value("${app.jwt.expiration:31d}") Duration expiration,
-                      ObjectMapper objectMapper) {
+    public AuthenticationService(@Value("${app.jwt.secret:}") String secret,
+                                 @Value("${app.jwt.expiration:31d}") Duration expiration,
+                                 ObjectMapper objectMapper) {
         if (secret == null || secret.isBlank()) {
             this.secretBytes = new byte[256];
             new Random().nextBytes(secretBytes);

@@ -1,4 +1,4 @@
-package edu.kai.automarket.security;
+package edu.kai.automarket.authentication;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,13 +15,13 @@ import reactor.core.publisher.Mono;
 import java.util.Collections;
 
 @Component
-public class JwtAuthenticationWebFilter implements WebFilter {
-    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationWebFilter.class);
+public class AuthenticationWebFilter implements WebFilter {
+    private static final Logger log = LoggerFactory.getLogger(AuthenticationWebFilter.class);
     private static final String BEARER_PREFIX = "Bearer ";
-    private final JwtService jwtService;
+    private final AuthenticationService authenticationService;
 
-    public JwtAuthenticationWebFilter(JwtService jwtService) {
-        this.jwtService = jwtService;
+    public AuthenticationWebFilter(AuthenticationService authenticationService) {
+        this.authenticationService = authenticationService;
     }
 
     @Override
@@ -30,7 +30,7 @@ public class JwtAuthenticationWebFilter implements WebFilter {
         if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
             try {
                 String token = authHeader.substring(BEARER_PREFIX.length());
-                Long userId = jwtService.validateAndExtractUserId(token);
+                Long userId = authenticationService.validateAndExtractUserId(token);
                 Authentication auth = new UsernamePasswordAuthenticationToken(
                         userId, null, Collections.emptyList());
                 return chain.filter(exchange)

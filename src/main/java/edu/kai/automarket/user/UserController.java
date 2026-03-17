@@ -1,6 +1,6 @@
 package edu.kai.automarket.user;
 
-import edu.kai.automarket.security.JwtService;
+import edu.kai.automarket.authentication.AuthenticationService;
 import edu.kai.automarket.user.dto.AuthRequestDTO;
 import edu.kai.automarket.user.dto.AuthResponseDTO;
 import edu.kai.automarket.user.dto.RegisterRequestDTO;
@@ -15,11 +15,11 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/api/users")
 public class UserController {
     private final UserService userService;
-    private final JwtService jwtService;
+    private final AuthenticationService authenticationService;
 
-    public UserController(UserService userService, JwtService jwtService) {
+    public UserController(UserService userService, AuthenticationService authenticationService) {
         this.userService = userService;
-        this.jwtService = jwtService;
+        this.authenticationService = authenticationService;
     }
 
     @PostMapping("/register")
@@ -33,8 +33,8 @@ public class UserController {
         return userService.getUserByUsername(request.username())
                 .filter(user -> user.active() && user.passwordHash().equals(request.passwordHash()))
                 .map(user -> {
-                    String jwtToken = jwtService.generateToken(user.id());
-                    long tokenExpiresInSeconds = jwtService.tokenExpirationSeconds();
+                    String jwtToken = authenticationService.generateToken(user.id());
+                    long tokenExpiresInSeconds = authenticationService.tokenExpirationSeconds();
                     return new AuthResponseDTO(jwtToken, tokenExpiresInSeconds, user);
                 })
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials")));
