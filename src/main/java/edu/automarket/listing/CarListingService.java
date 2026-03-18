@@ -2,6 +2,7 @@ package edu.automarket.listing;
 
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
+import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.CarListing;
@@ -63,6 +64,11 @@ public class CarListingService {
 
     public Mono<Void> update(long id, UpdateCarListingRequestDTO request) {
         return carListingRepository.update(id, request);
+    }
+
+    public Mono<PublicCarListingDTO> getPublishedListingByIdOrThrow(long id) {
+        return carListingRepository.findPublishedById(id)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found")));
     }
 
     public Mono<PageDTO<PublicCarListingItemDTO>> getPublishedListings(long publishedBefore, int page, int size) {

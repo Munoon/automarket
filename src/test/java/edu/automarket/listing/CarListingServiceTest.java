@@ -3,6 +3,7 @@ package edu.automarket.listing;
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.TestUtils;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
+import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.CarBrand;
@@ -216,6 +217,36 @@ class CarListingServiceTest extends AbstractIntegrationTest {
                     assertThat(listing.publishedAt()).isEqualTo(published.publishedAt());
                 })
                 .verifyComplete();
+    }
+
+    @Test
+    void getPublishedListingByIdOrThrowReturnsPublishedListing() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser18")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        StepVerifier.create(carListingService.getPublishedListingByIdOrThrow(listing.id()))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
+                .verifyComplete();
+    }
+
+    @Test
+    void getPublishedListingByIdOrThrowThrowsNotFoundForDraftListing() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser19")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+
+        StepVerifier.create(carListingService.getPublishedListingByIdOrThrow(listing.id()))
+                .expectErrorMatches(e -> e instanceof ResponseStatusException ex
+                        && ex.getStatusCode() == HttpStatus.NOT_FOUND)
+                .verify();
+    }
+
+    @Test
+    void getPublishedListingByIdOrThrowThrowsNotFoundForNonExistentId() {
+        StepVerifier.create(carListingService.getPublishedListingByIdOrThrow(9999))
+                .expectErrorMatches(e -> e instanceof ResponseStatusException ex
+                        && ex.getStatusCode() == HttpStatus.NOT_FOUND)
+                .verify();
     }
 
     @Test

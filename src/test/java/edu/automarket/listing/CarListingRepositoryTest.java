@@ -2,6 +2,7 @@ package edu.automarket.listing;
 
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.TestUtils;
+import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.BodyType;
@@ -341,6 +342,62 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         long now = System.currentTimeMillis();
         StepVerifier.create(carListingRepository.countPublished(now))
                 .expectNext(0L)
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublishedByIdReturnsCorrectFields() {
+        long userId = userRepository.save(TestUtils.testUser("repouser22")).block().id();
+        CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
+        carListingRepository.update(listing.id(), new UpdateCarListingRequestDTO(
+                "Test Car", "Nice car", CarBrand.TOYOTA, null, "Camry",
+                "AA1234BB", CarCondition.USED, 50000, 300000L, City.KYIV,
+                CarColor.WHITE, TransmissionType.AUTOMATIC, FuelType.PETROL,
+                50.0, DriveType.FWD, BodyType.SEDAN, 2020, 2.5, 1
+        )).block();
+        long publishedAt = System.currentTimeMillis();
+        carListingRepository.updateStatus(listing.id(), ListingStatus.PUBLISHED, publishedAt).block();
+
+        StepVerifier.create(carListingRepository.findPublishedById(listing.id()))
+                .assertNext(dto -> {
+                    assertThat(dto.id()).isEqualTo(listing.id());
+                    assertThat(dto.authorDisplayName()).isEqualTo("Test User");
+                    assertThat(dto.title()).isEqualTo("Test Car");
+                    assertThat(dto.description()).isEqualTo("Nice car");
+                    assertThat(dto.brand()).isEqualTo(CarBrand.TOYOTA);
+                    assertThat(dto.customBrandName()).isNull();
+                    assertThat(dto.model()).isEqualTo("Camry");
+                    assertThat(dto.licensePlate()).isEqualTo("AA1234BB");
+                    assertThat(dto.condition()).isEqualTo(CarCondition.USED);
+                    assertThat(dto.mileage()).isEqualTo(50000);
+                    assertThat(dto.price()).isEqualTo(300000L);
+                    assertThat(dto.city()).isEqualTo(City.KYIV);
+                    assertThat(dto.color()).isEqualTo(CarColor.WHITE);
+                    assertThat(dto.transmission()).isEqualTo(TransmissionType.AUTOMATIC);
+                    assertThat(dto.fuelType()).isEqualTo(FuelType.PETROL);
+                    assertThat(dto.tankVolume()).isEqualTo(50.0);
+                    assertThat(dto.driveType()).isEqualTo(DriveType.FWD);
+                    assertThat(dto.bodyType()).isEqualTo(BodyType.SEDAN);
+                    assertThat(dto.year()).isEqualTo(2020);
+                    assertThat(dto.engineVolume()).isEqualTo(2.5);
+                    assertThat(dto.ownersCount()).isEqualTo(1);
+                    assertThat(dto.publishedAt()).isEqualTo(publishedAt);
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublishedByIdReturnsEmptyForDraftListing() {
+        long userId = userRepository.save(TestUtils.testUser("repouser23")).block().id();
+        CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
+
+        StepVerifier.create(carListingRepository.findPublishedById(listing.id()))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublishedByIdReturnsEmptyForNonExistentId() {
+        StepVerifier.create(carListingRepository.findPublishedById(9999))
                 .verifyComplete();
     }
 

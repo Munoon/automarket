@@ -4,6 +4,7 @@ import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.TestUtils;
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.CarListingService;
+import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.CarBrand;
@@ -168,5 +169,53 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
                     assertThat(page.content()).hasSize(1);
                     assertThat(page.content().get(0).id()).isEqualTo(listing1.id());
                 });
+    }
+
+    // --- GET /api/listings/public/{id} ---
+
+    @Test
+    void getByIdReturnsPublishedListingWithoutToken() {
+        long userId = userRepository.save(TestUtils.testUser("pubctrl6")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+        carListingService.update(listing.id(), new UpdateCarListingRequestDTO(
+                "Test Car", "Nice description", CarBrand.TOYOTA, null, "Camry",
+                null, null, null, 200000L, null, null, null, null, null, null, null, null, null, null
+        )).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get()
+                .uri("/api/listings/public/" + listing.id())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(PublicCarListingDTO.class)
+                .value(dto -> {
+                    assertThat(dto.id()).isEqualTo(listing.id());
+                    assertThat(dto.authorDisplayName()).isEqualTo("Test User");
+                    assertThat(dto.title()).isEqualTo("Test Car");
+                    assertThat(dto.description()).isEqualTo("Nice description");
+                    assertThat(dto.brand()).isEqualTo(CarBrand.TOYOTA);
+                    assertThat(dto.price()).isEqualTo(200000L);
+                    assertThat(dto.model()).isEqualTo("Camry");
+                    assertThat(dto.publishedAt()).isPositive();
+                });
+    }
+
+    @Test
+    void getByIdReturns404ForDraftListing() {
+        long userId = userRepository.save(TestUtils.testUser("pubctrl7")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+
+        webTestClient.get()
+                .uri("/api/listings/public/" + listing.id())
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void getByIdReturns404ForNonExistentListing() {
+        webTestClient.get()
+                .uri("/api/listings/public/9999")
+                .exchange()
+                .expectStatus().isNotFound();
     }
 }

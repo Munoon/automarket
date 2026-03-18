@@ -1,6 +1,7 @@
 package edu.automarket.listing;
 
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
+import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.BodyType;
@@ -114,6 +115,19 @@ public class CarListingRepository {
             FROM car_listings
             WHERE status = 'PUBLISHED'
               AND published_at <= :publishedBefore
+            """;
+
+    //language=postgresql
+    private static final String SELECT_PUBLISHED_BY_ID_QUERY = """
+            SELECT cl.id, u.display_name, cl.title, cl.description, cl.brand::text, cl.custom_brand_name,
+                   cl.model, cl.license_plate, cl.condition::text, cl.mileage, cl.price, cl.city::text,
+                   cl.color::text, cl.transmission::text, cl.fuel_type::text, cl.tank_volume,
+                   cl.drive_type::text, cl.body_type::text, cl.year, cl.engine_volume,
+                   cl.owners_count, cl.published_at
+            FROM car_listings cl
+            JOIN users u ON cl.author_user_id = u.id
+            WHERE cl.id = :id
+              AND cl.status = 'PUBLISHED'
             """;
 
     private final DatabaseClient client;
@@ -274,6 +288,48 @@ public class CarListingRepository {
         return client.sql(COUNT_PUBLISHED_QUERY)
                 .bind("publishedBefore", publishedBefore)
                 .map(row -> row.get(0, Long.class))
+                .one();
+    }
+
+    public Mono<PublicCarListingDTO> findPublishedById(long id) {
+        return client.sql(SELECT_PUBLISHED_BY_ID_QUERY)
+                .bind("id", id)
+                .map(row -> {
+                    String brandStr = row.get(4, String.class);
+                    String conditionStr = row.get(8, String.class);
+                    String cityStr = row.get(11, String.class);
+                    String colorStr = row.get(12, String.class);
+                    String transmissionStr = row.get(13, String.class);
+                    String fuelTypeStr = row.get(14, String.class);
+                    BigDecimal tankVol = row.get(15, BigDecimal.class);
+                    String driveTypeStr = row.get(16, String.class);
+                    String bodyTypeStr = row.get(17, String.class);
+                    BigDecimal engVol = row.get(19, BigDecimal.class);
+                    return new PublicCarListingDTO(
+                            row.get(0, Long.class),
+                            row.get(1, String.class),
+                            row.get(2, String.class),
+                            row.get(3, String.class),
+                            brandStr != null ? CarBrand.valueOf(brandStr) : null,
+                            row.get(5, String.class),
+                            row.get(6, String.class),
+                            row.get(7, String.class),
+                            conditionStr != null ? CarCondition.valueOf(conditionStr) : null,
+                            row.get(9, Integer.class),
+                            row.get(10, Long.class),
+                            cityStr != null ? City.valueOf(cityStr) : null,
+                            colorStr != null ? CarColor.valueOf(colorStr) : null,
+                            transmissionStr != null ? TransmissionType.valueOf(transmissionStr) : null,
+                            fuelTypeStr != null ? FuelType.valueOf(fuelTypeStr) : null,
+                            tankVol != null ? tankVol.doubleValue() : null,
+                            driveTypeStr != null ? DriveType.valueOf(driveTypeStr) : null,
+                            bodyTypeStr != null ? BodyType.valueOf(bodyTypeStr) : null,
+                            row.get(18, Integer.class),
+                            engVol != null ? engVol.doubleValue() : null,
+                            row.get(20, Integer.class),
+                            row.get(21, Long.class)
+                    );
+                })
                 .one();
     }
 
