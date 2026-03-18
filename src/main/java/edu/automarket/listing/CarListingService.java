@@ -1,7 +1,7 @@
 package edu.automarket.listing;
 
 import edu.automarket.common.PageDTO;
-import edu.automarket.listing.dto.CarListingListItemDTO;
+import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.CarListing;
@@ -23,7 +23,7 @@ public class CarListingService {
         return carListingRepository.create(authorUserId, System.currentTimeMillis());
     }
 
-    public Mono<PageDTO<CarListingListItemDTO>> getOwnListings(long userId, ListingStatus[] statuses, int page, int size) {
+    public Mono<PageDTO<OwnCarListingListItemDTO>> getOwnListings(long userId, ListingStatus[] statuses, int page, int size) {
         String[] statusNames;
         if (statuses == null || statuses.length == 0) {
             ListingStatus[] allStatuses = ListingStatus.values();
@@ -53,18 +53,22 @@ public class CarListingService {
         return carListingRepository.deleteById(id);
     }
 
-    public Mono<Void> updateStatus(long id, ListingStatus status) {
-        return carListingRepository.updateStatus(id, status);
+    public Mono<Void> updateStatus(CarListing listing, ListingStatus newStatus) {
+        long publishedAt = newStatus == ListingStatus.PUBLISHED
+                ? System.currentTimeMillis()
+                : listing.publishedAt();
+
+        return carListingRepository.updateStatus(listing.id(), newStatus, publishedAt);
     }
 
     public Mono<Void> update(long id, UpdateCarListingRequestDTO request) {
         return carListingRepository.update(id, request);
     }
 
-    public Mono<PageDTO<PublicCarListingItemDTO>> getPublishedListings(int page, int size) {
+    public Mono<PageDTO<PublicCarListingItemDTO>> getPublishedListings(long publishedBefore, int page, int size) {
         return Mono.zip(
-                carListingRepository.countPublished(),
-                carListingRepository.findPublished(page, size).collectList()
+                carListingRepository.countPublished(publishedBefore),
+                carListingRepository.findPublished(publishedBefore, page, size).collectList()
         ).map(tuple -> new PageDTO<>(tuple.getT2(), tuple.getT1()));
     }
 }

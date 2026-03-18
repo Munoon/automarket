@@ -72,5 +72,6 @@ CREATE TABLE IF NOT EXISTS car_listings
     engine_volume     NUMERIC(4, 1),
     owners_count      SMALLINT,
     created_at        BIGINT NOT NULL,
-    updated_at        BIGINT NOT NULL
+    updated_at        BIGINT NOT NULL,
+    published_at      BIGINT NOT NULL DEFAULT 0
 );

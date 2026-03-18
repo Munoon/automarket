@@ -1,6 +1,6 @@
 package edu.automarket.listing;
 
-import edu.automarket.listing.dto.CarListingListItemDTO;
+import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.BodyType;
@@ -32,7 +32,7 @@ public class CarListingRepository {
 
     //language=postgresql
     private static final String SELECT_BY_USER_ID_AND_STATUSES_QUERY = """
-            SELECT id, status::text, title
+            SELECT id, status::text, title, published_at
             FROM car_listings
             WHERE author_user_id = :authorUserId
               AND status::text = ANY(:statuses)
@@ -45,7 +45,7 @@ public class CarListingRepository {
             SELECT id, author_user_id, status::text, title, description, brand::text, custom_brand_name, model,
                    license_plate, condition::text, mileage, price, city::text, color::text, transmission::text,
                    fuel_type::text, tank_volume, drive_type::text, body_type::text, year, engine_volume,
-                   owners_count, created_at, updated_at
+                   owners_count, created_at, updated_at, published_at
             FROM car_listings
             WHERE id = :id
             """;
@@ -84,8 +84,9 @@ public class CarListingRepository {
     //language=postgresql
     private static final String UPDATE_STATUS_QUERY = """
             UPDATE car_listings
-            SET status     = :status::listing_status,
-                updated_at = :updatedAt
+            SET status       = :status::listing_status,
+                published_at = :publishedAt,
+                updated_at   = :updatedAt
             WHERE id = :id
             """;
 
@@ -102,7 +103,8 @@ public class CarListingRepository {
             SELECT id, title, price, description, brand::text, custom_brand_name, model
             FROM car_listings
             WHERE status = 'PUBLISHED'
-            ORDER BY created_at DESC
+              AND published_at <= :publishedBefore
+            ORDER BY published_at DESC, id DESC
             LIMIT :size OFFSET :offset
             """;
 
@@ -111,6 +113,7 @@ public class CarListingRepository {
             SELECT COUNT(*)
             FROM car_listings
             WHERE status = 'PUBLISHED'
+              AND published_at <= :publishedBefore
             """;
 
     private final DatabaseClient client;
@@ -131,21 +134,22 @@ public class CarListingRepository {
                         null, null, null, null, null, null, null,
                         null, null, null, null, null, null, null,
                         null, null, null, null, null,
-                        createdAt, createdAt
+                        createdAt, createdAt, 0
                 ))
                 .one();
     }
 
-    public Flux<CarListingListItemDTO> findByUserIdAndStatuses(long authorUserId, String[] statuses, int page, int size) {
+    public Flux<OwnCarListingListItemDTO> findByUserIdAndStatuses(long authorUserId, String[] statuses, int page, int size) {
         return client.sql(SELECT_BY_USER_ID_AND_STATUSES_QUERY)
                 .bind("authorUserId", authorUserId)
                 .bind("statuses", statuses)
                 .bind("size", size)
                 .bind("offset", (long) page * size)
-                .map(row -> new CarListingListItemDTO(
+                .map(row -> new OwnCarListingListItemDTO(
                         row.get(0, Long.class),
                         ListingStatus.valueOf(row.get(1, String.class)),
-                        row.get(2, String.class)
+                        row.get(2, String.class),
+                        row.get(3, Long.class)
                 ))
                 .all();
     }
@@ -171,11 +175,12 @@ public class CarListingRepository {
                 .fetch().rowsUpdated().then();
     }
 
-    public Mono<Void> updateStatus(long id, ListingStatus status) {
+    public Mono<Void> updateStatus(long id, ListingStatus status, long publishedAt) {
         return client.sql(UPDATE_STATUS_QUERY)
                 .bind("id", id)
                 .bind("status", status.name())
                 .bind("updatedAt", System.currentTimeMillis())
+                .bind("publishedAt", publishedAt)
                 .fetch().rowsUpdated().then();
     }
 
@@ -245,8 +250,9 @@ public class CarListingRepository {
         return spec.fetch().rowsUpdated().then();
     }
 
-    public Flux<PublicCarListingItemDTO> findPublished(int page, int size) {
+    public Flux<PublicCarListingItemDTO> findPublished(long publishedBefore, int page, int size) {
         return client.sql(SELECT_PUBLISHED_QUERY)
+                .bind("publishedBefore", publishedBefore)
                 .bind("size", size)
                 .bind("offset", (long) page * size)
                 .map(row -> {
@@ -264,8 +270,9 @@ public class CarListingRepository {
                 .all();
     }
 
-    public Mono<Long> countPublished() {
+    public Mono<Long> countPublished(long publishedBefore) {
         return client.sql(COUNT_PUBLISHED_QUERY)
+                .bind("publishedBefore", publishedBefore)
                 .map(row -> row.get(0, Long.class))
                 .one();
     }
@@ -306,7 +313,8 @@ public class CarListingRepository {
                 engVol != null ? engVol.doubleValue() : null,
                 row.get(21, Integer.class),
                 row.get(22, Long.class),
-                row.get(23, Long.class)
+                row.get(23, Long.class),
+                row.get(24, Long.class)
         );
     }
 }

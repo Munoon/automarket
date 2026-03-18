@@ -24,5 +24,6 @@ public record CarListing(
         Double engineVolume,
         Integer ownersCount,
         long createdAt,
-        long updatedAt
+        long updatedAt,
+        long publishedAt
 ) {}

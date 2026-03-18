@@ -5,6 +5,7 @@ import edu.automarket.TestUtils;
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.CarListingService;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
+import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.CarBrand;
 import edu.automarket.listing.model.CarListing;
 import edu.automarket.listing.model.ListingStatus;
@@ -32,21 +33,31 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsWithoutTokenReturnsOk() {
+        long now = System.currentTimeMillis();
         webTestClient.get()
-                .uri("/api/listings/public")
+                .uri("/api/listings/public?publishedBefore=" + now)
                 .exchange()
                 .expectStatus().isOk();
     }
 
     @Test
-    void getPublishedListingsReturnsOnlyPublishedListings() {
-        long userId = userRepository.save(TestUtils.testUser("pubctrl1")).block().id();
-        CarListing draft = carListingService.create(userId).block();
-        CarListing published = carListingService.create(userId).block();
-        carListingService.updateStatus(published.id(), ListingStatus.PUBLISHED).block();
-
+    void getPublishedListingsWithoutPublishedBeforeReturns400() {
         webTestClient.get()
                 .uri("/api/listings/public")
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void getPublishedListingsReturnsOnlyPublishedListings() {
+        long userId = userRepository.save(TestUtils.testUser("pubctrl1")).block().id();
+        carListingService.create(userId).block(); // draft
+        CarListing published = carListingService.create(userId).block();
+        carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
+
+        long now = System.currentTimeMillis();
+        webTestClient.get()
+                .uri("/api/listings/public?publishedBefore=" + now)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(PAGE_TYPE)
@@ -58,17 +69,36 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void getPublishedListingsFiltersOutListingsPublishedAfterAnchor() {
+        long userId = userRepository.save(TestUtils.testUser("pubctrl5")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        long before = System.currentTimeMillis() - 1_000;
+        webTestClient.get()
+                .uri("/api/listings/public?publishedBefore=" + before)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(PAGE_TYPE)
+                .value(page -> {
+                    assertThat(page.totalElements()).isEqualTo(0);
+                    assertThat(page.content()).isEmpty();
+                });
+    }
+
+    @Test
     void getPublishedListingsReturnsCorrectFields() {
         long userId = userRepository.save(TestUtils.testUser("pubctrl2")).block().id();
         CarListing listing = carListingService.create(userId).block();
-        carListingService.update(listing.id(), new edu.automarket.listing.dto.UpdateCarListingRequestDTO(
+        carListingService.update(listing.id(), new UpdateCarListingRequestDTO(
                 "Test Car", "A nice car", CarBrand.TOYOTA, null, "Camry",
                 null, null, null, 500000L, null, null, null, null, null, null, null, null, null, null
         )).block();
-        carListingService.updateStatus(listing.id(), ListingStatus.PUBLISHED).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
+        long now = System.currentTimeMillis();
         webTestClient.get()
-                .uri("/api/listings/public")
+                .uri("/api/listings/public?publishedBefore=" + now)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(PAGE_TYPE)
@@ -90,8 +120,9 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         long userId = userRepository.save(TestUtils.testUser("pubctrl3")).block().id();
         carListingService.create(userId).block();
 
+        long now = System.currentTimeMillis();
         webTestClient.get()
-                .uri("/api/listings/public")
+                .uri("/api/listings/public?publishedBefore=" + now)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(PAGE_TYPE)
@@ -106,28 +137,29 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         long userId = userRepository.save(TestUtils.testUser("pubctrl4")).block().id();
 
         CarListing listing1 = carListingService.create(userId).block();
-        carListingService.updateStatus(listing1.id(), ListingStatus.PUBLISHED).block();
-
         CarListing listing2 = carListingService.create(userId).block();
-        carListingService.updateStatus(listing2.id(), ListingStatus.PUBLISHED).block();
-
         CarListing listing3 = carListingService.create(userId).block();
-        carListingService.updateStatus(listing3.id(), ListingStatus.PUBLISHED).block();
+
+        carListingService.updateStatus(listing1, ListingStatus.PUBLISHED).block();
+        carListingService.updateStatus(listing3, ListingStatus.PUBLISHED).block();
+        carListingService.updateStatus(listing2, ListingStatus.PUBLISHED).block();
+
+        long anchor = System.currentTimeMillis();
 
         webTestClient.get()
-                .uri("/api/listings/public?page=0&size=2")
+                .uri("/api/listings/public?publishedBefore=" + anchor + "&page=0&size=2")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(PAGE_TYPE)
                 .value(page -> {
                     assertThat(page.totalElements()).isEqualTo(3);
                     assertThat(page.content()).hasSize(2);
-                    assertThat(page.content().get(0).id()).isEqualTo(listing3.id());
-                    assertThat(page.content().get(1).id()).isEqualTo(listing2.id());
+                    assertThat(page.content().get(0).id()).isEqualTo(listing2.id());
+                    assertThat(page.content().get(1).id()).isEqualTo(listing3.id());
                 });
 
         webTestClient.get()
-                .uri("/api/listings/public?page=1&size=2")
+                .uri("/api/listings/public?publishedBefore=" + anchor + "&page=1&size=2")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(PAGE_TYPE)

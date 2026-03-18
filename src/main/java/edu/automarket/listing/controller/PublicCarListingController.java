@@ -20,9 +20,10 @@ public class PublicCarListingController {
 
     @GetMapping
     public Mono<PageDTO<PublicCarListingItemDTO>> getPublishedListings(
+            @RequestParam long publishedBefore,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        return carListingService.getPublishedListings(page, size);
+        return carListingService.getPublishedListings(publishedBefore, page, size);
     }
 }

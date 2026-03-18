@@ -34,7 +34,8 @@ public record OwnCarListingDTO(
         Double engineVolume,
         Integer ownersCount,
         long createdAt,
-        long updatedAt
+        long updatedAt,
+        long publishedAt
 ) {
     public OwnCarListingDTO(CarListing listing) {
         this(
@@ -60,7 +61,8 @@ public record OwnCarListingDTO(
                 listing.engineVolume(),
                 listing.ownersCount(),
                 listing.createdAt(),
-                listing.updatedAt()
+                listing.updatedAt(),
+                listing.publishedAt()
         );
     }
 }

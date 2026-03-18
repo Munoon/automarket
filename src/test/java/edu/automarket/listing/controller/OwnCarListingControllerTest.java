@@ -6,7 +6,7 @@ import edu.automarket.authentication.AuthenticationService;
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.model.CarListing;
 import edu.automarket.listing.CarListingService;
-import edu.automarket.listing.dto.CarListingListItemDTO;
+import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.OwnCarListingDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.dto.UpdateListingStatusRequestDTO;
@@ -38,7 +38,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
     @Autowired
     private AuthenticationService authenticationService;
 
-    private static final ParameterizedTypeReference<PageDTO<CarListingListItemDTO>> PAGE_TYPE =
+    private static final ParameterizedTypeReference<PageDTO<OwnCarListingListItemDTO>> PAGE_TYPE =
             new ParameterizedTypeReference<>() {};
 
     // --- POST /api/listings/own ---
@@ -105,7 +105,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         String token = authenticationService.generateToken(userId);
         CarListing draft = carListingService.create(userId).block();
         CarListing published = carListingService.create(userId).block();
-        carListingService.updateStatus(published.id(), ListingStatus.PUBLISHED).block();
+        carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
 
         webTestClient.get()
                 .uri("/api/listings/own?statuses=DRAFT")
@@ -126,7 +126,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         String token = authenticationService.generateToken(userId);
         carListingService.create(userId).block();
         CarListing published = carListingService.create(userId).block();
-        carListingService.updateStatus(published.id(), ListingStatus.PUBLISHED).block();
+        carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
 
         webTestClient.get()
                 .uri("/api/listings/own?statuses=PUBLISHED")
@@ -148,8 +148,8 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         carListingService.create(userId).block();
         CarListing published = carListingService.create(userId).block();
         CarListing archived = carListingService.create(userId).block();
-        carListingService.updateStatus(published.id(), ListingStatus.PUBLISHED).block();
-        carListingService.updateStatus(archived.id(), ListingStatus.ARCHIVED).block();
+        carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
+        carListingService.updateStatus(archived, ListingStatus.ARCHIVED).block();
 
         webTestClient.get()
                 .uri("/api/listings/own?statuses=DRAFT&statuses=PUBLISHED")
@@ -159,7 +159,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .expectBody(PAGE_TYPE)
                 .value(page -> {
                     assertThat(page.totalElements()).isEqualTo(2);
-                    assertThat(page.content()).extracting(CarListingListItemDTO::status)
+                    assertThat(page.content()).extracting(OwnCarListingListItemDTO::status)
                             .containsExactlyInAnyOrder(ListingStatus.DRAFT, ListingStatus.PUBLISHED);
                 });
     }
@@ -271,6 +271,21 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         StepVerifier.create(carListingService.getListingByIdOrThrow(listing.id()))
                 .assertNext(updated -> assertThat(updated.status()).isEqualTo(ListingStatus.PUBLISHED))
                 .verifyComplete();
+    }
+
+    @Test
+    void updateStatusToTheSameReturns400() {
+        long userId = userRepository.save(TestUtils.testUser("ctrluser8e")).block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        webTestClient.patch()
+                     .uri("/api/listings/own/" + listing.id() + "/status")
+                     .header("Authorization", "Bearer " + token)
+                     .contentType(MediaType.APPLICATION_JSON)
+                     .bodyValue(new UpdateListingStatusRequestDTO(ListingStatus.DRAFT))
+                     .exchange()
+                     .expectStatus().isBadRequest();
     }
 
     @Test

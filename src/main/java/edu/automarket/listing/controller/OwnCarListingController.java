@@ -2,7 +2,7 @@ package edu.automarket.listing.controller;
 
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.CarListingService;
-import edu.automarket.listing.dto.CarListingListItemDTO;
+import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.OwnCarListingDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.dto.UpdateListingStatusRequestDTO;
@@ -39,7 +39,7 @@ public class OwnCarListingController {
     }
 
     @GetMapping
-    public Mono<PageDTO<CarListingListItemDTO>> getOwnListings(
+    public Mono<PageDTO<OwnCarListingListItemDTO>> getOwnListings(
             @AuthenticationPrincipal long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -74,7 +74,13 @@ public class OwnCarListingController {
                     if (listing.authorUserId() != userId) {
                         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
                     }
-                    return carListingService.updateStatus(id, request.status());
+
+                    ListingStatus newStatus = request.status();
+                    if (listing.status() == newStatus) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Status already set");
+                    }
+
+                    return carListingService.updateStatus(listing, newStatus);
                 });
     }
 
