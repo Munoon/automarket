@@ -1,5 +1,6 @@
 package edu.automarket.authentication;
 
+import io.netty.util.concurrent.FastThreadLocal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import java.util.Random;
 public class AuthenticationService {
     private static final Logger log = LoggerFactory.getLogger(AuthenticationService.class);
     private static final String HEADER = base64url("{\"alg\":\"HS256\",\"typ\":\"JWT\"}") + ".";
+    private static final FastThreadLocal<Mac> THREAD_LOCAL_SHA256 = new FastThreadLocal<>();
     private final byte[] secretBytes;
     private final long expirationSeconds;
     private final ObjectMapper objectMapper;
@@ -80,8 +82,14 @@ public class AuthenticationService {
 
     private byte[] hmacSha256(String input) {
         try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(secretBytes, "HmacSHA256"));
+            Mac mac = THREAD_LOCAL_SHA256.get();
+            if (mac == null) {
+                mac = Mac.getInstance("HmacSHA256");
+                mac.init(new SecretKeySpec(secretBytes, "HmacSHA256"));
+                THREAD_LOCAL_SHA256.set(mac);
+            } else {
+                mac.reset();
+            }
             return mac.doFinal(input.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             throw new IllegalStateException("Failed to compute HMAC-SHA256", e);

@@ -7,6 +7,10 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -42,12 +46,17 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    void tokenSignedByDifferentSecretThrowsSecurityException() {
+    void tokenSignedByDifferentSecretThrowsSecurityException() throws ExecutionException, InterruptedException {
         byte[] rawSecret = new byte[64];
         new Random().nextBytes(rawSecret);
         String otherSecret = Base64.getEncoder().encodeToString(rawSecret);
         AuthenticationService other = new AuthenticationService(otherSecret, Duration.ofHours(1), new ObjectMapper());
-        String foreignToken = other.generateToken(1L);
+
+        // we have to sign the key in a separate key, so that it's secret don't get to the ThreadLocal,
+        // that is used when service.validateAndExtractUserId(foreignToken) is invoked
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        String foreignToken = CompletableFuture.supplyAsync(() -> other.generateToken(1L), executorService).get();
+        executorService.shutdown();
 
         assertThatThrownBy(() -> service.validateAndExtractUserId(foreignToken))
                 .isInstanceOf(SecurityException.class)
