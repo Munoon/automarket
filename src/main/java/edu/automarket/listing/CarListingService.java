@@ -2,6 +2,7 @@ package edu.automarket.listing;
 
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.dto.CarListingListItemDTO;
+import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.CarListing;
 import edu.automarket.listing.model.ListingStatus;
@@ -58,5 +59,12 @@ public class CarListingService {
 
     public Mono<Void> update(long id, UpdateCarListingRequestDTO request) {
         return carListingRepository.update(id, request);
+    }
+
+    public Mono<PageDTO<PublicCarListingItemDTO>> getPublishedListings(int page, int size) {
+        return Mono.zip(
+                carListingRepository.countPublished(),
+                carListingRepository.findPublished(page, size).collectList()
+        ).map(tuple -> new PageDTO<>(tuple.getT2(), tuple.getT1()));
     }
 }

@@ -1,0 +1,28 @@
+package edu.automarket.listing.controller;
+
+import edu.automarket.common.PageDTO;
+import edu.automarket.listing.CarListingService;
+import edu.automarket.listing.dto.PublicCarListingItemDTO;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
+
+@RestController
+@RequestMapping("/api/listings/public")
+public class PublicCarListingController {
+    private final CarListingService carListingService;
+
+    public PublicCarListingController(CarListingService carListingService) {
+        this.carListingService = carListingService;
+    }
+
+    @GetMapping
+    public Mono<PageDTO<PublicCarListingItemDTO>> getPublishedListings(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return carListingService.getPublishedListings(page, size);
+    }
+}

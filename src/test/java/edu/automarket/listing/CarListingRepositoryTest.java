@@ -2,6 +2,7 @@ package edu.automarket.listing;
 
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.TestUtils;
+import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.BodyType;
 import edu.automarket.listing.model.CarBrand;
@@ -225,6 +226,84 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                     assertThat(listing.ownersCount()).isEqualTo(1);
                     assertThat(listing.updatedAt()).isGreaterThanOrEqualTo(listing.createdAt());
                 })
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublishedReturnsOnlyPublishedListings() {
+        long userId = userRepository.save(TestUtils.testUser("repouser14")).block().id();
+        CarListing draft = carListingRepository.create(userId, System.currentTimeMillis()).block();
+        CarListing published = carListingRepository.create(userId, System.currentTimeMillis() + 1).block();
+        carListingRepository.updateStatus(published.id(), ListingStatus.PUBLISHED).block();
+
+        StepVerifier.create(carListingRepository.findPublished(0, 20))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(published.id()))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublishedReturnsCorrectFields() {
+        long userId = userRepository.save(TestUtils.testUser("repouser15")).block().id();
+        CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
+        carListingRepository.update(listing.id(), new UpdateCarListingRequestDTO(
+                "My Car", "Nice car", CarBrand.TOYOTA, null, "Camry",
+                null, null, null, 300000L, null, null, null, null, null, null, null, null, null, null
+        )).block();
+        carListingRepository.updateStatus(listing.id(), ListingStatus.PUBLISHED).block();
+
+        StepVerifier.create(carListingRepository.findPublished(0, 20))
+                .assertNext(dto -> {
+                    assertThat(dto.id()).isEqualTo(listing.id());
+                    assertThat(dto.title()).isEqualTo("My Car");
+                    assertThat(dto.description()).isEqualTo("Nice car");
+                    assertThat(dto.price()).isEqualTo(300000L);
+                    assertThat(dto.brand()).isEqualTo(CarBrand.TOYOTA);
+                    assertThat(dto.customBrandName()).isNull();
+                    assertThat(dto.model()).isEqualTo("Camry");
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublishedPaginatesCorrectly() {
+        long userId = userRepository.save(TestUtils.testUser("repouser16")).block().id();
+        long now = System.currentTimeMillis();
+        CarListing listing1 = carListingRepository.create(userId, now).block();
+        CarListing listing2 = carListingRepository.create(userId, now + 1).block();
+        CarListing listing3 = carListingRepository.create(userId, now + 2).block();
+        carListingRepository.updateStatus(listing1.id(), ListingStatus.PUBLISHED).block();
+        carListingRepository.updateStatus(listing2.id(), ListingStatus.PUBLISHED).block();
+        carListingRepository.updateStatus(listing3.id(), ListingStatus.PUBLISHED).block();
+
+        StepVerifier.create(carListingRepository.findPublished(0, 2))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing3.id()))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing2.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(1, 2))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing1.id()))
+                .verifyComplete();
+    }
+
+    @Test
+    void countPublishedCountsOnlyPublishedListings() {
+        long userId = userRepository.save(TestUtils.testUser("repouser17")).block().id();
+        CarListing listing1 = carListingRepository.create(userId, System.currentTimeMillis()).block();
+        carListingRepository.create(userId, System.currentTimeMillis()).block(); // draft
+        carListingRepository.updateStatus(listing1.id(), ListingStatus.PUBLISHED).block();
+
+        StepVerifier.create(carListingRepository.countPublished())
+                .expectNext(1L)
+                .verifyComplete();
+    }
+
+    @Test
+    void countPublishedReturnsZeroWhenNonePublished() {
+        long userId = userRepository.save(TestUtils.testUser("repouser18")).block().id();
+        carListingRepository.create(userId, System.currentTimeMillis()).block();
+
+        StepVerifier.create(carListingRepository.countPublished())
+                .expectNext(0L)
                 .verifyComplete();
     }
 

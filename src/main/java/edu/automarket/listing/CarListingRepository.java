@@ -1,6 +1,7 @@
 package edu.automarket.listing;
 
 import edu.automarket.listing.dto.CarListingListItemDTO;
+import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.BodyType;
 import edu.automarket.listing.model.CarBrand;
@@ -94,6 +95,22 @@ public class CarListingRepository {
             FROM car_listings
             WHERE author_user_id = :authorUserId
               AND status::text = ANY(:statuses)
+            """;
+
+    //language=postgresql
+    private static final String SELECT_PUBLISHED_QUERY = """
+            SELECT id, title, price, description, brand::text, custom_brand_name, model
+            FROM car_listings
+            WHERE status = 'PUBLISHED'
+            ORDER BY created_at DESC
+            LIMIT :size OFFSET :offset
+            """;
+
+    //language=postgresql
+    private static final String COUNT_PUBLISHED_QUERY = """
+            SELECT COUNT(*)
+            FROM car_listings
+            WHERE status = 'PUBLISHED'
             """;
 
     private final DatabaseClient client;
@@ -226,6 +243,31 @@ public class CarListingRepository {
                 : spec.bindNull("ownersCount", Integer.class);
 
         return spec.fetch().rowsUpdated().then();
+    }
+
+    public Flux<PublicCarListingItemDTO> findPublished(int page, int size) {
+        return client.sql(SELECT_PUBLISHED_QUERY)
+                .bind("size", size)
+                .bind("offset", (long) page * size)
+                .map(row -> {
+                    String brandStr = row.get(4, String.class);
+                    return new PublicCarListingItemDTO(
+                            row.get(0, Long.class),
+                            row.get(1, String.class),
+                            row.get(2, Long.class),
+                            row.get(3, String.class),
+                            brandStr != null ? CarBrand.valueOf(brandStr) : null,
+                            row.get(5, String.class),
+                            row.get(6, String.class)
+                    );
+                })
+                .all();
+    }
+
+    public Mono<Long> countPublished() {
+        return client.sql(COUNT_PUBLISHED_QUERY)
+                .map(row -> row.get(0, Long.class))
+                .one();
     }
 
     private CarListing mapRow(Readable row) {

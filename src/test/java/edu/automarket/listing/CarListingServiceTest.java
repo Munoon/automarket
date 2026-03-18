@@ -3,6 +3,7 @@ package edu.automarket.listing;
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.TestUtils;
 import edu.automarket.listing.dto.CarListingListItemDTO;
+import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.CarBrand;
 import edu.automarket.listing.model.CarListing;
@@ -196,6 +197,88 @@ class CarListingServiceTest extends AbstractIntegrationTest {
                 .expectErrorMatches(e -> e instanceof ResponseStatusException ex
                         && ex.getStatusCode() == HttpStatus.NOT_FOUND)
                 .verify();
+    }
+
+    @Test
+    void getPublishedListingsReturnsOnlyPublishedListings() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser12")).block().id();
+        carListingService.create(userId).block(); // draft
+        CarListing published = carListingService.create(userId).block();
+        carListingService.updateStatus(published.id(), ListingStatus.PUBLISHED).block();
+
+        StepVerifier.create(carListingService.getPublishedListings(0, 20))
+                .assertNext(page -> {
+                    assertThat(page.totalElements()).isEqualTo(1);
+                    assertThat(page.content()).hasSize(1);
+                    assertThat(page.content().get(0).id()).isEqualTo(published.id());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void getPublishedListingsReturnsCorrectFields() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser13")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+        carListingService.update(listing.id(), new UpdateCarListingRequestDTO(
+                "Sport Car", "Fast and furious", CarBrand.CUSTOM, "Batmobile", "Dark Knight",
+                null, null, null, 999999L, null, null, null, null, null, null, null, null, null, null
+        )).block();
+        carListingService.updateStatus(listing.id(), ListingStatus.PUBLISHED).block();
+
+        StepVerifier.create(carListingService.getPublishedListings(0, 20))
+                .assertNext(page -> {
+                    assertThat(page.totalElements()).isEqualTo(1);
+                    PublicCarListingItemDTO dto = page.content().get(0);
+                    assertThat(dto.id()).isEqualTo(listing.id());
+                    assertThat(dto.title()).isEqualTo("Sport Car");
+                    assertThat(dto.description()).isEqualTo("Fast and furious");
+                    assertThat(dto.price()).isEqualTo(999999L);
+                    assertThat(dto.brand()).isEqualTo(CarBrand.CUSTOM);
+                    assertThat(dto.customBrandName()).isEqualTo("Batmobile");
+                    assertThat(dto.model()).isEqualTo("Dark Knight");
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void getPublishedListingsReturnsEmptyWhenNonePublished() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser14")).block().id();
+        carListingService.create(userId).block();
+
+        StepVerifier.create(carListingService.getPublishedListings(0, 20))
+                .assertNext(page -> {
+                    assertThat(page.totalElements()).isEqualTo(0);
+                    assertThat(page.content()).isEmpty();
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void getPublishedListingsPaginatesCorrectly() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser15")).block().id();
+        CarListing listing1 = carListingService.create(userId).block();
+        CarListing listing2 = carListingService.create(userId).block();
+        CarListing listing3 = carListingService.create(userId).block();
+        carListingService.updateStatus(listing1.id(), ListingStatus.PUBLISHED).block();
+        carListingService.updateStatus(listing2.id(), ListingStatus.PUBLISHED).block();
+        carListingService.updateStatus(listing3.id(), ListingStatus.PUBLISHED).block();
+
+        StepVerifier.create(carListingService.getPublishedListings(0, 2))
+                .assertNext(page -> {
+                    assertThat(page.totalElements()).isEqualTo(3);
+                    assertThat(page.content()).hasSize(2);
+                    assertThat(page.content().get(0).id()).isEqualTo(listing3.id());
+                    assertThat(page.content().get(1).id()).isEqualTo(listing2.id());
+                })
+                .verifyComplete();
+
+        StepVerifier.create(carListingService.getPublishedListings(1, 2))
+                .assertNext(page -> {
+                    assertThat(page.totalElements()).isEqualTo(3);
+                    assertThat(page.content()).hasSize(1);
+                    assertThat(page.content().get(0).id()).isEqualTo(listing1.id());
+                })
+                .verifyComplete();
     }
 
     @Test
