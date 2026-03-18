@@ -45,23 +45,14 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void getPublishedListingsWithoutPublishedBeforeReturns400() {
-        webTestClient.get()
-                .uri("/api/listings/public")
-                .exchange()
-                .expectStatus().isBadRequest();
-    }
-
-    @Test
     void getPublishedListingsReturnsOnlyPublishedListings() {
         long userId = userService.register(TestUtils.testUser("pubctrl1")).block().id();
         carListingService.create(userId).block(); // draft
         CarListing published = carListingService.create(userId).block();
         carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
 
-        long now = System.currentTimeMillis();
         webTestClient.get()
-                .uri("/api/listings/public?publishedBefore=" + now)
+                .uri("/api/listings/public")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(PAGE_TYPE)

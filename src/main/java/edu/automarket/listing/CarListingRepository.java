@@ -1,6 +1,7 @@
 package edu.automarket.listing;
 
 import edu.automarket.listing.dto.AuthorPhoneDTO;
+import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
@@ -274,11 +275,11 @@ public class CarListingRepository {
         return spec.fetch().rowsUpdated().then();
     }
 
-    public Flux<PublicCarListingItemDTO> findPublished(long publishedBefore, int page, int size) {
+    public Flux<PublicCarListingItemDTO> findPublished(GetPublishedListingsRequestDTO request) {
         return client.sql(SELECT_PUBLISHED_QUERY)
-                .bind("publishedBefore", publishedBefore)
-                .bind("size", size)
-                .bind("offset", (long) page * size)
+                .bind("publishedBefore", request.getPublishedBefore())
+                .bind("size", request.getSize())
+                .bind("offset", (long) request.getPage() * request.getSize())
                 .map(row -> {
                     String brandStr = row.get(4, String.class);
                     return new PublicCarListingItemDTO(
@@ -294,9 +295,9 @@ public class CarListingRepository {
                 .all();
     }
 
-    public Mono<Long> countPublished(long publishedBefore) {
+    public Mono<Long> countPublished(GetPublishedListingsRequestDTO request) {
         return client.sql(COUNT_PUBLISHED_QUERY)
-                .bind("publishedBefore", publishedBefore)
+                .bind("publishedBefore", request.getPublishedBefore())
                 .map(row -> row.get(0, Long.class))
                 .one();
     }

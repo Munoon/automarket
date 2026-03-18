@@ -3,12 +3,13 @@ package edu.automarket.listing.controller;
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.CarListingService;
 import edu.automarket.listing.dto.AuthorPhoneDTO;
+import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
 import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
@@ -33,10 +34,7 @@ public class PublicCarListingController {
 
     @GetMapping
     public Mono<PageDTO<PublicCarListingItemDTO>> getPublishedListings(
-            @RequestParam long publishedBefore,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
-    ) {
-        return carListingService.getPublishedListings(publishedBefore, page, size);
+            @ModelAttribute GetPublishedListingsRequestDTO request) {
+        return carListingService.getPublishedListings(request);
     }
 }

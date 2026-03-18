@@ -2,6 +2,7 @@ package edu.automarket.listing;
 
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.TestUtils;
+import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
@@ -275,14 +276,13 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         CarListing published = carListingService.create(userId).block();
         carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
 
-        long now = System.currentTimeMillis();
-        StepVerifier.create(carListingService.getPublishedListings(now, 0, 20))
-                .assertNext(page -> {
+        StepVerifier.create(carListingService.getPublishedListings(new GetPublishedListingsRequestDTO()))
+                    .assertNext(page -> {
                     assertThat(page.totalElements()).isEqualTo(1);
                     assertThat(page.content()).hasSize(1);
                     assertThat(page.content().get(0).id()).isEqualTo(published.id());
                 })
-                .verifyComplete();
+                    .verifyComplete();
     }
 
     @Test
@@ -291,13 +291,14 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         CarListing listing = carListingService.create(userId).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
-        long before = System.currentTimeMillis() - 1_000;
-        StepVerifier.create(carListingService.getPublishedListings(before, 0, 20))
-                .assertNext(page -> {
-                    assertThat(page.totalElements()).isEqualTo(0);
-                    assertThat(page.content()).isEmpty();
-                })
-                .verifyComplete();
+        GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
+        request.setPublishedBefore(System.currentTimeMillis() - 1_000);
+        StepVerifier.create(carListingService.getPublishedListings(request))
+                    .assertNext(page -> {
+                        assertThat(page.totalElements()).isEqualTo(0);
+                        assertThat(page.content()).isEmpty();
+                    })
+                    .verifyComplete();
     }
 
     @Test
@@ -310,8 +311,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         )).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
-        long now = System.currentTimeMillis();
-        StepVerifier.create(carListingService.getPublishedListings(now, 0, 20))
+        StepVerifier.create(carListingService.getPublishedListings(new GetPublishedListingsRequestDTO()))
                 .assertNext(page -> {
                     assertThat(page.totalElements()).isEqualTo(1);
                     PublicCarListingItemDTO dto = page.content().get(0);
@@ -331,8 +331,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         long userId = userService.register(TestUtils.testUser("svcuser14")).block().id();
         carListingService.create(userId).block();
 
-        long now = System.currentTimeMillis();
-        StepVerifier.create(carListingService.getPublishedListings(now, 0, 20))
+        StepVerifier.create(carListingService.getPublishedListings(new GetPublishedListingsRequestDTO()))
                 .assertNext(page -> {
                     assertThat(page.totalElements()).isEqualTo(0);
                     assertThat(page.content()).isEmpty();
@@ -350,17 +349,22 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         carListingService.updateStatus(listing3, ListingStatus.PUBLISHED).block();
         carListingService.updateStatus(listing2, ListingStatus.PUBLISHED).block();
 
-        long anchor = System.currentTimeMillis();
-        StepVerifier.create(carListingService.getPublishedListings(anchor, 0, 2))
-                .assertNext(page -> {
-                    assertThat(page.totalElements()).isEqualTo(3);
-                    assertThat(page.content()).hasSize(2);
-                    assertThat(page.content().get(0).id()).isEqualTo(listing2.id());
-                    assertThat(page.content().get(1).id()).isEqualTo(listing3.id());
-                })
-                .verifyComplete();
+        GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
+        request.setPage(0);
+        request.setSize(2);
+        StepVerifier.create(carListingService.getPublishedListings(request))
+                    .assertNext(page -> {
+                        assertThat(page.totalElements()).isEqualTo(3);
+                        assertThat(page.content()).hasSize(2);
+                        assertThat(page.content().get(0).id()).isEqualTo(listing2.id());
+                        assertThat(page.content().get(1).id()).isEqualTo(listing3.id());
+                    })
+                    .verifyComplete();
 
-        StepVerifier.create(carListingService.getPublishedListings(anchor, 1, 2))
+        request = new GetPublishedListingsRequestDTO();
+        request.setPage(1);
+        request.setSize(2);
+        StepVerifier.create(carListingService.getPublishedListings(request))
                 .assertNext(page -> {
                     assertThat(page.totalElements()).isEqualTo(3);
                     assertThat(page.content()).hasSize(1);

@@ -2,6 +2,7 @@ package edu.automarket.listing;
 
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.TestUtils;
+import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
 import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
@@ -247,8 +248,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing published = carListingRepository.create(userId, System.currentTimeMillis() + 1).block();
         carListingRepository.updateStatus(published.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
 
-        long now = System.currentTimeMillis();
-        StepVerifier.create(carListingRepository.findPublished(now, 0, 20))
+        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO()))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(published.id()))
                 .verifyComplete();
     }
@@ -259,8 +259,9 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
         carListingRepository.updateStatus(listing.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
 
-        long before = System.currentTimeMillis() - 1_000;
-        StepVerifier.create(carListingRepository.findPublished(before, 0, 20))
+        GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
+        request.setPublishedBefore(System.currentTimeMillis() - 1_000);
+        StepVerifier.create(carListingRepository.findPublished(request))
                 .verifyComplete();
     }
 
@@ -274,8 +275,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         )).block();
         carListingRepository.updateStatus(listing.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
 
-        long now = System.currentTimeMillis();
-        StepVerifier.create(carListingRepository.findPublished(now, 0, 20))
+        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO()))
                 .assertNext(dto -> {
                     assertThat(dto.id()).isEqualTo(listing.id());
                     assertThat(dto.title()).isEqualTo("My Car");
@@ -299,13 +299,18 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         carListingRepository.updateStatus(listing3.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
         carListingRepository.updateStatus(listing2.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
 
-        long anchor = System.currentTimeMillis();
-        StepVerifier.create(carListingRepository.findPublished(anchor, 0, 2))
+        GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
+        request.setPage(0);
+        request.setSize(2);
+        StepVerifier.create(carListingRepository.findPublished(request))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing2.id()))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing3.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(anchor, 1, 2))
+        request = new GetPublishedListingsRequestDTO();
+        request.setPage(1);
+        request.setSize(2);
+        StepVerifier.create(carListingRepository.findPublished(request))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing1.id()))
                 .verifyComplete();
     }
@@ -317,8 +322,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         carListingRepository.create(userId, System.currentTimeMillis()).block(); // draft
         carListingRepository.updateStatus(listing1.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
 
-        long now = System.currentTimeMillis();
-        StepVerifier.create(carListingRepository.countPublished(now))
+        StepVerifier.create(carListingRepository.countPublished(new GetPublishedListingsRequestDTO()))
                 .expectNext(1L)
                 .verifyComplete();
     }
@@ -329,8 +333,9 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
         carListingRepository.updateStatus(listing.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
 
-        long before = System.currentTimeMillis() - 1_000;
-        StepVerifier.create(carListingRepository.countPublished(before))
+        GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
+        request.setPublishedBefore(System.currentTimeMillis() - 1_000);
+        StepVerifier.create(carListingRepository.countPublished(request))
                 .expectNext(0L)
                 .verifyComplete();
     }
@@ -340,8 +345,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         long userId = userService.register(TestUtils.testUser("repouser18")).block().id();
         carListingRepository.create(userId, System.currentTimeMillis()).block();
 
-        long now = System.currentTimeMillis();
-        StepVerifier.create(carListingRepository.countPublished(now))
+        StepVerifier.create(carListingRepository.countPublished(new GetPublishedListingsRequestDTO()))
                 .expectNext(0L)
                 .verifyComplete();
     }

@@ -2,6 +2,7 @@ package edu.automarket.listing;
 
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.dto.AuthorPhoneDTO;
+import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
@@ -77,10 +78,10 @@ public class CarListingService {
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found")));
     }
 
-    public Mono<PageDTO<PublicCarListingItemDTO>> getPublishedListings(long publishedBefore, int page, int size) {
+    public Mono<PageDTO<PublicCarListingItemDTO>> getPublishedListings(GetPublishedListingsRequestDTO request) {
         return Mono.zip(
-                carListingRepository.countPublished(publishedBefore),
-                carListingRepository.findPublished(publishedBefore, page, size).collectList()
+                carListingRepository.countPublished(request),
+                carListingRepository.findPublished(request).collectList()
         ).map(tuple -> new PageDTO<>(tuple.getT2(), tuple.getT1()));
     }
 }
