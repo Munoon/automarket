@@ -1,5 +1,6 @@
 package edu.automarket.listing;
 
+import edu.automarket.listing.dto.AuthorPhoneDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
@@ -115,6 +116,15 @@ public class CarListingRepository {
             FROM car_listings
             WHERE status = 'PUBLISHED'
               AND published_at <= :publishedBefore
+            """;
+
+    //language=postgresql
+    private static final String SELECT_AUTHOR_PHONE_BY_PUBLISHED_ID_QUERY = """
+            SELECT u.phone_number
+            FROM car_listings cl
+            JOIN users u ON cl.author_user_id = u.id
+            WHERE cl.id = :id
+              AND cl.status = 'PUBLISHED'
             """;
 
     //language=postgresql
@@ -288,6 +298,13 @@ public class CarListingRepository {
         return client.sql(COUNT_PUBLISHED_QUERY)
                 .bind("publishedBefore", publishedBefore)
                 .map(row -> row.get(0, Long.class))
+                .one();
+    }
+
+    public Mono<AuthorPhoneDTO> findAuthorPhoneByPublishedId(long id) {
+        return client.sql(SELECT_AUTHOR_PHONE_BY_PUBLISHED_ID_QUERY)
+                .bind("id", id)
+                .map(row -> new AuthorPhoneDTO(row.get(0, String.class)))
                 .one();
     }
 

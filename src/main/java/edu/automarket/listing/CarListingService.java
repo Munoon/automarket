@@ -1,6 +1,7 @@
 package edu.automarket.listing;
 
 import edu.automarket.common.PageDTO;
+import edu.automarket.listing.dto.AuthorPhoneDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
@@ -68,6 +69,11 @@ public class CarListingService {
 
     public Mono<PublicCarListingDTO> getPublishedListingByIdOrThrow(long id) {
         return carListingRepository.findPublishedById(id)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found")));
+    }
+
+    public Mono<AuthorPhoneDTO> getPublishedListingAuthorPhoneOrThrow(long id) {
+        return carListingRepository.findAuthorPhoneByPublishedId(id)
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found")));
     }
 

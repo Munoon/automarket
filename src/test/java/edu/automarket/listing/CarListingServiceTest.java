@@ -369,6 +369,36 @@ class CarListingServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void getPublishedListingAuthorPhoneOrThrowReturnsPhone() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser20")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        StepVerifier.create(carListingService.getPublishedListingAuthorPhoneOrThrow(listing.id()))
+                .assertNext(dto -> assertThat(dto.phoneNumber()).isEqualTo("+123456789012"))
+                .verifyComplete();
+    }
+
+    @Test
+    void getPublishedListingAuthorPhoneOrThrowThrowsNotFoundForDraftListing() {
+        long userId = userRepository.save(TestUtils.testUser("svcuser21")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+
+        StepVerifier.create(carListingService.getPublishedListingAuthorPhoneOrThrow(listing.id()))
+                .expectErrorMatches(e -> e instanceof ResponseStatusException ex
+                        && ex.getStatusCode() == HttpStatus.NOT_FOUND)
+                .verify();
+    }
+
+    @Test
+    void getPublishedListingAuthorPhoneOrThrowThrowsNotFoundForNonExistentId() {
+        StepVerifier.create(carListingService.getPublishedListingAuthorPhoneOrThrow(9999))
+                .expectErrorMatches(e -> e instanceof ResponseStatusException ex
+                        && ex.getStatusCode() == HttpStatus.NOT_FOUND)
+                .verify();
+    }
+
+    @Test
     void updateReturnsUpdatedListing() {
         long userId = userRepository.save(TestUtils.testUser("svcuser9")).block().id();
         CarListing created = carListingService.create(userId).block();

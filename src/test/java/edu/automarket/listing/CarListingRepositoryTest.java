@@ -402,6 +402,32 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void findAuthorPhoneByPublishedIdReturnsPhoneNumber() {
+        long userId = userRepository.save(TestUtils.testUser("repouser24")).block().id();
+        CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
+        carListingRepository.updateStatus(listing.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
+
+        StepVerifier.create(carListingRepository.findAuthorPhoneByPublishedId(listing.id()))
+                .assertNext(dto -> assertThat(dto.phoneNumber()).isEqualTo("+123456789012"))
+                .verifyComplete();
+    }
+
+    @Test
+    void findAuthorPhoneByPublishedIdReturnsEmptyForDraftListing() {
+        long userId = userRepository.save(TestUtils.testUser("repouser25")).block().id();
+        CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
+
+        StepVerifier.create(carListingRepository.findAuthorPhoneByPublishedId(listing.id()))
+                .verifyComplete();
+    }
+
+    @Test
+    void findAuthorPhoneByPublishedIdReturnsEmptyForNonExistentId() {
+        StepVerifier.create(carListingRepository.findAuthorPhoneByPublishedId(9999))
+                .verifyComplete();
+    }
+
+    @Test
     void updateWithNullFieldsClearsPreviousValues() {
         long userId = userRepository.save(TestUtils.testUser("repouser11")).block().id();
         CarListing created = carListingRepository.create(userId, System.currentTimeMillis()).block();

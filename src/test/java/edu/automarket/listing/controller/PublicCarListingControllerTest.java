@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
+import edu.automarket.listing.dto.AuthorPhoneDTO;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PublicCarListingControllerTest extends AbstractIntegrationTest {
@@ -215,6 +217,41 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
     void getByIdReturns404ForNonExistentListing() {
         webTestClient.get()
                 .uri("/api/listings/public/9999")
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    // --- GET /api/listings/public/{id}/phone ---
+
+    @Test
+    void getAuthorPhoneReturnsPhoneForPublishedListingWithoutToken() {
+        long userId = userRepository.save(TestUtils.testUser("pubctrl8")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get()
+                .uri("/api/listings/public/" + listing.id() + "/phone")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(AuthorPhoneDTO.class)
+                .value(dto -> assertThat(dto.phoneNumber()).isEqualTo("+123456789012"));
+    }
+
+    @Test
+    void getAuthorPhoneReturns404ForDraftListing() {
+        long userId = userRepository.save(TestUtils.testUser("pubctrl9")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+
+        webTestClient.get()
+                .uri("/api/listings/public/" + listing.id() + "/phone")
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void getAuthorPhoneReturns404ForNonExistentListing() {
+        webTestClient.get()
+                .uri("/api/listings/public/9999/phone")
                 .exchange()
                 .expectStatus().isNotFound();
     }

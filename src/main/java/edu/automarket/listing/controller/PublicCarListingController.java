@@ -2,6 +2,7 @@ package edu.automarket.listing.controller;
 
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.CarListingService;
+import edu.automarket.listing.dto.AuthorPhoneDTO;
 import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +24,11 @@ public class PublicCarListingController {
     @GetMapping("/{id}")
     public Mono<PublicCarListingDTO> getById(@PathVariable long id) {
         return carListingService.getPublishedListingByIdOrThrow(id);
+    }
+
+    @GetMapping("/{id}/phone")
+    public Mono<AuthorPhoneDTO> getAuthorPhone(@PathVariable long id) {
+        return carListingService.getPublishedListingAuthorPhoneOrThrow(id);
     }
 
     @GetMapping
