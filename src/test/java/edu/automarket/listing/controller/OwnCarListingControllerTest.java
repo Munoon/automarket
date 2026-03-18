@@ -338,7 +338,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         CarListing listing = carListingService.create(userId).block();
 
         var request = new UpdateCarListingRequestDTO(
-                "My Car", null, CarBrand.TOYOTA, null, "Camry", null,
+                "My Car", null, CarBrand.CUSTOM, "Custom brand name", "Camry", null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null
         );
 
@@ -354,7 +354,8 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         StepVerifier.create(carListingService.getListingByIdOrThrow(listing.id()))
                 .assertNext(updated -> {
                     assertThat(updated.title()).isEqualTo("My Car");
-                    assertThat(updated.brand()).isEqualTo(CarBrand.TOYOTA);
+                    assertThat(updated.brand()).isEqualTo(CarBrand.CUSTOM);
+                    assertThat(updated.customBrandName()).isEqualTo("Custom brand name");
                     assertThat(updated.model()).isEqualTo("Camry");
                 })
                 .verifyComplete();

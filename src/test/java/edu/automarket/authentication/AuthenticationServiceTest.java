@@ -4,8 +4,10 @@ import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -47,10 +49,7 @@ class AuthenticationServiceTest {
 
     @Test
     void tokenSignedByDifferentSecretThrowsSecurityException() throws ExecutionException, InterruptedException {
-        byte[] rawSecret = new byte[64];
-        new Random().nextBytes(rawSecret);
-        String otherSecret = Base64.getEncoder().encodeToString(rawSecret);
-        AuthenticationService other = new AuthenticationService(otherSecret, Duration.ofHours(1), new ObjectMapper());
+        AuthenticationService other = new AuthenticationService(null, Duration.ofHours(1), new ObjectMapper());
 
         // we have to sign the key in a separate key, so that it's secret don't get to the ThreadLocal,
         // that is used when service.validateAndExtractUserId(foreignToken) is invoked
@@ -89,5 +88,15 @@ class AuthenticationServiceTest {
         assertThatThrownBy(() -> service.validateAndExtractUserId("garbage.token.value"))
                 .isInstanceOf(SecurityException.class)
                 .hasMessage("Invalid JWT token");
+    }
+
+    @Test
+    void tokenWithoutSignature() {
+        String token = Base64.getUrlEncoder().encodeToString("{\"alg\":\"HS256\",\"typ\":\"JWT\"}".getBytes(StandardCharsets.UTF_8))
+                       + "."
+                       + Base64.getUrlEncoder().encodeToString("{\"sub\":123,\"iat\":123,\"exp\":123}".getBytes(StandardCharsets.UTF_8));
+        assertThatThrownBy(() -> service.validateAndExtractUserId(token))
+                .isInstanceOf(SecurityException.class)
+                .hasMessage("Invalid JWT signature");
     }
 }
