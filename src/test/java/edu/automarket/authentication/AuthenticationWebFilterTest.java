@@ -3,6 +3,7 @@ package edu.automarket.authentication;
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.user.User;
 import edu.automarket.user.UserRepository;
+import edu.automarket.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -18,7 +19,7 @@ class AuthenticationWebFilterTest extends AbstractIntegrationTest {
     private AuthenticationService authenticationService;
 
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Test
     void requestWithoutAuthorizationHeaderIsRejected() {
@@ -30,7 +31,7 @@ class AuthenticationWebFilterTest extends AbstractIntegrationTest {
 
     @Test
     void requestWithValidBearerTokenIsAuthenticated() {
-        User user = userRepository.save(testUser("filteruser")).block();
+        User user = userService.register(testUser("filteruser")).block();
         String token = authenticationService.generateToken(user.id());
 
         webTestClient.get()
@@ -54,7 +55,7 @@ class AuthenticationWebFilterTest extends AbstractIntegrationTest {
 
     @Test
     void requestWithNonBearerPrefixIsRejected() {
-        User user = userRepository.save(testUser("filteruser2")).block();
+        User user = userService.register(testUser("filteruser2")).block();
         String token = authenticationService.generateToken(user.id());
 
         webTestClient.get()

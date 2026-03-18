@@ -13,6 +13,7 @@ import edu.automarket.listing.dto.UpdateListingStatusRequestDTO;
 import edu.automarket.listing.model.CarBrand;
 import edu.automarket.listing.model.ListingStatus;
 import edu.automarket.user.UserRepository;
+import edu.automarket.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -30,7 +31,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
     private WebTestClient webTestClient;
 
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Autowired
     private CarListingService carListingService;
@@ -45,7 +46,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void createWithValidTokenReturns201WithDraftListing() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser1")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser1")).block().id();
         String token = authenticationService.generateToken(userId);
 
         webTestClient.post()
@@ -73,7 +74,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getOwnListingsWithValidTokenReturnsPage() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser2")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser2")).block().id();
         String token = authenticationService.generateToken(userId);
         CarListing listing = carListingService.create(userId).block();
 
@@ -101,7 +102,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getOwnListingsWithDraftStatusFilterReturnsDraftListings() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser3")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser3")).block().id();
         String token = authenticationService.generateToken(userId);
         CarListing draft = carListingService.create(userId).block();
         CarListing published = carListingService.create(userId).block();
@@ -122,7 +123,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getOwnListingsWithPublishedStatusFilterReturnsOnlyPublishedListings() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser4")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser4")).block().id();
         String token = authenticationService.generateToken(userId);
         carListingService.create(userId).block();
         CarListing published = carListingService.create(userId).block();
@@ -143,7 +144,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getOwnListingsWithMultipleStatusFiltersReturnsMatchingListings() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser14")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser14")).block().id();
         String token = authenticationService.generateToken(userId);
         carListingService.create(userId).block();
         CarListing published = carListingService.create(userId).block();
@@ -166,7 +167,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getOwnListingsPaginatesCorrectly() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser5")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser5")).block().id();
         String token = authenticationService.generateToken(userId);
         carListingService.create(userId).block();
         carListingService.create(userId).block();
@@ -186,8 +187,8 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getOwnListingsDoesNotReturnOtherUsersListings() {
-        long userId1 = userRepository.save(TestUtils.testUser("ctrluser6")).block().id();
-        long userId2 = userRepository.save(TestUtils.testUser("ctrluser7")).block().id();
+        long userId1 = userService.register(TestUtils.testUser("ctrluser6")).block().id();
+        long userId2 = userService.register(TestUtils.testUser("ctrluser7")).block().id();
         String token2 = authenticationService.generateToken(userId2);
         carListingService.create(userId1).block();
 
@@ -204,7 +205,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getByIdWithValidTokenReturnsListing() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser8a")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser8a")).block().id();
         String token = authenticationService.generateToken(userId);
         CarListing listing = carListingService.create(userId).block();
 
@@ -227,7 +228,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getByIdNonExistentReturns404() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser8b")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser8b")).block().id();
         String token = authenticationService.generateToken(userId);
 
         webTestClient.get()
@@ -239,8 +240,8 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getByIdOtherUsersListingReturns403() {
-        long userId1 = userRepository.save(TestUtils.testUser("ctrluser8c")).block().id();
-        long userId2 = userRepository.save(TestUtils.testUser("ctrluser8d")).block().id();
+        long userId1 = userService.register(TestUtils.testUser("ctrluser8c")).block().id();
+        long userId2 = userService.register(TestUtils.testUser("ctrluser8d")).block().id();
         String token2 = authenticationService.generateToken(userId2);
         CarListing listing = carListingService.create(userId1).block();
 
@@ -255,7 +256,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void updateStatusWithValidTokenReturns204AndPersists() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser8e")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser8e")).block().id();
         String token = authenticationService.generateToken(userId);
         CarListing listing = carListingService.create(userId).block();
 
@@ -275,7 +276,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void updateStatusToTheSameReturns400() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser8e")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser8e")).block().id();
         String token = authenticationService.generateToken(userId);
         CarListing listing = carListingService.create(userId).block();
 
@@ -300,7 +301,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void updateStatusNonExistentListingReturns404() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser8f")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser8f")).block().id();
         String token = authenticationService.generateToken(userId);
 
         webTestClient.patch()
@@ -314,8 +315,8 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void updateStatusOtherUsersListingReturns403() {
-        long userId1 = userRepository.save(TestUtils.testUser("ctrluser8g")).block().id();
-        long userId2 = userRepository.save(TestUtils.testUser("ctrluser8h")).block().id();
+        long userId1 = userService.register(TestUtils.testUser("ctrluser8g")).block().id();
+        long userId2 = userService.register(TestUtils.testUser("ctrluser8h")).block().id();
         String token2 = authenticationService.generateToken(userId2);
         CarListing listing = carListingService.create(userId1).block();
 
@@ -332,7 +333,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void updateWithValidTokenReturns204() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser8")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser8")).block().id();
         String token = authenticationService.generateToken(userId);
         CarListing listing = carListingService.create(userId).block();
 
@@ -374,7 +375,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void updateNonExistentListingReturns404() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser9")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser9")).block().id();
         String token = authenticationService.generateToken(userId);
 
         webTestClient.patch()
@@ -391,8 +392,8 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void updateOtherUsersListingReturns403() {
-        long userId1 = userRepository.save(TestUtils.testUser("ctrluser10")).block().id();
-        long userId2 = userRepository.save(TestUtils.testUser("ctrluser11")).block().id();
+        long userId1 = userService.register(TestUtils.testUser("ctrluser10")).block().id();
+        long userId2 = userService.register(TestUtils.testUser("ctrluser11")).block().id();
         String token2 = authenticationService.generateToken(userId2);
         CarListing listing = carListingService.create(userId1).block();
 
@@ -410,7 +411,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void updateWithInvalidFieldReturns400() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser12")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser12")).block().id();
         String token = authenticationService.generateToken(userId);
         CarListing listing = carListingService.create(userId).block();
 
@@ -428,7 +429,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void updateWithCustomBrandNameForNonCustomBrandReturns400() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser13")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser13")).block().id();
         String token = authenticationService.generateToken(userId);
         CarListing listing = carListingService.create(userId).block();
 
@@ -448,7 +449,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void deleteWithValidTokenReturns204AndRemovesListing() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser15")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser15")).block().id();
         String token = authenticationService.generateToken(userId);
         CarListing listing = carListingService.create(userId).block();
 
@@ -475,7 +476,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void deleteNonExistentListingReturns404() {
-        long userId = userRepository.save(TestUtils.testUser("ctrluser16")).block().id();
+        long userId = userService.register(TestUtils.testUser("ctrluser16")).block().id();
         String token = authenticationService.generateToken(userId);
 
         webTestClient.delete()
@@ -487,8 +488,8 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void deleteOtherUsersListingReturns403() {
-        long userId1 = userRepository.save(TestUtils.testUser("ctrluser17")).block().id();
-        long userId2 = userRepository.save(TestUtils.testUser("ctrluser18")).block().id();
+        long userId1 = userService.register(TestUtils.testUser("ctrluser17")).block().id();
+        long userId2 = userService.register(TestUtils.testUser("ctrluser18")).block().id();
         String token2 = authenticationService.generateToken(userId2);
         CarListing listing = carListingService.create(userId1).block();
 

@@ -2,6 +2,7 @@ package edu.automarket.user;
 
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.TestUtils;
+import edu.automarket.user.dto.RegisterRequestDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import reactor.test.StepVerifier;
@@ -15,7 +16,7 @@ class UserRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void savePersistsUserAndAssignsId() {
-        StepVerifier.create(userRepository.save(TestUtils.testUser("saveuser")))
+        StepVerifier.create(userRepository.save(testUser("saveuser")))
                 .assertNext(user -> {
                     assertThat(user.id()).isNotNull();
                     assertThat(user.username()).isEqualTo("saveuser");
@@ -28,7 +29,7 @@ class UserRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findByUsernameReturnsCorrectUser() {
-        User findme = userRepository.save(TestUtils.testUser("findme")).block();
+        User findme = userRepository.save(testUser("findme")).block();
 
         StepVerifier.create(userRepository.findByUsername("findme"))
                 .assertNext(user -> {
@@ -46,7 +47,7 @@ class UserRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findByIdReturnsCorrectUser() {
-        User saved = userRepository.save(TestUtils.testUser("byid")).block();
+        User saved = userRepository.save(testUser("byid")).block();
 
         StepVerifier.create(userRepository.findById(saved.id()))
                 .assertNext(user -> {
@@ -64,7 +65,7 @@ class UserRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void existsByUsernameReturnsTrueWhenUserExists() {
-        userRepository.save(TestUtils.testUser("exists")).block();
+        userRepository.save(testUser("exists")).block();
 
         StepVerifier.create(userRepository.existsByUsername("exists"))
                 .expectNext(true)
@@ -81,7 +82,7 @@ class UserRepositoryTest extends AbstractIntegrationTest {
     @Test
     void savedUserFieldsAreFullyPersisted() {
         long before = System.currentTimeMillis();
-        User saved = userRepository.save(TestUtils.testUser("fullcheck")).block();
+        User saved = userRepository.save(testUser("fullcheck")).block();
 
         StepVerifier.create(userRepository.findById(saved.id()))
                 .assertNext(user -> {
@@ -93,5 +94,9 @@ class UserRepositoryTest extends AbstractIntegrationTest {
                     assertThat(user.active()).isTrue();
                 })
                 .verifyComplete();
+    }
+
+    private static User testUser(String username) {
+        return new User(null, username, "+123456789012", "hash", "Test User", System.currentTimeMillis(), true);
     }
 }

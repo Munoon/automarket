@@ -16,6 +16,7 @@ import edu.automarket.listing.model.FuelType;
 import edu.automarket.listing.model.ListingStatus;
 import edu.automarket.listing.model.TransmissionType;
 import edu.automarket.user.UserRepository;
+import edu.automarket.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import reactor.test.StepVerifier;
@@ -28,11 +29,11 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
     private CarListingRepository carListingRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Test
     void createPersistsListingAndAssignsId() {
-        long userId = userRepository.save(TestUtils.testUser("repouser1")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser1")).block().id();
         long before = System.currentTimeMillis();
 
         StepVerifier.create(carListingRepository.create(userId, System.currentTimeMillis()))
@@ -49,7 +50,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findByUserIdAndStatusesReturnsDraftListing() {
-        long userId = userRepository.save(TestUtils.testUser("repouser2")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser2")).block().id();
         CarListing draft = carListingRepository.create(userId, System.currentTimeMillis()).block();
         CarListing published = carListingRepository.create(userId, System.currentTimeMillis() + 1).block();
         carListingRepository.updateStatus(published.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
@@ -65,7 +66,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findByUserIdAndStatusesFiltersOutNonMatchingStatus() {
-        long userId = userRepository.save(TestUtils.testUser("repouser3")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser3")).block().id();
         carListingRepository.create(userId, System.currentTimeMillis()).block();
 
         StepVerifier.create(carListingRepository.findByUserIdAndStatuses(
@@ -75,7 +76,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findByUserIdAndStatusesWithMultipleStatusesReturnsMatchingListings() {
-        long userId = userRepository.save(TestUtils.testUser("repouser12")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser12")).block().id();
         long now = System.currentTimeMillis();
         CarListing draft = carListingRepository.create(userId, now).block();
         CarListing published = carListingRepository.create(userId, now + 1).block();
@@ -96,8 +97,8 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findByUserIdAndStatusesDoesNotReturnOtherUsersListings() {
-        long userId1 = userRepository.save(TestUtils.testUser("repouser4")).block().id();
-        long userId2 = userRepository.save(TestUtils.testUser("repouser5")).block().id();
+        long userId1 = userService.register(TestUtils.testUser("repouser4")).block().id();
+        long userId2 = userService.register(TestUtils.testUser("repouser5")).block().id();
         carListingRepository.create(userId1, System.currentTimeMillis()).block();
         CarListing secondUserListing = carListingRepository.create(userId2, System.currentTimeMillis()).block();
 
@@ -109,7 +110,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findByUserIdAndStatusesPaginatesCorrectly() {
-        long userId = userRepository.save(TestUtils.testUser("repouser6")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser6")).block().id();
         long now = System.currentTimeMillis();
         CarListing listing1 = carListingRepository.create(userId, now).block();
         CarListing listing2 = carListingRepository.create(userId, now + 1).block();
@@ -129,7 +130,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void countByUserIdAndStatusesCountsCorrectly() {
-        long userId = userRepository.save(TestUtils.testUser("repouser7")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser7")).block().id();
         carListingRepository.create(userId, System.currentTimeMillis()).block();
         carListingRepository.create(userId, System.currentTimeMillis()).block();
 
@@ -141,7 +142,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void countByUserIdAndStatusesReturnsZeroForNonMatchingStatus() {
-        long userId = userRepository.save(TestUtils.testUser("repouser8")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser8")).block().id();
         carListingRepository.create(userId, System.currentTimeMillis()).block();
 
         StepVerifier.create(carListingRepository.countByUserIdAndStatuses(
@@ -152,7 +153,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void deleteByIdRemovesListing() {
-        long userId = userRepository.save(TestUtils.testUser("repouser13")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser13")).block().id();
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
 
         carListingRepository.deleteById(listing.id()).block();
@@ -163,7 +164,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void updateStatusPersistsNewStatus() {
-        long userId = userRepository.save(TestUtils.testUser("repouser9a")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser9a")).block().id();
         CarListing created = carListingRepository.create(userId, System.currentTimeMillis()).block();
 
         long publishedAt = System.currentTimeMillis();
@@ -179,7 +180,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findByIdReturnsCorrectListing() {
-        long userId = userRepository.save(TestUtils.testUser("repouser9")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser9")).block().id();
         CarListing created = carListingRepository.create(userId, System.currentTimeMillis()).block();
 
         StepVerifier.create(carListingRepository.findById(created.id()))
@@ -201,7 +202,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void updatePersistsAllFields() {
-        long userId = userRepository.save(TestUtils.testUser("repouser10")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser10")).block().id();
         CarListing created = carListingRepository.create(userId, System.currentTimeMillis()).block();
 
         var request = new UpdateCarListingRequestDTO(
@@ -241,7 +242,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findPublishedReturnsOnlyPublishedListings() {
-        long userId = userRepository.save(TestUtils.testUser("repouser14")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser14")).block().id();
         carListingRepository.create(userId, System.currentTimeMillis()).block(); // draft
         CarListing published = carListingRepository.create(userId, System.currentTimeMillis() + 1).block();
         carListingRepository.updateStatus(published.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
@@ -254,7 +255,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findPublishedFiltersOutListingsPublishedAfterAnchor() {
-        long userId = userRepository.save(TestUtils.testUser("repouser19")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser19")).block().id();
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
         carListingRepository.updateStatus(listing.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
 
@@ -265,7 +266,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findPublishedReturnsCorrectFields() {
-        long userId = userRepository.save(TestUtils.testUser("repouser15")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser15")).block().id();
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
         carListingRepository.update(listing.id(), new UpdateCarListingRequestDTO(
                 "My Car", "Nice car", CarBrand.TOYOTA, null, "Camry",
@@ -289,7 +290,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findPublishedPaginatesCorrectly() {
-        long userId = userRepository.save(TestUtils.testUser("repouser16")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser16")).block().id();
         long now = System.currentTimeMillis();
         CarListing listing1 = carListingRepository.create(userId, now).block();
         CarListing listing2 = carListingRepository.create(userId, now + 1).block();
@@ -311,7 +312,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void countPublishedCountsOnlyPublishedListings() {
-        long userId = userRepository.save(TestUtils.testUser("repouser17")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser17")).block().id();
         CarListing listing1 = carListingRepository.create(userId, System.currentTimeMillis()).block();
         carListingRepository.create(userId, System.currentTimeMillis()).block(); // draft
         carListingRepository.updateStatus(listing1.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
@@ -324,7 +325,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void countPublishedFiltersOutListingsPublishedAfterAnchor() {
-        long userId = userRepository.save(TestUtils.testUser("repouser20")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser20")).block().id();
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
         carListingRepository.updateStatus(listing.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
 
@@ -336,7 +337,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void countPublishedReturnsZeroWhenNonePublished() {
-        long userId = userRepository.save(TestUtils.testUser("repouser18")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser18")).block().id();
         carListingRepository.create(userId, System.currentTimeMillis()).block();
 
         long now = System.currentTimeMillis();
@@ -347,7 +348,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findPublishedByIdReturnsCorrectFields() {
-        long userId = userRepository.save(TestUtils.testUser("repouser22")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser22")).block().id();
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
         carListingRepository.update(listing.id(), new UpdateCarListingRequestDTO(
                 "Test Car", "Nice car", CarBrand.TOYOTA, null, "Camry",
@@ -388,7 +389,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findPublishedByIdReturnsEmptyForDraftListing() {
-        long userId = userRepository.save(TestUtils.testUser("repouser23")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser23")).block().id();
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
 
         StepVerifier.create(carListingRepository.findPublishedById(listing.id()))
@@ -403,7 +404,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findAuthorPhoneByPublishedIdReturnsPhoneNumber() {
-        long userId = userRepository.save(TestUtils.testUser("repouser24")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser24")).block().id();
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
         carListingRepository.updateStatus(listing.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
 
@@ -414,7 +415,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findAuthorPhoneByPublishedIdReturnsEmptyForDraftListing() {
-        long userId = userRepository.save(TestUtils.testUser("repouser25")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser25")).block().id();
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
 
         StepVerifier.create(carListingRepository.findAuthorPhoneByPublishedId(listing.id()))
@@ -429,7 +430,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void updateWithNullFieldsClearsPreviousValues() {
-        long userId = userRepository.save(TestUtils.testUser("repouser11")).block().id();
+        long userId = userService.register(TestUtils.testUser("repouser11")).block().id();
         CarListing created = carListingRepository.create(userId, System.currentTimeMillis()).block();
 
         var fullRequest = new UpdateCarListingRequestDTO(

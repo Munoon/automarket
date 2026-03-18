@@ -20,6 +20,9 @@ class UserControllerTest extends AbstractIntegrationTest {
     private WebTestClient webTestClient;
 
     @Autowired
+    private UserService userService;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -106,7 +109,7 @@ class UserControllerTest extends AbstractIntegrationTest {
 
     @Test
     void authenticateWithValidCredentialsReturnsToken() {
-        userRepository.save(testUser("testUser")).block();
+        userService.register(testUser("testUser")).block();
 
         webTestClient.post().uri("/api/users/auth")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -123,7 +126,7 @@ class UserControllerTest extends AbstractIntegrationTest {
 
     @Test
     void authenticateWithWrongPasswordReturns401() {
-        userRepository.save(testUser("testuser")).block();
+        userService.register(testUser("testuser")).block();
 
         webTestClient.post().uri("/api/users/auth")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -149,8 +152,8 @@ class UserControllerTest extends AbstractIntegrationTest {
 
     @Test
     void authenticateWithInactiveUserReturns401() {
-        User testUSer = new User(null, "testUser", "+123456789012", "hash", "Test User", System.currentTimeMillis(), false);
-        userRepository.save(testUSer).block();
+        User testUser = new User(null, "testUser", "+123456789012", "hash", "Test User", System.currentTimeMillis(), false);
+        userRepository.save(testUser).block();
 
         webTestClient.post().uri("/api/users/auth")
                      .contentType(MediaType.APPLICATION_JSON)
@@ -162,7 +165,7 @@ class UserControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getProfileWithValidTokenReturnsUserData() {
-        User user = userRepository.save(testUser("testUser")).block();
+        User user = userService.register(testUser("testUser")).block();
         String token = authenticationService.generateToken(user.id());
 
         webTestClient.get().uri("/api/users/profile")

@@ -11,6 +11,7 @@ import edu.automarket.listing.model.CarBrand;
 import edu.automarket.listing.model.CarListing;
 import edu.automarket.listing.model.ListingStatus;
 import edu.automarket.user.UserRepository;
+import edu.automarket.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -26,7 +27,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
     private WebTestClient webTestClient;
 
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Autowired
     private CarListingService carListingService;
@@ -53,7 +54,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsReturnsOnlyPublishedListings() {
-        long userId = userRepository.save(TestUtils.testUser("pubctrl1")).block().id();
+        long userId = userService.register(TestUtils.testUser("pubctrl1")).block().id();
         carListingService.create(userId).block(); // draft
         CarListing published = carListingService.create(userId).block();
         carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
@@ -73,7 +74,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsFiltersOutListingsPublishedAfterAnchor() {
-        long userId = userRepository.save(TestUtils.testUser("pubctrl5")).block().id();
+        long userId = userService.register(TestUtils.testUser("pubctrl5")).block().id();
         CarListing listing = carListingService.create(userId).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
@@ -91,7 +92,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsReturnsCorrectFields() {
-        long userId = userRepository.save(TestUtils.testUser("pubctrl2")).block().id();
+        long userId = userService.register(TestUtils.testUser("pubctrl2")).block().id();
         CarListing listing = carListingService.create(userId).block();
         carListingService.update(listing.id(), new UpdateCarListingRequestDTO(
                 "Test Car", "A nice car", CarBrand.TOYOTA, null, "Camry",
@@ -120,7 +121,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsReturnsEmptyWhenNonePublished() {
-        long userId = userRepository.save(TestUtils.testUser("pubctrl3")).block().id();
+        long userId = userService.register(TestUtils.testUser("pubctrl3")).block().id();
         carListingService.create(userId).block();
 
         long now = System.currentTimeMillis();
@@ -137,7 +138,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsPaginatesCorrectly() {
-        long userId = userRepository.save(TestUtils.testUser("pubctrl4")).block().id();
+        long userId = userService.register(TestUtils.testUser("pubctrl4")).block().id();
 
         CarListing listing1 = carListingService.create(userId).block();
         CarListing listing2 = carListingService.create(userId).block();
@@ -177,7 +178,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getByIdReturnsPublishedListingWithoutToken() {
-        long userId = userRepository.save(TestUtils.testUser("pubctrl6")).block().id();
+        long userId = userService.register(TestUtils.testUser("pubctrl6")).block().id();
         CarListing listing = carListingService.create(userId).block();
         carListingService.update(listing.id(), new UpdateCarListingRequestDTO(
                 "Test Car", "Nice description", CarBrand.TOYOTA, null, "Camry",
@@ -204,7 +205,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getByIdReturns404ForDraftListing() {
-        long userId = userRepository.save(TestUtils.testUser("pubctrl7")).block().id();
+        long userId = userService.register(TestUtils.testUser("pubctrl7")).block().id();
         CarListing listing = carListingService.create(userId).block();
 
         webTestClient.get()
@@ -225,7 +226,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getAuthorPhoneReturnsPhoneForPublishedListingWithoutToken() {
-        long userId = userRepository.save(TestUtils.testUser("pubctrl8")).block().id();
+        long userId = userService.register(TestUtils.testUser("pubctrl8")).block().id();
         CarListing listing = carListingService.create(userId).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
@@ -239,7 +240,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getAuthorPhoneReturns404ForDraftListing() {
-        long userId = userRepository.save(TestUtils.testUser("pubctrl9")).block().id();
+        long userId = userService.register(TestUtils.testUser("pubctrl9")).block().id();
         CarListing listing = carListingService.create(userId).block();
 
         webTestClient.get()

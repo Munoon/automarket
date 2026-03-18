@@ -10,6 +10,7 @@ import edu.automarket.listing.model.CarBrand;
 import edu.automarket.listing.model.CarListing;
 import edu.automarket.listing.model.ListingStatus;
 import edu.automarket.user.UserRepository;
+import edu.automarket.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,12 +26,12 @@ class CarListingServiceTest extends AbstractIntegrationTest {
     private CarListingService carListingService;
 
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Test
     void createReturnsDraftListingWithCorrectUserId() {
         long createdAt = System.currentTimeMillis();
-        long userId = userRepository.save(TestUtils.testUser("svcuser1")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser1")).block().id();
 
         StepVerifier.create(carListingService.create(userId))
                 .assertNext(listing -> {
@@ -45,7 +46,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getOwnListingsReturnsTotalElementsAndContent() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser2")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser2")).block().id();
         CarListing listing1 = carListingService.create(userId).block();
         CarListing listing2 = carListingService.create(userId).block();
 
@@ -61,7 +62,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getOwnListingsWithNullStatusesReturnsAllListings() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser3")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser3")).block().id();
         carListingService.create(userId).block();
 
         StepVerifier.create(carListingService.getOwnListings(userId, null, 0, 20))
@@ -71,7 +72,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getOwnListingsWithEmptyStatusesReturnsAllListings() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser4")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser4")).block().id();
         carListingService.create(userId).block();
 
         StepVerifier.create(carListingService.getOwnListings(userId, new ListingStatus[]{}, 0, 20))
@@ -81,7 +82,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getOwnListingsWithDraftFilterReturnsDraftListings() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser5")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser5")).block().id();
         CarListing draft = carListingService.create(userId).block();
         CarListing published = carListingService.create(userId).block();
         carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
@@ -98,7 +99,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getOwnListingsWithPublishedFilterReturnsOnlyPublishedListings() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser6")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser6")).block().id();
         carListingService.create(userId).block();
         CarListing published = carListingService.create(userId).block();
         carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
@@ -115,7 +116,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getOwnListingsWithMultipleStatusesReturnsMatchingListings() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser10")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser10")).block().id();
         CarListing draft = carListingService.create(userId).block();
         CarListing published = carListingService.create(userId).block();
         CarListing archived = carListingService.create(userId).block();
@@ -134,7 +135,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getOwnListingsPaginatesCorrectly() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser7")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser7")).block().id();
         CarListing listing1 = carListingService.create(userId).block();
         CarListing listing2 = carListingService.create(userId).block();
         CarListing listing3 = carListingService.create(userId).block();
@@ -159,7 +160,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void deleteRemovesListing() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser11")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser11")).block().id();
         CarListing listing = carListingService.create(userId).block();
 
         carListingService.delete(listing.id()).block();
@@ -172,7 +173,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void updateStatusPersistsNewStatus() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser8a")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser8a")).block().id();
         CarListing created = carListingService.create(userId).block();
 
         carListingService.updateStatus(created, ListingStatus.ARCHIVED).block();
@@ -187,7 +188,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void updateStatusSetPublishedAt() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser8a")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser8a")).block().id();
         CarListing created = carListingService.create(userId).block();
 
         carListingService.updateStatus(created, ListingStatus.PUBLISHED).block();
@@ -203,7 +204,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void updateStatusPreservesPublishedAtWhenArchiving() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser17")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser17")).block().id();
         CarListing created = carListingService.create(userId).block();
 
         carListingService.updateStatus(created, ListingStatus.PUBLISHED).block();
@@ -221,7 +222,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingByIdOrThrowReturnsPublishedListing() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser18")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser18")).block().id();
         CarListing listing = carListingService.create(userId).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
@@ -232,7 +233,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingByIdOrThrowThrowsNotFoundForDraftListing() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser19")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser19")).block().id();
         CarListing listing = carListingService.create(userId).block();
 
         StepVerifier.create(carListingService.getPublishedListingByIdOrThrow(listing.id()))
@@ -251,7 +252,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getListingByIdOrThrowReturnsListing() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser8")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser8")).block().id();
         CarListing created = carListingService.create(userId).block();
 
         StepVerifier.create(carListingService.getListingByIdOrThrow(created.id()))
@@ -269,7 +270,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsReturnsOnlyPublishedListings() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser12")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser12")).block().id();
         carListingService.create(userId).block(); // draft
         CarListing published = carListingService.create(userId).block();
         carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
@@ -286,7 +287,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsFiltersOutListingsPublishedAfterAnchor() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser16")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser16")).block().id();
         CarListing listing = carListingService.create(userId).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
@@ -301,7 +302,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsReturnsCorrectFields() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser13")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser13")).block().id();
         CarListing listing = carListingService.create(userId).block();
         carListingService.update(listing.id(), new UpdateCarListingRequestDTO(
                 "Sport Car", "Fast and furious", CarBrand.CUSTOM, "Batmobile", "Dark Knight",
@@ -327,7 +328,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsReturnsEmptyWhenNonePublished() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser14")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser14")).block().id();
         carListingService.create(userId).block();
 
         long now = System.currentTimeMillis();
@@ -341,7 +342,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsPaginatesCorrectly() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser15")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser15")).block().id();
         CarListing listing1 = carListingService.create(userId).block();
         CarListing listing2 = carListingService.create(userId).block();
         CarListing listing3 = carListingService.create(userId).block();
@@ -370,7 +371,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingAuthorPhoneOrThrowReturnsPhone() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser20")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser20")).block().id();
         CarListing listing = carListingService.create(userId).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
@@ -381,7 +382,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingAuthorPhoneOrThrowThrowsNotFoundForDraftListing() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser21")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser21")).block().id();
         CarListing listing = carListingService.create(userId).block();
 
         StepVerifier.create(carListingService.getPublishedListingAuthorPhoneOrThrow(listing.id()))
@@ -400,7 +401,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void updateReturnsUpdatedListing() {
-        long userId = userRepository.save(TestUtils.testUser("svcuser9")).block().id();
+        long userId = userService.register(TestUtils.testUser("svcuser9")).block().id();
         CarListing created = carListingService.create(userId).block();
 
         var request = new UpdateCarListingRequestDTO(
