@@ -47,6 +47,27 @@ class CarListingServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void createIsBeingLimittedByUser() {
+        long userId1 = userService.register(TestUtils.testUser("svcuser1")).block().id();
+        long userId2 = userService.register(TestUtils.testUser("svcuser2")).block().id();
+
+        for (int i = 0; i < 30; i++) {
+            carListingService.create(userId1).block();
+        }
+
+        assertThatThrownBy(() -> carListingService.create(userId1).block())
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessage("403 FORBIDDEN \"You have reached the limit of listings per user\"");
+
+        CarListing user2Listing = carListingService.create(userId2).block();
+        user2Listing = carListingService.getListingByIdOrThrow(user2Listing.id()).block();
+        assertThat(user2Listing).isNotNull();
+        assertThat(user2Listing.id()).isGreaterThan(0);
+        assertThat(user2Listing.authorUserId()).isEqualTo(userId2);
+        assertThat(user2Listing.status()).isEqualTo(ListingStatus.DRAFT);
+    }
+
+    @Test
     void getOwnListingsReturnsTotalElementsAndContent() {
         long userId = userService.register(TestUtils.testUser("svcuser2")).block().id();
         CarListing listing1 = carListingService.create(userId).block();

@@ -12,3 +12,4 @@ spring:
 #    expiration: 31d
 #  listing:
 #    republishCooldown: 3d
+#    countLimitPerAuthor: 30

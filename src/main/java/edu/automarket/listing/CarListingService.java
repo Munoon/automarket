@@ -21,31 +21,29 @@ import java.time.Duration;
 public class CarListingService {
     private final CarListingRepository carListingRepository;
     private final long listingRepublishCooldouwnMS;
+    private final int listingsCountPerAuthorLimit;
 
     public CarListingService(CarListingRepository carListingRepository,
-                             @Value("${app.listing.republishCooldown:3d}") Duration listingRepublishCooldouwn) {
+                             @Value("${app.listing.republishCooldown:3d}") Duration listingRepublishCooldouwn,
+                             @Value("${app.listing.countLimitPerAuthor:30}") int listingsCountPerAuthorLimit) {
         this.carListingRepository = carListingRepository;
         this.listingRepublishCooldouwnMS = listingRepublishCooldouwn.toMillis();
+        this.listingsCountPerAuthorLimit = listingsCountPerAuthorLimit;
     }
 
     public Mono<CarListing> create(long authorUserId) {
-        return carListingRepository.create(authorUserId, System.currentTimeMillis());
+        return carListingRepository.countByUserIdAndStatuses(authorUserId, mapStatusNamesToString(null))
+                .flatMap(count -> {
+                    if (count >= listingsCountPerAuthorLimit) {
+                        throw new ResponseStatusException(
+                                HttpStatus.FORBIDDEN, "You have reached the limit of listings per user");
+                    }
+                    return carListingRepository.create(authorUserId, System.currentTimeMillis());
+                });
     }
 
     public Mono<PageDTO<OwnCarListingListItemDTO>> getOwnListings(long userId, ListingStatus[] statuses, int page, int size) {
-        String[] statusNames;
-        if (statuses == null || statuses.length == 0) {
-            ListingStatus[] allStatuses = ListingStatus.values();
-            statusNames = new String[allStatuses.length];
-            for (int i = 0; i < allStatuses.length; i++) {
-                statusNames[i] = allStatuses[i].name();
-            }
-        } else {
-            statusNames = new String[statuses.length];
-            for (int i = 0; i < statuses.length; i++) {
-                statusNames[i] = statuses[i].name();
-            }
-        }
+        String[] statusNames = mapStatusNamesToString(statuses);
 
         return Mono.zip(
                 carListingRepository.countByUserIdAndStatuses(userId, statusNames),
@@ -95,5 +93,22 @@ public class CarListingService {
                 carListingRepository.countPublished(request),
                 carListingRepository.findPublished(request).collectList()
         ).map(tuple -> new PageDTO<>(tuple.getT2(), tuple.getT1()));
+    }
+
+    private static String[] mapStatusNamesToString(ListingStatus[] statuses) {
+        if (statuses == null || statuses.length == 0) {
+            ListingStatus[] allStatuses = ListingStatus.values();
+            String[] statusNames = new String[allStatuses.length];
+            for (int i = 0; i < allStatuses.length; i++) {
+                statusNames[i] = allStatuses[i].name();
+            }
+            return statusNames;
+        } else {
+            String[] statusNames = new String[statuses.length];
+            for (int i = 0; i < statuses.length; i++) {
+                statusNames[i] = statuses[i].name();
+            }
+            return statusNames;
+        }
     }
 }

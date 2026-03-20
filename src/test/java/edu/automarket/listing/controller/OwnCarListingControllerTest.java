@@ -70,6 +70,47 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .expectStatus().isUnauthorized();
     }
 
+    @Test
+    void createCountLimit() {
+        long userId1 = userService.register(TestUtils.testUser("ctrluser1")).block().id();
+        String token1 = authenticationService.generateToken(userId1);
+
+        long userId2 = userService.register(TestUtils.testUser("ctrluser2")).block().id();
+        String token2 = authenticationService.generateToken(userId2);
+
+        for (int i = 0; i < 30; i++) {
+            webTestClient.post()
+                         .uri("/api/listings/own")
+                         .header("Authorization", "Bearer " + token1)
+                         .exchange()
+                         .expectStatus().isCreated()
+                         .expectBody(OwnCarListingDTO.class)
+                         .value(dto -> {
+                             assertThat(dto.id()).isNotNull();
+                             assertThat(dto.status()).isEqualTo(ListingStatus.DRAFT);
+                             assertThat(dto.createdAt()).isPositive();
+                         });
+        }
+
+        webTestClient.post()
+                     .uri("/api/listings/own")
+                     .header("Authorization", "Bearer " + token1)
+                     .exchange()
+                     .expectStatus().isForbidden();
+
+        webTestClient.post()
+                     .uri("/api/listings/own")
+                     .header("Authorization", "Bearer " + token2)
+                     .exchange()
+                     .expectStatus().isCreated()
+                     .expectBody(OwnCarListingDTO.class)
+                     .value(dto -> {
+                         assertThat(dto.id()).isNotNull();
+                         assertThat(dto.status()).isEqualTo(ListingStatus.DRAFT);
+                         assertThat(dto.createdAt()).isPositive();
+                     });
+    }
+
     // --- GET /api/listings/own ---
 
     @Test
