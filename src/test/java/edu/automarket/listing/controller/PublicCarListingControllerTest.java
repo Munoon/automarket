@@ -1,10 +1,10 @@
 package edu.automarket.listing.controller;
 
 import edu.automarket.AbstractIntegrationTest;
-import edu.automarket.TestUtils;
 import edu.automarket.analytics.CarListingAnalyticsService;
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.CarListingService;
+import edu.automarket.listing.dto.AuthorPhoneDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
@@ -12,14 +12,11 @@ import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.CarBrand;
 import edu.automarket.listing.model.CarListing;
 import edu.automarket.listing.model.ListingStatus;
-import edu.automarket.user.UserRepository;
 import edu.automarket.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.test.web.reactive.server.WebTestClient;
-
-import edu.automarket.listing.dto.AuthorPhoneDTO;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -51,7 +48,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsReturnsOnlyPublishedListings() {
-        long userId = userService.register(TestUtils.testUser("pubctrl1")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         carListingService.create(userId).block(); // draft
         CarListing published = carListingService.create(userId).block();
         carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
@@ -70,7 +67,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsFiltersOutListingsPublishedAfterAnchor() {
-        long userId = userService.register(TestUtils.testUser("pubctrl5")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
@@ -88,7 +85,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsReturnsCorrectFields() {
-        long userId = userService.register(TestUtils.testUser("pubctrl2")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
         carListingService.update(listing.id(), new UpdateCarListingRequestDTO(
                 "Test Car", "A nice car", CarBrand.TOYOTA, null, "Camry",
@@ -117,7 +114,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsReturnsEmptyWhenNonePublished() {
-        long userId = userService.register(TestUtils.testUser("pubctrl3")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         carListingService.create(userId).block();
 
         long now = System.currentTimeMillis();
@@ -134,7 +131,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingsPaginatesCorrectly() {
-        long userId = userService.register(TestUtils.testUser("pubctrl4")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
 
         CarListing listing1 = carListingService.create(userId).block();
         CarListing listing2 = carListingService.create(userId).block();
@@ -174,7 +171,8 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getByIdReturnsPublishedListingWithoutToken() {
-        long userId = userService.register(TestUtils.testUser("pubctrl6")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        userService.updateDisplayName(userId, "Test User").block();
         CarListing listing = carListingService.create(userId).block();
         carListingService.update(listing.id(), new UpdateCarListingRequestDTO(
                 "Test Car", "Nice description", CarBrand.TOYOTA, null, "Camry",
@@ -201,7 +199,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getByIdReturns404ForDraftListing() {
-        long userId = userService.register(TestUtils.testUser("pubctrl7")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
 
         webTestClient.get()
@@ -222,7 +220,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getAuthorPhoneReturnsPhoneForPublishedListingWithoutToken() {
-        long userId = userService.register(TestUtils.testUser("pubctrl8")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
@@ -231,12 +229,12 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(AuthorPhoneDTO.class)
-                .value(dto -> assertThat(dto.phoneNumber()).isEqualTo("+123456789012"));
+                .value(dto -> assertThat(dto.phoneNumber()).isEqualTo("+380123456789"));
     }
 
     @Test
     void getAuthorPhoneReturns404ForDraftListing() {
-        long userId = userService.register(TestUtils.testUser("pubctrl9")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
 
         webTestClient.get()
@@ -257,7 +255,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getById_recordsView_whenListingIsPublished() {
-        long userId = userService.register(TestUtils.testUser("pubana1")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
@@ -275,7 +273,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getAuthorPhone_recordsPhoneRequest_whenListingIsPublished() {
-        long userId = userService.register(TestUtils.testUser("pubana2")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
@@ -293,7 +291,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListings_recordsImpression_forEachReturnedListing() {
-        long userId = userService.register(TestUtils.testUser("pubana3")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing1 = carListingService.create(userId).block();
         CarListing listing2 = carListingService.create(userId).block();
         carListingService.updateStatus(listing1, ListingStatus.PUBLISHED).block();
@@ -312,7 +310,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getById_doesNotRecordView_whenListingIsNotPublished() {
-        long userId = userService.register(TestUtils.testUser("pubana4")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
 
         webTestClient.get()
@@ -329,7 +327,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getAuthorPhone_doesNotRecordPhoneRequest_whenListingIsNotPublished() {
-        long userId = userService.register(TestUtils.testUser("pubana5")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
 
         webTestClient.get()

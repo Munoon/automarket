@@ -2,17 +2,31 @@ package edu.automarket.user;
 
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.authentication.AuthenticationService;
+import edu.automarket.sms.SmsCodeRepository;
+import edu.automarket.sms.SmsCodeService;
+import edu.automarket.sms.dto.TelegramGatewayAPIRequestDTO;
 import edu.automarket.user.dto.AuthRequestDTO;
 import edu.automarket.user.dto.AuthResponseDTO;
-import edu.automarket.user.dto.RegisterRequestDTO;
+import edu.automarket.user.dto.SendVerificationCodeRequestDTO;
+import edu.automarket.user.dto.SendVerificationCodeResponseDTO;
+import edu.automarket.user.dto.UpdateDisplayNameRequestDTO;
 import edu.automarket.user.dto.UserDTO;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.r2dbc.core.DatabaseClient;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Mono;
 
-import static edu.automarket.TestUtils.testUser;
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
 
 class UserControllerTest extends AbstractIntegrationTest {
 
@@ -23,155 +37,200 @@ class UserControllerTest extends AbstractIntegrationTest {
     private UserService userService;
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
     private AuthenticationService authenticationService;
 
-    private RegisterRequestDTO validRegisterRequest() {
-        return new RegisterRequestDTO("testuser", "+123456789012", "hash", "Test User");
-    }
+    @Autowired
+    private SmsCodeRepository smsCodeRepository;
 
-    // --- POST /api/users/register ---
+    @Autowired
+    private DatabaseClient databaseClient;
+
+    @MockitoSpyBean
+    private SmsCodeService smsCodeService;
+
+    // --- POST /api/users/send-verification-code ---
 
     @Test
-    void registerReturns201WithUserData() {
-        webTestClient.post()
-                .uri("/api/users/register")
+    void sendVerificationCodeWithValidPhoneReturns200WithTtl() {
+        webTestClient.post().uri("/api/users/send-verification-code")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(validRegisterRequest())
+                .bodyValue(new SendVerificationCodeRequestDTO("+380123456789"))
                 .exchange()
-                .expectStatus().isCreated()
-                .expectBody(UserDTO.class)
-                .value(dto -> {
-                    assertThat(dto.id()).isNotNull();
-                    assertThat(dto.username()).isEqualTo("testuser");
-                    assertThat(dto.phoneNumber()).isEqualTo("+123456789012");
-                    assertThat(dto.displayName()).isEqualTo("Test User");
-                    assertThat(dto.active()).isTrue();
-                });
+                .expectStatus().isOk()
+                .expectBody(SendVerificationCodeResponseDTO.class)
+                .value(dto -> assertThat(dto.codeTimeToLiveSeconds()).isEqualTo(60));
     }
 
     @Test
-    void registerDuplicateUsernameReturns409() {
-        webTestClient.post().uri("/api/users/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(validRegisterRequest())
-                .exchange().expectStatus().isCreated();
+    void sendVerificationCodeInsertsCodeToDbAndCallsTelegramApi() {
+        long before = System.currentTimeMillis();
 
-        webTestClient.post().uri("/api/users/register")
+        webTestClient.post().uri("/api/users/send-verification-code")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(validRegisterRequest())
-                .exchange().expectStatus().isEqualTo(409);
+                .bodyValue(new SendVerificationCodeRequestDTO("+380123456789"))
+                .exchange()
+                .expectStatus().isOk();
+
+        Map<String, Object> row = databaseClient
+                .sql("SELECT code, created_at FROM sms_verification_codes WHERE phone_number = :phone")
+                .bind("phone", "+380123456789")
+                .fetch().one()
+                .block();
+
+        assertThat(row).isNotNull();
+        assertThat((String) row.get("code")).matches("^[0-9]{6}$");
+        assertThat((Long) row.get("created_at")).isGreaterThanOrEqualTo(before);
+
+        ArgumentCaptor<TelegramGatewayAPIRequestDTO> captor = ArgumentCaptor.forClass(TelegramGatewayAPIRequestDTO.class);
+        verify(telegramRequestBodySpec, timeout(500)).bodyValue(captor.capture());
+        assertThat(captor.getValue().phoneNumber()).isEqualTo("+380123456789");
     }
 
     @Test
-    void registerWithBlankUsernameReturns400() {
-        webTestClient.post().uri("/api/users/register")
+    void sendVerificationCodeReturns500WhenSmsFails() {
+        doReturn(Mono.error(new RuntimeException("SMS send failed"))).when(smsCodeService).sendSms(anyString());
+
+        webTestClient.post().uri("/api/users/send-verification-code")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterRequestDTO("   ", "+123456789012", "hash", "Test User"))
-                .exchange().expectStatus().isBadRequest();
+                .bodyValue(new SendVerificationCodeRequestDTO("+380123456789"))
+                .exchange()
+                .expectStatus().isEqualTo(500);
     }
 
     @Test
-    void registerWithDisallowedUsernameCharactersReturns400() {
-        webTestClient.post().uri("/api/users/register")
+    void sendVerificationCodeWithInvalidPhoneFormatReturns400() {
+        webTestClient.post().uri("/api/users/send-verification-code")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterRequestDTO("bad user!", "+123456789012", "hash", "Test User"))
-                .exchange().expectStatus().isBadRequest();
+                .bodyValue(new SendVerificationCodeRequestDTO("12345"))
+                .exchange()
+                .expectStatus().isBadRequest();
     }
 
     @Test
-    void registerWithTooShortUsernameReturns400() {
-        webTestClient.post().uri("/api/users/register")
+    void sendVerificationCodeWithNullPhoneReturns400() {
+        webTestClient.post().uri("/api/users/send-verification-code")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterRequestDTO("ab", "+123456789012", "hash", "Test User"))
-                .exchange().expectStatus().isBadRequest();
-    }
-
-    @Test
-    void registerWithDisallowedDisplayNameCharactersReturns400() {
-        webTestClient.post().uri("/api/users/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterRequestDTO("testuser", "+123456789012", "hash", "Bad@Name"))
-                .exchange().expectStatus().isBadRequest();
-    }
-
-    @Test
-    void registerWithInvalidPhoneNumberReturns400() {
-        webTestClient.post().uri("/api/users/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterRequestDTO("testuser", "12345", "hash", "Test User"))
-                .exchange().expectStatus().isBadRequest();
+                .bodyValue(new SendVerificationCodeRequestDTO(null))
+                .exchange()
+                .expectStatus().isBadRequest();
     }
 
     // --- POST /api/users/auth ---
 
     @Test
-    void authenticateWithValidCredentialsReturnsToken() {
-        userService.register(testUser("testUser")).block();
+    void authenticateWithValidCodeCreatesAndReturnsToken() {
+        smsCodeRepository.saveCode("+380123456789", "123456").block();
 
         webTestClient.post().uri("/api/users/auth")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new AuthRequestDTO("testUser", "hash"))
+                .bodyValue(new AuthRequestDTO("+380123456789", "123456"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(AuthResponseDTO.class)
                 .value(dto -> {
                     assertThat(dto.token()).isNotBlank();
                     assertThat(dto.tokenExpiresInSeconds()).isPositive();
-
-                    assertThat(dto.profile()).isNotNull();
-                    assertThat(dto.profile().username()).isEqualTo("testUser");
-
+                    assertThat(dto.profile().phoneNumber()).isEqualTo("+380123456789");
                     assertThat(dto.limits()).isNotNull();
-                    assertThat(dto.limits().listingRepublishCooldownMS()).isEqualTo(2_000);
-                    assertThat(dto.limits().listingsCountLimitPerAuthor()).isEqualTo(30);
                 });
     }
 
     @Test
-    void authenticateWithWrongPasswordReturns401() {
-        userService.register(testUser("testuser")).block();
+    void authenticateWithValidCodeReturnsExistingUser() {
+        User existing = userService.getUserByPhoneNumberOrCreate("+380123456789").block();
+        smsCodeRepository.saveCode("+380123456789", "123456").block();
 
         webTestClient.post().uri("/api/users/auth")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new AuthRequestDTO("testuser", "wronghash"))
-                .exchange().expectStatus().isUnauthorized();
+                .bodyValue(new AuthRequestDTO("+380123456789", "123456"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(AuthResponseDTO.class)
+                .value(dto -> assertThat(dto.profile().id()).isEqualTo(existing.id()));
     }
 
     @Test
-    void authenticateWithNonExistentUsernameReturns401() {
+    void authenticateWithInvalidCodeReturns401() {
         webTestClient.post().uri("/api/users/auth")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new AuthRequestDTO("ghost", "hash"))
-                .exchange().expectStatus().isUnauthorized();
+                .bodyValue(new AuthRequestDTO("+380123456789", "000000"))
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     @Test
-    void authenticateWithDisallowedUsernameCharactersReturns400() {
+    void authenticateWithInvalidPhoneFormatReturns400() {
         webTestClient.post().uri("/api/users/auth")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new AuthRequestDTO("bad user!", "hash"))
-                .exchange().expectStatus().isBadRequest();
+                .bodyValue(new AuthRequestDTO("12345", "123456"))
+                .exchange()
+                .expectStatus().isBadRequest();
     }
 
     @Test
     void authenticateWithInactiveUserReturns401() {
-        User testUser = new User(null, "testUser", "+123456789012", "hash", "Test User", System.currentTimeMillis(), false);
-        userRepository.save(testUser).block();
+        userService.getUserByPhoneNumberOrCreate("+380123456789").block();
+        databaseClient.sql("UPDATE users SET is_active = false WHERE phone_number = :phone")
+                .bind("phone", "+380123456789")
+                .fetch().rowsUpdated().block();
+        smsCodeRepository.saveCode("+380123456789", "123456").block();
 
         webTestClient.post().uri("/api/users/auth")
-                     .contentType(MediaType.APPLICATION_JSON)
-                     .bodyValue(new AuthRequestDTO("testUser", "hash"))
-                     .exchange().expectStatus().isUnauthorized();
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new AuthRequestDTO("+380123456789", "123456"))
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    // --- PATCH /api/users/display-name ---
+
+    @Test
+    void updateDisplayNameReturns204() {
+        User user = userService.getUserByPhoneNumberOrCreate("+380123456789").block();
+        String token = authenticationService.generateToken(user.id());
+
+        webTestClient.patch().uri("/api/users/display-name")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new UpdateDisplayNameRequestDTO("John Doe"))
+                .exchange()
+                .expectStatus().isNoContent();
+
+        webTestClient.get().uri("/api/users/profile")
+                     .header("Authorization", "Bearer " + token)
+                     .exchange()
+                     .expectStatus().isOk()
+                     .expectBody(UserDTO.class)
+                     .value(dto -> assertThat(dto.displayName()).isEqualTo("John Doe"));
+    }
+
+    @Test
+    void updateDisplayNameWithInvalidCharactersReturns400() {
+        User user = userService.getUserByPhoneNumberOrCreate("+380123456789").block();
+        String token = authenticationService.generateToken(user.id());
+
+        webTestClient.patch().uri("/api/users/display-name")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new UpdateDisplayNameRequestDTO("Bad@Name123"))
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void updateDisplayNameWithoutTokenReturns401() {
+        webTestClient.patch().uri("/api/users/display-name")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new UpdateDisplayNameRequestDTO("John Doe"))
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     // --- GET /api/users/profile ---
 
     @Test
     void getProfileWithValidTokenReturnsUserData() {
-        User user = userService.register(testUser("testUser")).block();
+        User user = userService.getUserByPhoneNumberOrCreate("+380123456789").block();
         String token = authenticationService.generateToken(user.id());
 
         webTestClient.get().uri("/api/users/profile")
@@ -181,7 +240,7 @@ class UserControllerTest extends AbstractIntegrationTest {
                 .expectBody(UserDTO.class)
                 .value(dto -> {
                     assertThat(dto.id()).isEqualTo(user.id());
-                    assertThat(dto.username()).isEqualTo("testUser");
+                    assertThat(dto.phoneNumber()).isEqualTo("+380123456789");
                 });
     }
 

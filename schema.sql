@@ -1,10 +1,16 @@
+CREATE TABLE IF NOT EXISTS sms_verification_codes
+(
+    phone_number VARCHAR(13) NOT NULL,
+    code         VARCHAR(6) NOT NULL,
+    created_at   BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS sms_verification_codes_phone_number_idx ON sms_verification_codes (phone_number);
+
 CREATE TABLE IF NOT EXISTS users
 (
     id            BIGSERIAL PRIMARY KEY,
-    username      VARCHAR(50) NOT NULL UNIQUE,
-    phone_number  VARCHAR(13) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    display_name  VARCHAR(100) NOT NULL,
+    phone_number  VARCHAR(13) NOT NULL UNIQUE,
+    display_name  VARCHAR(100),
     created_at    BIGINT NOT NULL,
     is_active     BOOLEAN NOT NULL DEFAULT TRUE
 );

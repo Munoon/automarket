@@ -1,7 +1,6 @@
 package edu.automarket.analytics;
 
 import edu.automarket.AbstractIntegrationTest;
-import edu.automarket.TestUtils;
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.CarListingService;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
@@ -28,7 +27,7 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void saveAnalytics_insertsRowWithCorrectCounters() {
-        long userId = userService.register(TestUtils.testUser("anarepo1")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         long listingId = carListingService.create(userId).block().id();
 
         CarListingAnalyticsCounter counter = new CarListingAnalyticsCounter();
@@ -50,7 +49,7 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void saveAnalytics_insertsSeparateRowsForMultipleListings() {
-        long userId = userService.register(TestUtils.testUser("anarepo2")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         long listingId1 = carListingService.create(userId).block().id();
         long listingId2 = carListingService.create(userId).block().id();
 
@@ -76,7 +75,7 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void saveAnalytics_allowsMultipleRowsForSameListingWithDifferentTimestamps() {
-        long userId = userService.register(TestUtils.testUser("anarepo3")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         long listingId = carListingService.create(userId).block().id();
 
         CarListingAnalyticsCounter counter1 = new CarListingAnalyticsCounter();
@@ -97,7 +96,7 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void saveAnalytics_aggregatesCountersOnConflict() {
-        long userId = userService.register(TestUtils.testUser("anarepo4")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         long listingId = carListingService.create(userId).block().id();
 
         long ts = System.currentTimeMillis();
@@ -121,7 +120,7 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void clearOldAnalytics() {
-        long userId = userService.register(TestUtils.testUser("anarepo4")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         long listingId = carListingService.create(userId).block().id();
 
         long ts = System.currentTimeMillis();

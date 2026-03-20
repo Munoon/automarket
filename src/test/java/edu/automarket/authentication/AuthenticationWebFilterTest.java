@@ -8,8 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-import static edu.automarket.TestUtils.testUser;
-
 class AuthenticationWebFilterTest extends AbstractIntegrationTest {
 
     @Autowired
@@ -31,7 +29,7 @@ class AuthenticationWebFilterTest extends AbstractIntegrationTest {
 
     @Test
     void requestWithValidBearerTokenIsAuthenticated() {
-        User user = userService.register(testUser("filteruser")).block();
+        User user = userService.getUserByPhoneNumberOrCreate("+380123456789").block();
         String token = authenticationService.generateToken(user.id());
 
         webTestClient.get()
@@ -55,7 +53,7 @@ class AuthenticationWebFilterTest extends AbstractIntegrationTest {
 
     @Test
     void requestWithNonBearerPrefixIsRejected() {
-        User user = userService.register(testUser("filteruser2")).block();
+        User user = userService.getUserByPhoneNumberOrCreate("+380123456789").block();
         String token = authenticationService.generateToken(user.id());
 
         webTestClient.get()

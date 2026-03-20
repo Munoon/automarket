@@ -1,10 +1,8 @@
 package edu.automarket.user;
 
 public record User(
-        Long id,
-        String username,
+        long id,
         String phoneNumber,
-        String passwordHash,
         String displayName,
         long createdAt,
         boolean active

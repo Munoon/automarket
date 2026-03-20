@@ -2,15 +2,10 @@ package edu.automarket.user.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 
-public record AuthRequestDTO(
+public record SendVerificationCodeRequestDTO(
         @NotNull
         @Pattern(regexp = "^\\+\\d{12}$", message = "Phone number must be in format +XXXXXXXXXXXX")
-        String phoneNumber,
-
-        @NotNull
-        @Size(min = 6, max = 6)
-        String code
+        String phoneNumber
 ) {
 }

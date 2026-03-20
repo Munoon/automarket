@@ -1,7 +1,6 @@
 package edu.automarket.analytics;
 
 import edu.automarket.AbstractIntegrationTest;
-import edu.automarket.TestUtils;
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.CarListingService;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
@@ -32,7 +31,7 @@ class CarListingAnalyticsServiceTest extends AbstractIntegrationTest {
 
     @Test
     void recordListingImpression_incrementsImpressionCount() {
-        long userId = userService.register(TestUtils.testUser("anasvc1")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
 
         service.recordListingImpression(listing.id());
@@ -47,7 +46,7 @@ class CarListingAnalyticsServiceTest extends AbstractIntegrationTest {
 
     @Test
     void recordListingView_incrementsViewCount() {
-        long userId = userService.register(TestUtils.testUser("anasvc2")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
 
         service.recordListingView(listing.id());
@@ -61,7 +60,7 @@ class CarListingAnalyticsServiceTest extends AbstractIntegrationTest {
 
     @Test
     void recordListingPhoneRequest_incrementsPhoneRequestCount() {
-        long userId = userService.register(TestUtils.testUser("anasvc3")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
 
         service.recordListingPhoneRequest(listing.id());
@@ -74,7 +73,7 @@ class CarListingAnalyticsServiceTest extends AbstractIntegrationTest {
 
     @Test
     void recordListingAddedToFavourity_incrementsFavouritesCount() {
-        long userId = userService.register(TestUtils.testUser("anasvc4")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
 
         service.recordListingAddedToFavourity(listing.id());
@@ -88,7 +87,7 @@ class CarListingAnalyticsServiceTest extends AbstractIntegrationTest {
 
     @Test
     void saveListingAnalytics_clearsCountersAfterSave() {
-        long userId = userService.register(TestUtils.testUser("anasvc5")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
 
         service.recordListingImpression(listing.id());
@@ -102,7 +101,7 @@ class CarListingAnalyticsServiceTest extends AbstractIntegrationTest {
 
     @Test
     void clearOldAnalytics() {
-        long userId = userService.register(TestUtils.testUser("anarepo4")).block().id();
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         long listingId = carListingService.create(userId).block().id();
 
         long now = System.currentTimeMillis();

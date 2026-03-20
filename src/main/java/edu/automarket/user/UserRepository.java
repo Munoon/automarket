@@ -7,26 +7,30 @@ import reactor.core.publisher.Mono;
 @Repository
 public class UserRepository {
     //language=postgresql
-    private static final String SELECT_USER_COUNT_BY_USERNAME_QUERY = "SELECT COUNT(*) FROM users WHERE username = :username";
-
-    //language=postgresql
     private static final String CREATE_USER_QUERY = """
-            INSERT INTO users (username, phone_number, password_hash, display_name, created_at, is_active)
-            VALUES (:username, :phoneNumber, :passwordHash, :displayName, :createdAt, :active)
+            INSERT INTO users (phone_number, created_at, is_active)
+            VALUES (:phoneNumber, :createdAt, true)
             RETURNING id
             """;
 
     //language=postgresql
-    private static final String SELECT_BY_USERNAME_QUERY = """
-            SELECT id, username, phone_number, password_hash, display_name, created_at, is_active
+    private static final String SELECT_BY_ID_QUERY = """
+            SELECT id, phone_number, display_name, created_at, is_active
             FROM users
-            WHERE username = :username
+            WHERE id = :id
             """;
 
     //language=postgresql
-    private static final String SELECT_BY_ID_QUERY = """
-            SELECT id, username, phone_number, password_hash, display_name, created_at, is_active
+    private static final String SELECT_BY_PHONE_NUMBER_QUERY = """
+            SELECT id, phone_number, display_name, created_at, is_active
             FROM users
+            WHERE phone_number = :phoneNumber
+            """;
+
+    //language=postgresql
+    private static final String UPDATE_DISPLAY_NAME_BY_ID = """
+            UPDATE users
+            SET display_name = :displayName
             WHERE id = :id
             """;
 
@@ -36,61 +40,51 @@ public class UserRepository {
         this.client = client;
     }
 
-    public Mono<Boolean> existsByUsername(String username) {
-        return client.sql(SELECT_USER_COUNT_BY_USERNAME_QUERY)
-                .bind("username", username)
-                .map(row -> row.get(0, Long.class))
-                .one()
-                .map(count -> count > 0);
-    }
-
-    public Mono<User> save(User user) {
+    public Mono<User> register(String phoneNumber) {
+        long createdAt = System.currentTimeMillis();
         return client.sql(CREATE_USER_QUERY)
-                .bind("username", user.username())
-                .bind("phoneNumber", user.phoneNumber())
-                .bind("passwordHash", user.passwordHash())
-                .bind("displayName", user.displayName())
-                .bind("createdAt", user.createdAt())
-                .bind("active", user.active())
-                .map(row -> new User(
+                     .bind("phoneNumber", phoneNumber)
+                     .bind("createdAt", createdAt)
+                     .map(row -> new User(
                         row.get(0, Long.class),
-                        user.username(),
-                        user.phoneNumber(),
-                        user.passwordHash(),
-                        user.displayName(),
-                        user.createdAt(),
-                        user.active()
-                ))
-                .one();
+                        phoneNumber,
+                        null,
+                        createdAt,
+                        true
+                     ))
+                     .one();
     }
 
-    public Mono<User> findByUsername(String username) {
-        return client.sql(SELECT_BY_USERNAME_QUERY)
-                .bind("username", username)
-                .map(row -> new User(
-                        row.get(0, Long.class),
-                        row.get(1, String.class),
-                        row.get(2, String.class),
-                        row.get(3, String.class),
-                        row.get(4, String.class),
-                        row.get(5, Long.class),
-                        Boolean.TRUE.equals(row.get(6, Boolean.class))
-                ))
-                .one();
-    }
-
-    public Mono<User> findById(Long id) {
+    public Mono<User> findById(long id) {
         return client.sql(SELECT_BY_ID_QUERY)
                 .bind("id", id)
                 .map(row -> new User(
                         row.get(0, Long.class),
                         row.get(1, String.class),
                         row.get(2, String.class),
-                        row.get(3, String.class),
-                        row.get(4, String.class),
-                        row.get(5, Long.class),
-                        Boolean.TRUE.equals(row.get(6, Boolean.class))
+                        row.get(3, Long.class),
+                        Boolean.TRUE.equals(row.get(4, Boolean.class))
                 ))
                 .one();
+    }
+
+    public Mono<User> findByPhoneNumber(String phoneNumber) {
+        return client.sql(SELECT_BY_PHONE_NUMBER_QUERY)
+                .bind("phoneNumber", phoneNumber)
+                .map(row -> new User(
+                        row.get(0, Long.class),
+                        row.get(1, String.class),
+                        row.get(2, String.class),
+                        row.get(3, Long.class),
+                        Boolean.TRUE.equals(row.get(4, Boolean.class))
+                ))
+                .one();
+    }
+
+    public Mono<Void> updateDisplayName(long userId, String displayName) {
+        return client.sql(UPDATE_DISPLAY_NAME_BY_ID)
+                .bind("id", userId)
+                .bind("displayName", displayName)
+                .fetch().rowsUpdated().then();
     }
 }

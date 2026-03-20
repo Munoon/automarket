@@ -7,6 +7,7 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
 @EnableWebFluxSecurity
@@ -24,11 +25,16 @@ public class SecurityConfig {
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers("/api/users/register", "/api/users/auth").permitAll()
+                        .pathMatchers("/api/users/send-verification-code", "/api/users/auth").permitAll()
                         .pathMatchers("/api/listings/public/**").permitAll()
                         .anyExchange().authenticated()
                 )
                 .addFilterAt(jwtAuthFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .build();
+    }
+
+    @Bean
+    public WebClient webClient() {
+        return WebClient.create();
     }
 }
