@@ -1,5 +1,6 @@
 package edu.automarket;
 
+import edu.automarket.analytics.CarListingAnalyticsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,9 +16,13 @@ public abstract class AbstractIntegrationTest {
     @Autowired
     private DatabaseClient databaseClient;
 
+    @Autowired
+    private CarListingAnalyticsService carListingAnalyticsService;
+
     @BeforeEach
     void truncateTables() {
-        databaseClient.sql("TRUNCATE TABLE car_listings, users RESTART IDENTITY CASCADE")
+        carListingAnalyticsService.saveListingAnalytics(); // flush stale in-memory counters before listings are gone
+        databaseClient.sql("TRUNCATE TABLE car_listing_analytics, car_listings, users RESTART IDENTITY CASCADE")
                 .fetch()
                 .rowsUpdated()
                 .block();

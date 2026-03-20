@@ -75,3 +75,14 @@ CREATE TABLE IF NOT EXISTS car_listings
     updated_at        BIGINT NOT NULL,
     published_at      BIGINT NOT NULL DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS car_listing_analytics
+(
+    listing_id           BIGINT NOT NULL REFERENCES car_listings (id) ON DELETE CASCADE,
+    impressions_count    INT NOT NULL DEFAULT 0,
+    views_count          INT NOT NULL DEFAULT 0,
+    phone_requests_count INT NOT NULL DEFAULT 0,
+    favourites_count     INT NOT NULL DEFAULT 0,
+    ts                   TIMESTAMP NOT NULL,
+    PRIMARY KEY (listing_id, ts)
+);

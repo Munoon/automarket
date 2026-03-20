@@ -13,3 +13,5 @@ spring:
 #  listing:
 #    republishCooldown: 3d
 #    countLimitPerAuthor: 30
+#    analytics:
+#      storageDuration: 365d

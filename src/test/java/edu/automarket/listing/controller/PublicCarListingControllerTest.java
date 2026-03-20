@@ -2,8 +2,10 @@ package edu.automarket.listing.controller;
 
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.TestUtils;
+import edu.automarket.analytics.CarListingAnalyticsService;
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.CarListingService;
+import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
@@ -31,6 +33,9 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
     @Autowired
     private CarListingService carListingService;
+
+    @Autowired
+    private CarListingAnalyticsService analyticsService;
 
     private static final ParameterizedTypeReference<PageDTO<PublicCarListingItemDTO>> PAGE_TYPE =
             new ParameterizedTypeReference<>() {};
@@ -246,5 +251,106 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
                 .uri("/api/listings/public/9999/phone")
                 .exchange()
                 .expectStatus().isNotFound();
+    }
+
+    // --- Analytics recording ---
+
+    @Test
+    void getById_recordsView_whenListingIsPublished() {
+        long userId = userService.register(TestUtils.testUser("pubana1")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get()
+                .uri("/api/listings/public/" + listing.id())
+                .exchange()
+                .expectStatus().isOk();
+
+        analyticsService.saveListingAnalytics();
+
+        OwnCarListingListItemDTO dto = queryAnalytics(userId, listing.id());
+        assertThat(dto).isNotNull();
+        assertThat(dto.viewsCount()).isEqualTo(1);
+    }
+
+    @Test
+    void getAuthorPhone_recordsPhoneRequest_whenListingIsPublished() {
+        long userId = userService.register(TestUtils.testUser("pubana2")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get()
+                .uri("/api/listings/public/" + listing.id() + "/phone")
+                .exchange()
+                .expectStatus().isOk();
+
+        analyticsService.saveListingAnalytics();
+
+        OwnCarListingListItemDTO dto = queryAnalytics(userId, listing.id());
+        assertThat(dto).isNotNull();
+        assertThat(dto.phoneRequestsCount()).isEqualTo(1);
+    }
+
+    @Test
+    void getPublishedListings_recordsImpression_forEachReturnedListing() {
+        long userId = userService.register(TestUtils.testUser("pubana3")).block().id();
+        CarListing listing1 = carListingService.create(userId).block();
+        CarListing listing2 = carListingService.create(userId).block();
+        carListingService.updateStatus(listing1, ListingStatus.PUBLISHED).block();
+        carListingService.updateStatus(listing2, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get()
+                .uri("/api/listings/public")
+                .exchange()
+                .expectStatus().isOk();
+
+        analyticsService.saveListingAnalytics();
+
+        assertThat(queryAnalytics(userId, listing1.id()).impressionsCount()).isEqualTo(1);
+        assertThat(queryAnalytics(userId, listing2.id()).impressionsCount()).isEqualTo(1);
+    }
+
+    @Test
+    void getById_doesNotRecordView_whenListingIsNotPublished() {
+        long userId = userService.register(TestUtils.testUser("pubana4")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+
+        webTestClient.get()
+                .uri("/api/listings/public/" + listing.id())
+                .exchange()
+                .expectStatus().isNotFound();
+
+        analyticsService.saveListingAnalytics();
+
+        OwnCarListingListItemDTO dto = queryAnalytics(userId, listing.id());
+        assertThat(dto).isNotNull();
+        assertThat(dto.viewsCount()).isEqualTo(0);
+    }
+
+    @Test
+    void getAuthorPhone_doesNotRecordPhoneRequest_whenListingIsNotPublished() {
+        long userId = userService.register(TestUtils.testUser("pubana5")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+
+        webTestClient.get()
+                .uri("/api/listings/public/" + listing.id() + "/phone")
+                .exchange()
+                .expectStatus().isNotFound();
+
+        analyticsService.saveListingAnalytics();
+
+        OwnCarListingListItemDTO dto = queryAnalytics(userId, listing.id());
+        assertThat(dto).isNotNull();
+        assertThat(dto.phoneRequestsCount()).isEqualTo(0);
+    }
+
+    private OwnCarListingListItemDTO queryAnalytics(long userId, long listingId) {
+        PageDTO<OwnCarListingListItemDTO> page = carListingService.getOwnListings(userId, null, 0, 100).block();
+        for (OwnCarListingListItemDTO item : page.content()) {
+            if (item.id() == listingId) {
+                return item;
+            }
+        }
+        return null;
     }
 }

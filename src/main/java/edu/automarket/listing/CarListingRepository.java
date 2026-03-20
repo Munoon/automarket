@@ -35,8 +35,20 @@ public class CarListingRepository {
 
     //language=postgresql
     private static final String SELECT_BY_USER_ID_AND_STATUSES_QUERY = """
-            SELECT id, status::text, title, published_at
+            SELECT id, status::text, title, published_at,
+                   COALESCE(impressions_count, 0), COALESCE(views_count, 0),
+                   COALESCE(phone_requests_count, 0), COALESCE(favourites_count, 0)
             FROM car_listings
+            LEFT JOIN (
+                SELECT listing_id,
+                       sum(impressions_count) AS impressions_count,
+                       sum(views_count) AS views_count,
+                       sum(phone_requests_count) AS phone_requests_count,
+                       sum(favourites_count) AS favourites_count
+                FROM car_listing_analytics
+                WHERE listing_id IN (SELECT id FROM car_listings WHERE author_user_id = :authorUserId)
+                GROUP BY listing_id
+            ) an ON an.listing_id = car_listings.id
             WHERE author_user_id = :authorUserId
               AND status::text = ANY(:statuses)
             ORDER BY created_at DESC
@@ -174,7 +186,11 @@ public class CarListingRepository {
                         row.get(0, Long.class),
                         ListingStatus.valueOf(row.get(1, String.class)),
                         row.get(2, String.class),
-                        row.get(3, Long.class)
+                        row.get(3, Long.class),
+                        row.get(4, Long.class),
+                        row.get(5, Long.class),
+                        row.get(6, Long.class),
+                        row.get(7, Long.class)
                 ))
                 .all();
     }
