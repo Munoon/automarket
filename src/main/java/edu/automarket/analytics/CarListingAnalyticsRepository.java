@@ -35,7 +35,7 @@ public class CarListingAnalyticsRepository {
                    sum(impressions_count), sum(views_count), sum(phone_requests_count), sum(favourites_count)
             FROM car_listing_analytics
             WHERE listing_id = :listingId
-              AND ts >= (NOW() AT TIME ZONE 'UTC') - INTERVAL '365 days'
+              AND ts >= :minTS
             GROUP BY day
             ORDER BY day ASC
             """;
@@ -77,10 +77,11 @@ public class CarListingAnalyticsRepository {
         });
     }
 
-    public Flux<ListingAnalyticsDayDTO> getAnalyticsByDay(long listingId, ZoneId zoneId) {
+    public Flux<ListingAnalyticsDayDTO> getAnalyticsByDay(long listingId, ZoneId zoneId, long minTS) {
         return client.sql(SELECT_ANALYTICS_BY_DAY_QUERY)
                 .bind("listingId", listingId)
                 .bind("zoneId", zoneId.getId())
+                .bind("minTS", LocalDateTime.ofInstant(Instant.ofEpochMilli(minTS), ZoneOffset.UTC))
                 .map(row -> new ListingAnalyticsDayDTO(
                         row.get(0, Long.class),
                         row.get(1, Long.class),

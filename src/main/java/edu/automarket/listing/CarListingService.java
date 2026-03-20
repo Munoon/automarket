@@ -20,14 +20,14 @@ import java.time.Duration;
 @Service
 public class CarListingService {
     private final CarListingRepository carListingRepository;
-    private final long listingRepublishCooldouwnMS;
+    private final long listingRepublishCooldownMS;
     private final int listingsCountPerAuthorLimit;
 
     public CarListingService(CarListingRepository carListingRepository,
                              @Value("${app.listing.republishCooldown:3d}") Duration listingRepublishCooldouwn,
                              @Value("${app.listing.countLimitPerAuthor:30}") int listingsCountPerAuthorLimit) {
         this.carListingRepository = carListingRepository;
-        this.listingRepublishCooldouwnMS = listingRepublishCooldouwn.toMillis();
+        this.listingRepublishCooldownMS = listingRepublishCooldouwn.toMillis();
         this.listingsCountPerAuthorLimit = listingsCountPerAuthorLimit;
     }
 
@@ -67,7 +67,7 @@ public class CarListingService {
 
         if (newStatus == ListingStatus.PUBLISHED
             && listing.publishedAt() > 0
-            && publishedAt - listing.publishedAt() < listingRepublishCooldouwnMS) {
+            && publishedAt - listing.publishedAt() < listingRepublishCooldownMS) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Listing publishing cooldown in progress");
         }
 
@@ -110,5 +110,13 @@ public class CarListingService {
             }
             return statusNames;
         }
+    }
+
+    public long getListingRepublishCooldownMS() {
+        return listingRepublishCooldownMS;
+    }
+
+    public int getListingsCountPerAuthorLimit() {
+        return listingsCountPerAuthorLimit;
     }
 }

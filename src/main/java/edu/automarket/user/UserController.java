@@ -1,8 +1,10 @@
 package edu.automarket.user;
 
 import edu.automarket.authentication.AuthenticationService;
+import edu.automarket.listing.CarListingService;
 import edu.automarket.user.dto.AuthRequestDTO;
 import edu.automarket.user.dto.AuthResponseDTO;
+import edu.automarket.user.dto.LimitsDTO;
 import edu.automarket.user.dto.RegisterRequestDTO;
 import edu.automarket.user.dto.UserDTO;
 import org.springframework.http.HttpStatus;
@@ -17,10 +19,17 @@ import reactor.core.publisher.Mono;
 public class UserController {
     private final UserService userService;
     private final AuthenticationService authenticationService;
+    private final LimitsDTO limits;
 
-    public UserController(UserService userService, AuthenticationService authenticationService) {
+    public UserController(UserService userService,
+                          AuthenticationService authenticationService,
+                          CarListingService carListingService) {
         this.userService = userService;
         this.authenticationService = authenticationService;
+        this.limits = new LimitsDTO(
+                carListingService.getListingRepublishCooldownMS(),
+                carListingService.getListingsCountPerAuthorLimit()
+        );
     }
 
     @PostMapping("/register")
@@ -36,7 +45,7 @@ public class UserController {
                 .map(user -> {
                     String jwtToken = authenticationService.generateToken(user.id());
                     long tokenExpiresInSeconds = authenticationService.tokenExpirationSeconds();
-                    return new AuthResponseDTO(jwtToken, tokenExpiresInSeconds, user);
+                    return new AuthResponseDTO(jwtToken, tokenExpiresInSeconds, user, limits);
                 })
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials")));
     }

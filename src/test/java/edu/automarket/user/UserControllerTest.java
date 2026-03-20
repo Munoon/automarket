@@ -120,8 +120,13 @@ class UserControllerTest extends AbstractIntegrationTest {
                 .value(dto -> {
                     assertThat(dto.token()).isNotBlank();
                     assertThat(dto.tokenExpiresInSeconds()).isPositive();
+
                     assertThat(dto.profile()).isNotNull();
                     assertThat(dto.profile().username()).isEqualTo("testUser");
+
+                    assertThat(dto.limits()).isNotNull();
+                    assertThat(dto.limits().listingRepublishCooldownMS()).isEqualTo(2_000);
+                    assertThat(dto.limits().listingsCountLimitPerAuthor()).isEqualTo(30);
                 });
     }
 

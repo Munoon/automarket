@@ -36,7 +36,8 @@ public class CarListingAnalyticsService {
     }
 
     public Flux<ListingAnalyticsDayDTO> getListingAnalyticsByDay(long listingId, ZoneId zoneId) {
-        return carListingAnalyticsRepository.getAnalyticsByDay(listingId, zoneId);
+        long minTS = System.currentTimeMillis() - analyticsStorageDurationMS;
+        return carListingAnalyticsRepository.getAnalyticsByDay(listingId, zoneId, minTS);
     }
 
     public void recordListingImpression(Long listingId) {
