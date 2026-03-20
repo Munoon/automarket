@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
 class CarListingServiceTest extends AbstractIntegrationTest {
@@ -219,6 +220,37 @@ class CarListingServiceTest extends AbstractIntegrationTest {
                     assertThat(listing.publishedAt()).isEqualTo(published.publishedAt());
                 })
                 .verifyComplete();
+    }
+
+    @Test
+    void updateStatusCooldownOnRepublish() throws InterruptedException {
+        long userId = userService.register(TestUtils.testUser("svcuser17")).block().id();
+        CarListing listing = carListingService.create(userId).block();
+
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+        CarListing publishedListing = carListingService.getListingByIdOrThrow(listing.id()).block();
+        assertThat(publishedListing).isNotNull();
+        assertThat(publishedListing.status()).isEqualTo(ListingStatus.PUBLISHED);
+
+        carListingService.updateStatus(publishedListing, ListingStatus.ARCHIVED).block();
+        CarListing archivedListing = carListingService.getListingByIdOrThrow(listing.id()).block();
+        assertThat(archivedListing).isNotNull();
+        assertThat(archivedListing.status()).isEqualTo(ListingStatus.ARCHIVED);
+
+        assertThatThrownBy(() -> carListingService.updateStatus(archivedListing, ListingStatus.PUBLISHED).block())
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessage("400 BAD_REQUEST \"Listing publishing cooldown in progress\"");
+
+        listing = carListingService.getListingByIdOrThrow(listing.id()).block();
+        assertThat(listing).isNotNull();
+        assertThat(listing.status()).isEqualTo(ListingStatus.ARCHIVED);
+
+        Thread.sleep(2_000); // wait for the cooldown
+
+        carListingService.updateStatus(archivedListing, ListingStatus.PUBLISHED).block();
+        publishedListing = carListingService.getListingByIdOrThrow(listing.id()).block();
+        assertThat(publishedListing).isNotNull();
+        assertThat(publishedListing.status()).isEqualTo(ListingStatus.PUBLISHED);
     }
 
     @Test

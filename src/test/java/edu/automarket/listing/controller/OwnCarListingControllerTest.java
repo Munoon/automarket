@@ -329,6 +329,68 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .expectStatus().isForbidden();
     }
 
+    @Test
+    void updateStatusCooldownOnRepublish() throws InterruptedException {
+        long userId = userService.register(TestUtils.testUser("ctrluser8e")).block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        webTestClient.patch()
+                     .uri("/api/listings/own/" + listing.id() + "/status")
+                     .header("Authorization", "Bearer " + token)
+                     .contentType(MediaType.APPLICATION_JSON)
+                     .bodyValue(new UpdateListingStatusRequestDTO(ListingStatus.PUBLISHED))
+                     .exchange()
+                     .expectStatus().isNoContent()
+                     .expectBody().isEmpty();
+
+        listing = carListingService.getListingByIdOrThrow(listing.id()).block();
+        assertThat(listing).isNotNull();
+        assertThat(listing.status()).isEqualTo(ListingStatus.PUBLISHED);
+
+        webTestClient.patch()
+                     .uri("/api/listings/own/" + listing.id() + "/status")
+                     .header("Authorization", "Bearer " + token)
+                     .contentType(MediaType.APPLICATION_JSON)
+                     .bodyValue(new UpdateListingStatusRequestDTO(ListingStatus.ARCHIVED))
+                     .exchange()
+                     .expectStatus().isNoContent()
+                     .expectBody().isEmpty();
+
+        listing = carListingService.getListingByIdOrThrow(listing.id()).block();
+        assertThat(listing).isNotNull();
+        assertThat(listing.status()).isEqualTo(ListingStatus.ARCHIVED);
+
+        // re-publish before the cooldown passed
+        webTestClient.patch()
+                     .uri("/api/listings/own/" + listing.id() + "/status")
+                     .header("Authorization", "Bearer " + token)
+                     .contentType(MediaType.APPLICATION_JSON)
+                     .bodyValue(new UpdateListingStatusRequestDTO(ListingStatus.PUBLISHED))
+                     .exchange()
+                     .expectStatus().isBadRequest();
+
+        listing = carListingService.getListingByIdOrThrow(listing.id()).block();
+        assertThat(listing).isNotNull();
+        assertThat(listing.status()).isEqualTo(ListingStatus.ARCHIVED);
+
+        // wait for cooldown to pass
+        Thread.sleep(2_000);
+
+        webTestClient.patch()
+                     .uri("/api/listings/own/" + listing.id() + "/status")
+                     .header("Authorization", "Bearer " + token)
+                     .contentType(MediaType.APPLICATION_JSON)
+                     .bodyValue(new UpdateListingStatusRequestDTO(ListingStatus.PUBLISHED))
+                     .exchange()
+                     .expectStatus().isNoContent()
+                     .expectBody().isEmpty();
+
+        listing = carListingService.getListingByIdOrThrow(listing.id()).block();
+        assertThat(listing).isNotNull();
+        assertThat(listing.status()).isEqualTo(ListingStatus.PUBLISHED);
+    }
+
     // --- PATCH /api/listings/own/{id} ---
 
     @Test

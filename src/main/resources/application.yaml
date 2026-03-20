@@ -5,3 +5,10 @@ spring:
     url: r2dbc:postgresql://localhost:5432/automarket
     username: automarket
     password: automarket
+
+#app:
+#  jwt:
+#    secret: base64-encoded-secret
+#    expiration: 31d
+#  listing:
+#    republishCooldown: 3d

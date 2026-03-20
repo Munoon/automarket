@@ -9,17 +9,23 @@ import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.CarListing;
 import edu.automarket.listing.model.ListingStatus;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+
 @Service
 public class CarListingService {
     private final CarListingRepository carListingRepository;
+    private final long listingRepublishCooldouwnMS;
 
-    public CarListingService(CarListingRepository carListingRepository) {
+    public CarListingService(CarListingRepository carListingRepository,
+                             @Value("${app.listing.republishCooldown:3d}") Duration listingRepublishCooldouwn) {
         this.carListingRepository = carListingRepository;
+        this.listingRepublishCooldouwnMS = listingRepublishCooldouwn.toMillis();
     }
 
     public Mono<CarListing> create(long authorUserId) {
@@ -60,6 +66,12 @@ public class CarListingService {
         long publishedAt = newStatus == ListingStatus.PUBLISHED
                 ? System.currentTimeMillis()
                 : listing.publishedAt();
+
+        if (newStatus == ListingStatus.PUBLISHED
+            && listing.publishedAt() > 0
+            && publishedAt - listing.publishedAt() < listingRepublishCooldouwnMS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Listing publishing cooldown in progress");
+        }
 
         return carListingRepository.updateStatus(listing.id(), newStatus, publishedAt);
     }
