@@ -119,8 +119,9 @@ class UserControllerTest extends AbstractIntegrationTest {
                 .expectBody(AuthResponseDTO.class)
                 .value(dto -> {
                     assertThat(dto.token()).isNotBlank();
-                    assertThat(dto.username()).isEqualTo("testUser");
                     assertThat(dto.tokenExpiresInSeconds()).isPositive();
+                    assertThat(dto.profile()).isNotNull();
+                    assertThat(dto.profile().username()).isEqualTo("testUser");
                 });
     }
 
