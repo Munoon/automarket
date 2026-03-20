@@ -1,5 +1,6 @@
 package edu.automarket.analytics;
 
+import edu.automarket.analytics.dto.ListingAnalyticsDayDTO;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
 import org.springframework.r2dbc.core.DatabaseClient;
@@ -9,6 +10,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map.Entry;
@@ -28,6 +30,17 @@ public class CarListingAnalyticsRepository {
             """;
 
     //language=postgresql
+    private static final String SELECT_ANALYTICS_BY_DAY_QUERY = """
+            SELECT EXTRACT(EPOCH FROM date_trunc('day', ts AT TIME ZONE 'UTC', :zoneId))::BIGINT AS day,
+                   sum(impressions_count), sum(views_count), sum(phone_requests_count), sum(favourites_count)
+            FROM car_listing_analytics
+            WHERE listing_id = :listingId
+              AND ts >= (NOW() AT TIME ZONE 'UTC') - INTERVAL '365 days'
+            GROUP BY day
+            ORDER BY day ASC
+            """;
+
+    //language=postgresql
     private static final String CLEAR_OLD_ANALYTICS = """
             DELETE FROM car_listing_analytics
             WHERE ts < :ts
@@ -40,7 +53,8 @@ public class CarListingAnalyticsRepository {
     }
 
     public Mono<Void> saveAnalytics(long countersTS, List<Entry<Long, CarListingAnalyticsCounter>> analytics) {
-        LocalDateTime ts = LocalDateTime.ofInstant(Instant.ofEpochMilli(countersTS), ZoneOffset.UTC);
+        Instant truncatedInstant = Instant.ofEpochMilli(countersTS - countersTS % 3600000L);
+        LocalDateTime ts = LocalDateTime.ofInstant(truncatedInstant, ZoneOffset.UTC);
         return client.inConnection(connection -> {
             Statement statement = connection.createStatement(UPSERT_QUERY);
             for (int i = 0; i < analytics.size(); i++) {
@@ -61,6 +75,20 @@ public class CarListingAnalyticsRepository {
 
             return Flux.from(statement.execute()).flatMap(Result::getRowsUpdated).then();
         });
+    }
+
+    public Flux<ListingAnalyticsDayDTO> getAnalyticsByDay(long listingId, ZoneId zoneId) {
+        return client.sql(SELECT_ANALYTICS_BY_DAY_QUERY)
+                .bind("listingId", listingId)
+                .bind("zoneId", zoneId.getId())
+                .map(row -> new ListingAnalyticsDayDTO(
+                        row.get(0, Long.class),
+                        row.get(1, Long.class),
+                        row.get(2, Long.class),
+                        row.get(3, Long.class),
+                        row.get(4, Long.class)
+                ))
+                .all();
     }
 
     public Mono<Long> clearOldAnalytics(long minTS) {

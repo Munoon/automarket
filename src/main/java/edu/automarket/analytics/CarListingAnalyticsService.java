@@ -1,13 +1,16 @@
 package edu.automarket.analytics;
 
+import edu.automarket.analytics.dto.ListingAnalyticsDayDTO;
 import jakarta.annotation.PreDestroy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 import java.time.Duration;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -24,12 +27,16 @@ public class CarListingAnalyticsService {
     private final CarListingAnalyticsRepository carListingAnalyticsRepository;
     private final long analyticsStorageDurationMS;
     private final ConcurrentMap<Long, CarListingAnalyticsCounter> listingsCounters = new ConcurrentHashMap<>();
-    private volatile long countersTS = getCountersTS();
+    private volatile long countersTS = System.currentTimeMillis();
 
     public CarListingAnalyticsService(CarListingAnalyticsRepository carListingAnalyticsRepository,
                                       @Value("${app.listing.analytics.storageDuration:365d}") Duration analyticsStorageDuration) {
         this.carListingAnalyticsRepository = carListingAnalyticsRepository;
         this.analyticsStorageDurationMS = analyticsStorageDuration.toMillis();
+    }
+
+    public Flux<ListingAnalyticsDayDTO> getListingAnalyticsByDay(long listingId, ZoneId zoneId) {
+        return carListingAnalyticsRepository.getAnalyticsByDay(listingId, zoneId);
     }
 
     public void recordListingImpression(Long listingId) {
@@ -54,7 +61,7 @@ public class CarListingAnalyticsService {
         long countersTS = this.countersTS;
         List<Entry<Long, CarListingAnalyticsCounter>> analytics = new ArrayList<>(listingsCounters.size());
 
-        this.countersTS = getCountersTS();
+        this.countersTS = System.currentTimeMillis();
 
         int count = 0;
         Iterator<Entry<Long, CarListingAnalyticsCounter>> iterator = listingsCounters.entrySet().iterator();
@@ -80,11 +87,6 @@ public class CarListingAnalyticsService {
         if (rowsDeleted != null && rowsDeleted > 0) {
             log.info("Deleted {} old analytics records", rowsDeleted);
         }
-    }
-
-    private static long getCountersTS() {
-        long now = System.currentTimeMillis();
-        return now - now % 60_000; // truncate to start of minute
     }
 
     private CarListingAnalyticsCounter getListingCounter(Long listingId) {

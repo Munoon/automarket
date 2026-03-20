@@ -2,6 +2,9 @@ package edu.automarket.listing.controller;
 
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.TestUtils;
+import edu.automarket.analytics.CarListingAnalyticsCounter;
+import edu.automarket.analytics.CarListingAnalyticsRepository;
+import edu.automarket.analytics.dto.ListingAnalyticsDayDTO;
 import edu.automarket.authentication.AuthenticationService;
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.model.CarListing;
@@ -12,7 +15,6 @@ import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.dto.UpdateListingStatusRequestDTO;
 import edu.automarket.listing.model.CarBrand;
 import edu.automarket.listing.model.ListingStatus;
-import edu.automarket.user.UserRepository;
 import edu.automarket.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -22,6 +24,13 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.test.StepVerifier;
+
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,7 +48,13 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
     @Autowired
     private AuthenticationService authenticationService;
 
+    @Autowired
+    private CarListingAnalyticsRepository analyticsRepository;
+
     private static final ParameterizedTypeReference<PageDTO<OwnCarListingListItemDTO>> PAGE_TYPE =
+            new ParameterizedTypeReference<>() {};
+
+    private static final ParameterizedTypeReference<List<ListingAnalyticsDayDTO>> ANALYTICS_LIST_TYPE =
             new ParameterizedTypeReference<>() {};
 
     // --- POST /api/listings/own ---
@@ -599,6 +614,195 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
         webTestClient.delete()
                 .uri("/api/listings/own/" + listing.id())
+                .header("Authorization", "Bearer " + token2)
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    // --- GET /api/listings/own/{id}/analytics ---
+
+    @Test
+    void getAnalyticsReturnsEmptyWhenNoData() {
+        long userId = userService.register(TestUtils.testUser("ctrlana1")).block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        webTestClient.get()
+                .uri("/api/listings/own/" + listing.id() + "/analytics")
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ANALYTICS_LIST_TYPE)
+                .value(list -> assertThat(list).isEmpty());
+    }
+
+    @Test
+    void getAnalyticsReturnsDailyAggregatedData() {
+        long userId = userService.register(TestUtils.testUser("ctrlana2")).block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        OffsetDateTime today = OffsetDateTime.now(ZoneOffset.UTC).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        long now = System.currentTimeMillis();
+        long sameDay = now - 60_000;
+        long yesterday = now - Duration.ofDays(1).toMillis();
+
+        CarListingAnalyticsCounter counter1 = new CarListingAnalyticsCounter();
+        counter1.impressionsCount().add(3);
+        counter1.viewsCount().add(1);
+        counter1.phoneRequestsCount().add(1);
+        counter1.favouritesCount().add(1);
+
+        CarListingAnalyticsCounter counter2 = new CarListingAnalyticsCounter();
+        counter2.impressionsCount().add(2);
+        counter2.viewsCount().add(2);
+
+        CarListingAnalyticsCounter counter3 = new CarListingAnalyticsCounter();
+        counter3.impressionsCount().add(10);
+        counter3.viewsCount().add(10);
+
+        analyticsRepository.saveAnalytics(now, List.of(Map.entry(listing.id(), counter1))).block();
+        analyticsRepository.saveAnalytics(sameDay, List.of(Map.entry(listing.id(), counter2))).block();
+        analyticsRepository.saveAnalytics(yesterday, List.of(Map.entry(listing.id(), counter3))).block();
+
+        webTestClient.get()
+                .uri("/api/listings/own/" + listing.id() + "/analytics")
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ANALYTICS_LIST_TYPE)
+                .value(list -> {
+                    assertThat(list).hasSize(2);
+
+                    ListingAnalyticsDayDTO day = list.get(0);
+                    assertThat(day.ts()).isEqualTo(today.minusDays(1).toEpochSecond());
+                    assertThat(day.impressionsCount()).isEqualTo(10);
+                    assertThat(day.viewsCount()).isEqualTo(10);
+                    assertThat(day.phoneRequestsCount()).isEqualTo(0);
+                    assertThat(day.favouritesCount()).isEqualTo(0);
+
+                    day = list.get(1);
+                    assertThat(day.ts()).isEqualTo(today.toEpochSecond());
+                    assertThat(day.impressionsCount()).isEqualTo(5);
+                    assertThat(day.viewsCount()).isEqualTo(3);
+                    assertThat(day.phoneRequestsCount()).isEqualTo(1);
+                    assertThat(day.favouritesCount()).isEqualTo(1);
+                });
+    }
+
+    @Test
+    void getAnalyticsReturnsDailyAggregatedDataWithCustomTimeZone() {
+        long userId = userService.register(TestUtils.testUser("ctrlana2")).block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        OffsetDateTime today = OffsetDateTime.now(ZoneId.of("Europe/Kyiv")).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        long now = System.currentTimeMillis();
+        long sameDay = now - 60_000;
+        long yesterday = now - Duration.ofDays(1).toMillis();
+
+        CarListingAnalyticsCounter counter1 = new CarListingAnalyticsCounter();
+        counter1.impressionsCount().add(3);
+        counter1.viewsCount().add(1);
+        counter1.phoneRequestsCount().add(1);
+        counter1.favouritesCount().add(1);
+
+        CarListingAnalyticsCounter counter2 = new CarListingAnalyticsCounter();
+        counter2.impressionsCount().add(2);
+        counter2.viewsCount().add(2);
+
+        CarListingAnalyticsCounter counter3 = new CarListingAnalyticsCounter();
+        counter3.impressionsCount().add(10);
+        counter3.viewsCount().add(10);
+
+        analyticsRepository.saveAnalytics(now, List.of(Map.entry(listing.id(), counter1))).block();
+        analyticsRepository.saveAnalytics(sameDay, List.of(Map.entry(listing.id(), counter2))).block();
+        analyticsRepository.saveAnalytics(yesterday, List.of(Map.entry(listing.id(), counter3))).block();
+
+        webTestClient.get()
+                .uri("/api/listings/own/" + listing.id() + "/analytics?timezone=Europe/Kyiv")
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ANALYTICS_LIST_TYPE)
+                .value(list -> {
+                    assertThat(list).hasSize(2);
+
+                    ListingAnalyticsDayDTO day = list.get(0);
+                    assertThat(day.ts()).isEqualTo(today.minusDays(1).toEpochSecond());
+                    assertThat(day.impressionsCount()).isEqualTo(10);
+                    assertThat(day.viewsCount()).isEqualTo(10);
+                    assertThat(day.phoneRequestsCount()).isEqualTo(0);
+                    assertThat(day.favouritesCount()).isEqualTo(0);
+
+                    day = list.get(1);
+                    assertThat(day.ts()).isEqualTo(today.toEpochSecond());
+                    assertThat(day.impressionsCount()).isEqualTo(5);
+                    assertThat(day.viewsCount()).isEqualTo(3);
+                    assertThat(day.phoneRequestsCount()).isEqualTo(1);
+                    assertThat(day.favouritesCount()).isEqualTo(1);
+                });
+    }
+
+    @Test
+    void getAnalyticsExcludesDataOlderThan365Days() {
+        long userId = userService.register(TestUtils.testUser("ctrlana3")).block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        long now = System.currentTimeMillis();
+        long tooOld = now - Duration.ofDays(366).toMillis();
+
+        CarListingAnalyticsCounter recent = new CarListingAnalyticsCounter();
+        recent.impressionsCount().add(5);
+
+        CarListingAnalyticsCounter old = new CarListingAnalyticsCounter();
+        old.impressionsCount().add(99);
+
+        analyticsRepository.saveAnalytics(now, List.of(Map.entry(listing.id(), recent))).block();
+        analyticsRepository.saveAnalytics(tooOld, List.of(Map.entry(listing.id(), old))).block();
+
+        webTestClient.get()
+                .uri("/api/listings/own/" + listing.id() + "/analytics")
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ANALYTICS_LIST_TYPE)
+                .value(list -> {
+                    assertThat(list).hasSize(1);
+                    assertThat(list.get(0).impressionsCount()).isEqualTo(5);
+                });
+    }
+
+    @Test
+    void getAnalyticsWithoutTokenReturns401() {
+        webTestClient.get()
+                .uri("/api/listings/own/1/analytics")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void getAnalyticsNonExistentListingReturns404() {
+        long userId = userService.register(TestUtils.testUser("ctrlana4")).block().id();
+        String token = authenticationService.generateToken(userId);
+
+        webTestClient.get()
+                .uri("/api/listings/own/9999/analytics")
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void getAnalyticsOtherUsersListingReturns403() {
+        long userId1 = userService.register(TestUtils.testUser("ctrlana5")).block().id();
+        long userId2 = userService.register(TestUtils.testUser("ctrlana6")).block().id();
+        String token2 = authenticationService.generateToken(userId2);
+        CarListing listing = carListingService.create(userId1).block();
+
+        webTestClient.get()
+                .uri("/api/listings/own/" + listing.id() + "/analytics")
                 .header("Authorization", "Bearer " + token2)
                 .exchange()
                 .expectStatus().isForbidden();

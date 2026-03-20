@@ -1,5 +1,7 @@
 package edu.automarket.listing.controller;
 
+import edu.automarket.analytics.CarListingAnalyticsService;
+import edu.automarket.analytics.dto.ListingAnalyticsDayDTO;
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.CarListingService;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
@@ -9,6 +11,7 @@ import edu.automarket.listing.dto.UpdateListingStatusRequestDTO;
 import edu.automarket.listing.model.ListingStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,13 +26,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+
 @RestController
 @RequestMapping("/api/listings/own")
 public class OwnCarListingController {
     private final CarListingService carListingService;
+    private final CarListingAnalyticsService carListingAnalyticsService;
 
-    public OwnCarListingController(CarListingService carListingService) {
+    public OwnCarListingController(CarListingService carListingService,
+                                   CarListingAnalyticsService carListingAnalyticsService) {
         this.carListingService = carListingService;
+        this.carListingAnalyticsService = carListingAnalyticsService;
     }
 
     @PostMapping
@@ -59,6 +68,22 @@ public class OwnCarListingController {
                         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
                     }
                     return new OwnCarListingDTO(listing);
+                });
+    }
+
+    @GetMapping("/{id}/analytics")
+    public Flux<ListingAnalyticsDayDTO> getAnalytics(
+            @AuthenticationPrincipal long userId,
+            @PathVariable long id,
+            @RequestParam(defaultValue = "UTC") String timezone
+    ) {
+        ZoneId zoneId = ZoneId.of(timezone);
+        return carListingService.getListingByIdOrThrow(id)
+                .flatMapMany(listing -> {
+                    if (listing.authorUserId() != userId) {
+                        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+                    }
+                    return carListingAnalyticsService.getListingAnalyticsByDay(id, zoneId);
                 });
     }
 

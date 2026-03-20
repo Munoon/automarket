@@ -37,7 +37,7 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
         counter.phoneRequestsCount().add(2);
         counter.favouritesCount().add(1);
 
-        long ts = truncateToMinute(System.currentTimeMillis());
+        long ts = System.currentTimeMillis();
         analyticsRepository.saveAnalytics(ts, List.of(Map.entry(listingId, counter))).block();
 
         OwnCarListingListItemDTO listingDTO = queryAnalytics(userId, listingId);
@@ -59,7 +59,7 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
         CarListingAnalyticsCounter counter2 = new CarListingAnalyticsCounter();
         counter2.impressionsCount().add(4);
 
-        long ts = truncateToMinute(System.currentTimeMillis());
+        long ts = System.currentTimeMillis();
         analyticsRepository.saveAnalytics(ts, List.of(
                 Map.entry(listingId1, counter1),
                 Map.entry(listingId2, counter2)
@@ -84,7 +84,7 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
         CarListingAnalyticsCounter counter2 = new CarListingAnalyticsCounter();
         counter2.impressionsCount().add(7);
 
-        long ts1 = truncateToMinute(System.currentTimeMillis());
+        long ts1 = System.currentTimeMillis();
         long ts2 = ts1 + 60_000;
 
         analyticsRepository.saveAnalytics(ts1, List.of(Map.entry(listingId, counter1))).block();
@@ -100,7 +100,7 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
         long userId = userService.register(TestUtils.testUser("anarepo4")).block().id();
         long listingId = carListingService.create(userId).block().id();
 
-        long ts = truncateToMinute(System.currentTimeMillis());
+        long ts = System.currentTimeMillis();
 
         CarListingAnalyticsCounter counter1 = new CarListingAnalyticsCounter();
         counter1.impressionsCount().add(3);
@@ -124,7 +124,7 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
         long userId = userService.register(TestUtils.testUser("anarepo4")).block().id();
         long listingId = carListingService.create(userId).block().id();
 
-        long ts = truncateToMinute(System.currentTimeMillis());
+        long ts = System.currentTimeMillis();
         long yearAgoTS = ts - Duration.ofDays(365).toMillis() - 1_000;
 
         CarListingAnalyticsCounter counter1 = new CarListingAnalyticsCounter();
@@ -156,9 +156,5 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
             }
         }
         return null;
-    }
-
-    private static long truncateToMinute(long millis) {
-        return millis - millis % 60_000;
     }
 }

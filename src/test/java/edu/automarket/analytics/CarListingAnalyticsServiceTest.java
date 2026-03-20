@@ -106,8 +106,7 @@ class CarListingAnalyticsServiceTest extends AbstractIntegrationTest {
         long listingId = carListingService.create(userId).block().id();
 
         long now = System.currentTimeMillis();
-        long ts = now - now % 60_000;
-        long yearAgoTS = ts - Duration.ofDays(365).toMillis() - 1_000;
+        long yearAgoTS = now - Duration.ofDays(365).toMillis() - 1_000;
 
         CarListingAnalyticsCounter counter1 = new CarListingAnalyticsCounter();
         counter1.impressionsCount().add(3);
@@ -115,7 +114,7 @@ class CarListingAnalyticsServiceTest extends AbstractIntegrationTest {
         CarListingAnalyticsCounter counter2 = new CarListingAnalyticsCounter();
         counter2.impressionsCount().add(5);
 
-        analyticsRepository.saveAnalytics(ts, List.of(Map.entry(listingId, counter1))).block();
+        analyticsRepository.saveAnalytics(now, List.of(Map.entry(listingId, counter1))).block();
         analyticsRepository.saveAnalytics(yearAgoTS, List.of(Map.entry(listingId, counter2))).block();
 
         OwnCarListingListItemDTO listingDTO = queryAnalytics(userId, listingId);
