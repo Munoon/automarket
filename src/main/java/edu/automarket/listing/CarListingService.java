@@ -65,10 +65,12 @@ public class CarListingService {
                 ? System.currentTimeMillis()
                 : listing.publishedAt();
 
-        if (newStatus == ListingStatus.PUBLISHED
-            && listing.publishedAt() > 0
-            && publishedAt - listing.publishedAt() < listingRepublishCooldownMS) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "/problems/listing-publish-cooldown", "Listing publishing cooldown in progress");
+        if (newStatus == ListingStatus.PUBLISHED) {
+            if (listing.publishedAt() > 0 && publishedAt - listing.publishedAt() < listingRepublishCooldownMS) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "/problems/listing-publish-cooldown",
+                        "Listing publishing cooldown in progress");
+            }
+            listing.validatePublishedListingFields();
         }
 
         return carListingRepository.update(listing.withStatus(newStatus, publishedAt));
@@ -76,6 +78,11 @@ public class CarListingService {
 
     public Mono<CarListing> update(CarListing carListing, UpdateCarListingRequestDTO request) {
         CarListing updatedListing = carListing.update(request);
+
+        if (updatedListing.status() == ListingStatus.PUBLISHED) {
+            updatedListing.validatePublishedListingFields();
+        }
+
         return carListingRepository.update(updatedListing).thenReturn(updatedListing);
     }
 
