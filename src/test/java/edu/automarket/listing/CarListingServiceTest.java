@@ -355,11 +355,11 @@ class CarListingServiceTest extends AbstractIntegrationTest {
     void getPublishedListingsReturnsCorrectFields() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
-        carListingService.update(listing.id(), new UpdateCarListingRequestDTO(
+        CarListing updatedListing = carListingService.update(listing, new UpdateCarListingRequestDTO(
                 "Sport Car", "Fast and furious", CarBrand.CUSTOM, "Batmobile", "Dark Knight",
                 null, null, null, 999999L, null, null, null, null, null, null, null, null, null, null
         )).block();
-        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+        carListingService.updateStatus(updatedListing, ListingStatus.PUBLISHED).block();
 
         StepVerifier.create(carListingService.getPublishedListings(new GetPublishedListingsRequestDTO()))
                 .assertNext(page -> {
@@ -463,7 +463,15 @@ class CarListingServiceTest extends AbstractIntegrationTest {
                 null, null, null, null, null, null, null, null, null, null, null, null, null
         );
 
-        carListingService.update(created.id(), request).block();
+        StepVerifier.create(carListingService.update(created, request))
+                    .assertNext(listing -> {
+                        assertThat(listing.id()).isEqualTo(created.id());
+                        assertThat(listing.title()).isEqualTo("Updated Title");
+                        assertThat(listing.brand()).isEqualTo(CarBrand.TOYOTA);
+                        assertThat(listing.model()).isEqualTo("Corolla");
+                    })
+                    .verifyComplete();
+
         StepVerifier.create(carListingService.getListingByIdOrThrow(created.id()))
                 .assertNext(listing -> {
                     assertThat(listing.id()).isEqualTo(created.id());

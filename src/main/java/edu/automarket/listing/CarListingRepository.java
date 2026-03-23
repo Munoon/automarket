@@ -5,7 +5,6 @@ import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
-import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.BodyType;
 import edu.automarket.listing.model.CarBrand;
 import edu.automarket.listing.model.CarColor;
@@ -68,7 +67,9 @@ public class CarListingRepository {
     //language=postgresql
     private static final String UPDATE_QUERY = """
             UPDATE car_listings
-            SET title             = :title,
+            SET author_user_id    = :authorUserId,
+                status            = :status::listing_status,
+                title             = :title,
                 description       = :description,
                 brand             = :brand::car_brand,
                 custom_brand_name = :customBrandName,
@@ -87,22 +88,14 @@ public class CarListingRepository {
                 year              = :year,
                 engine_volume     = :engineVolume,
                 owners_count      = :ownersCount,
-                updated_at        = :updatedAt
+                updated_at        = :updatedAt,
+                published_at      = :publishedAt
             WHERE id = :id
             """;
 
     //language=postgresql
     private static final String DELETE_BY_ID_QUERY = """
             DELETE FROM car_listings WHERE id = :id
-            """;
-
-    //language=postgresql
-    private static final String UPDATE_STATUS_QUERY = """
-            UPDATE car_listings
-            SET status       = :status::listing_status,
-                published_at = :publishedAt,
-                updated_at   = :updatedAt
-            WHERE id = :id
             """;
 
     //language=postgresql
@@ -216,76 +209,70 @@ public class CarListingRepository {
                 .fetch().rowsUpdated().then();
     }
 
-    public Mono<Void> updateStatus(long id, ListingStatus status, long publishedAt) {
-        return client.sql(UPDATE_STATUS_QUERY)
-                .bind("id", id)
-                .bind("status", status.name())
-                .bind("updatedAt", System.currentTimeMillis())
-                .bind("publishedAt", publishedAt)
-                .fetch().rowsUpdated().then();
-    }
-
-    public Mono<Void> update(long id, UpdateCarListingRequestDTO request) {
+    public Mono<Void> update(CarListing carListing) {
         var spec = client.sql(UPDATE_QUERY)
-                .bind("id", id)
-                .bind("updatedAt", System.currentTimeMillis());
+                .bind("id", carListing.id())
+                .bind("authorUserId", carListing.authorUserId())
+                .bind("status", carListing.status().name())
+                .bind("updatedAt", carListing.updatedAt())
+                .bind("publishedAt", carListing.publishedAt());
 
-        spec = request.title() != null
-                ? spec.bind("title", request.title())
+        spec = carListing.title() != null
+                ? spec.bind("title", carListing.title())
                 : spec.bindNull("title", String.class);
-        spec = request.description() != null
-                ? spec.bind("description", request.description())
+        spec = carListing.description() != null
+                ? spec.bind("description", carListing.description())
                 : spec.bindNull("description", String.class);
-        spec = request.brand() != null
-                ? spec.bind("brand", request.brand().name())
+        spec = carListing.brand() != null
+                ? spec.bind("brand", carListing.brand().name())
                 : spec.bindNull("brand", String.class);
-        spec = request.customBrandName() != null
-                ? spec.bind("customBrandName", request.customBrandName())
+        spec = carListing.customBrandName() != null
+                ? spec.bind("customBrandName", carListing.customBrandName())
                 : spec.bindNull("customBrandName", String.class);
-        spec = request.model() != null
-                ? spec.bind("model", request.model())
+        spec = carListing.model() != null
+                ? spec.bind("model", carListing.model())
                 : spec.bindNull("model", String.class);
-        spec = request.licensePlate() != null
-                ? spec.bind("licensePlate", request.licensePlate())
+        spec = carListing.licensePlate() != null
+                ? spec.bind("licensePlate", carListing.licensePlate())
                 : spec.bindNull("licensePlate", String.class);
-        spec = request.condition() != null
-                ? spec.bind("condition", request.condition().name())
+        spec = carListing.condition() != null
+                ? spec.bind("condition", carListing.condition().name())
                 : spec.bindNull("condition", String.class);
-        spec = request.mileage() != null
-                ? spec.bind("mileage", request.mileage())
+        spec = carListing.mileage() != null
+                ? spec.bind("mileage", carListing.mileage())
                 : spec.bindNull("mileage", Integer.class);
-        spec = request.price() != null
-                ? spec.bind("price", request.price())
+        spec = carListing.price() != null
+                ? spec.bind("price", carListing.price())
                 : spec.bindNull("price", Long.class);
-        spec = request.city() != null
-                ? spec.bind("city", request.city().name())
+        spec = carListing.city() != null
+                ? spec.bind("city", carListing.city().name())
                 : spec.bindNull("city", String.class);
-        spec = request.color() != null
-                ? spec.bind("color", request.color().name())
+        spec = carListing.color() != null
+                ? spec.bind("color", carListing.color().name())
                 : spec.bindNull("color", String.class);
-        spec = request.transmission() != null
-                ? spec.bind("transmission", request.transmission().name())
+        spec = carListing.transmission() != null
+                ? spec.bind("transmission", carListing.transmission().name())
                 : spec.bindNull("transmission", String.class);
-        spec = request.fuelType() != null
-                ? spec.bind("fuelType", request.fuelType().name())
+        spec = carListing.fuelType() != null
+                ? spec.bind("fuelType", carListing.fuelType().name())
                 : spec.bindNull("fuelType", String.class);
-        spec = request.tankVolume() != null
-                ? spec.bind("tankVolume", request.tankVolume())
+        spec = carListing.tankVolume() != null
+                ? spec.bind("tankVolume", carListing.tankVolume())
                 : spec.bindNull("tankVolume", Double.class);
-        spec = request.driveType() != null
-                ? spec.bind("driveType", request.driveType().name())
+        spec = carListing.driveType() != null
+                ? spec.bind("driveType", carListing.driveType().name())
                 : spec.bindNull("driveType", String.class);
-        spec = request.bodyType() != null
-                ? spec.bind("bodyType", request.bodyType().name())
+        spec = carListing.bodyType() != null
+                ? spec.bind("bodyType", carListing.bodyType().name())
                 : spec.bindNull("bodyType", String.class);
-        spec = request.year() != null
-                ? spec.bind("year", request.year())
+        spec = carListing.year() != null
+                ? spec.bind("year", carListing.year())
                 : spec.bindNull("year", Integer.class);
-        spec = request.engineVolume() != null
-                ? spec.bind("engineVolume", request.engineVolume())
+        spec = carListing.engineVolume() != null
+                ? spec.bind("engineVolume", carListing.engineVolume())
                 : spec.bindNull("engineVolume", Double.class);
-        spec = request.ownersCount() != null
-                ? spec.bind("ownersCount", request.ownersCount())
+        spec = carListing.ownersCount() != null
+                ? spec.bind("ownersCount", carListing.ownersCount())
                 : spec.bindNull("ownersCount", Integer.class);
 
         return spec.fetch().rowsUpdated().then();

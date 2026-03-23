@@ -19,29 +19,29 @@ import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 
 public record UpdateCarListingRequestDTO(
-        @Size(max = 200)
+        @Size(min = 5, max = 200)
         @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPACE,
                 CharacterType.HYPHEN, CharacterType.APOSTROPHE, CharacterType.UNDERSCORE})
         String title,
 
-        @Size(max = 5000)
+        @Size(min = 5, max = 5000)
         @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPACE,
                 CharacterType.HYPHEN, CharacterType.APOSTROPHE, CharacterType.UNDERSCORE})
         String description,
 
         CarBrand brand,
 
-        @Size(max = 100)
+        @Size(min = 1, max = 100)
         @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPACE,
                 CharacterType.HYPHEN, CharacterType.APOSTROPHE})
         String customBrandName,
 
-        @Size(max = 100)
+        @Size(min = 1, max = 100)
         @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPACE,
                 CharacterType.HYPHEN})
         String model,
 
-        @Size(max = 20)
+        @Size(min = 1, max = 20)
         @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.HYPHEN})
         String licensePlate,
 
@@ -74,9 +74,16 @@ public record UpdateCarListingRequestDTO(
         Integer ownersCount
 ) {
     public void validate() {
-        if (customBrandName != null && brand != CarBrand.CUSTOM) {
-            throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "/problems/invalid-custom-brand-name", "customBrandName can only be set when brand is CUSTOM");
+        if (brand == CarBrand.CUSTOM) {
+            if (customBrandName == null) {
+                throw new ApiException(HttpStatus.BAD_REQUEST,
+                        "/problems/missing-custom-brand-name", "customBrandName is required when brand is CUSTOM");
+            }
+        } else {
+            if (customBrandName != null) {
+                throw new ApiException(HttpStatus.BAD_REQUEST,
+                        "/problems/invalid-custom-brand-name", "customBrandName can only be set when brand is CUSTOM");
+            }
         }
     }
 }

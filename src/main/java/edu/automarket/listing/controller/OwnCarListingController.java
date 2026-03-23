@@ -109,8 +109,7 @@ public class OwnCarListingController {
     }
 
     @PatchMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public Mono<Void> update(
+    public Mono<OwnCarListingDTO> update(
             @AuthenticationPrincipal long userId,
             @PathVariable long id,
             @Valid @RequestBody UpdateCarListingRequestDTO request
@@ -121,8 +120,9 @@ public class OwnCarListingController {
                     if (listing.authorUserId() != userId) {
                         throw new ApiException(HttpStatus.FORBIDDEN, "/problems/access-denied", "Access denied");
                     }
-                    return carListingService.update(id, request);
-                });
+                    return carListingService.update(listing, request);
+                })
+                .map(OwnCarListingDTO::new);
     }
 
     @DeleteMapping("/{id}")

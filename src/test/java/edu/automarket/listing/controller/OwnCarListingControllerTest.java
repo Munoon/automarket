@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.data.Offset.offset;
 
 class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
@@ -527,7 +528,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
     // --- PATCH /api/listings/own/{id} ---
 
     @Test
-    void updateWithValidTokenReturns204() {
+    void updateWithValidTokenReturns200() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         String token = authenticationService.generateToken(userId);
         CarListing listing = carListingService.create(userId).block();
@@ -543,8 +544,19 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
-                .expectStatus().isNoContent()
-                .expectBody().isEmpty();
+                .expectStatus().isOk()
+                .expectBody(OwnCarListingDTO.class)
+                .value(dto -> {
+                    assertThat(dto.id()).isEqualTo(listing.id());
+                    assertThat(dto.status()).isEqualTo(ListingStatus.DRAFT);
+                    assertThat(dto.title()).isEqualTo("My Car");
+                    assertThat(dto.brand()).isEqualTo(CarBrand.CUSTOM);
+                    assertThat(dto.customBrandName()).isEqualTo("Custom brand name");
+                    assertThat(dto.model()).isEqualTo("Camry");
+                    assertThat(dto.createdAt()).isPositive();
+                    assertThat(dto.updatedAt()).isCloseTo(System.currentTimeMillis(), offset(1_000L));
+                });
+
 
         StepVerifier.create(carListingService.getListingByIdOrThrow(listing.id()))
                 .assertNext(updated -> {
@@ -674,6 +686,31 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                     assertThat(problem.title()).isEqualTo("customBrandName can only be set when brand is CUSTOM");
                     assertThat(problem.status()).isEqualTo(400);
                 });
+    }
+
+    @Test
+    void updateWithNoCustomBrandNameForCustomBrandTypeReturns400() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        webTestClient.patch()
+                     .uri("/api/listings/own/" + listing.id())
+                     .header("Authorization", "Bearer " + token)
+                     .contentType(MediaType.APPLICATION_JSON)
+                     .bodyValue(new UpdateCarListingRequestDTO(
+                             null, null, CarBrand.CUSTOM, null, null, null,
+                             null, null, null, null, null, null, null, null, null, null, null, null, null
+                     ))
+                     .exchange()
+                     .expectStatus().isBadRequest()
+                     .expectHeader().contentType("application/problem+json")
+                     .expectBody(ProblemDTO.class)
+                     .value(problem -> {
+                         assertThat(problem.type()).isEqualTo("/problems/missing-custom-brand-name");
+                         assertThat(problem.title()).isEqualTo("customBrandName is required when brand is CUSTOM");
+                         assertThat(problem.status()).isEqualTo(400);
+                     });
     }
 
     // --- DELETE /api/listings/own/{id} ---

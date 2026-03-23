@@ -2,7 +2,6 @@ package edu.automarket.listing;
 
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
-import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.BodyType;
 import edu.automarket.listing.model.CarBrand;
 import edu.automarket.listing.model.CarColor;
@@ -50,7 +49,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing draft = carListingRepository.create(userId, System.currentTimeMillis()).block();
         CarListing published = carListingRepository.create(userId, System.currentTimeMillis() + 1).block();
-        carListingRepository.updateStatus(published.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
+        carListingRepository.update(published.withStatus(ListingStatus.PUBLISHED, System.currentTimeMillis())).block();
 
         StepVerifier.create(carListingRepository.findByUserIdAndStatuses(
                         userId, new String[]{"DRAFT"}, 0, 20))
@@ -79,8 +78,8 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing published = carListingRepository.create(userId, now + 1).block();
         CarListing archived = carListingRepository.create(userId, now + 2).block();
         long publishedAt = System.currentTimeMillis();
-        carListingRepository.updateStatus(published.id(), ListingStatus.PUBLISHED, publishedAt).block();
-        carListingRepository.updateStatus(archived.id(), ListingStatus.ARCHIVED, System.currentTimeMillis()).block();
+        carListingRepository.update(published.withStatus(ListingStatus.PUBLISHED, publishedAt)).block();
+        carListingRepository.update(archived.withStatus(ListingStatus.ARCHIVED, publishedAt)).block();
 
         StepVerifier.create(carListingRepository.findByUserIdAndStatuses(
                         userId, new String[]{"DRAFT", "PUBLISHED"}, 0, 20))
@@ -160,22 +159,6 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void updateStatusPersistsNewStatus() {
-        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
-        CarListing created = carListingRepository.create(userId, System.currentTimeMillis()).block();
-
-        long publishedAt = System.currentTimeMillis();
-        carListingRepository.updateStatus(created.id(), ListingStatus.PUBLISHED, publishedAt).block();
-
-        StepVerifier.create(carListingRepository.findById(created.id()))
-                .assertNext(listing -> {
-                    assertThat(listing.status()).isEqualTo(ListingStatus.PUBLISHED);
-                    assertThat(listing.publishedAt()).isEqualTo(publishedAt);
-                })
-                .verifyComplete();
-    }
-
-    @Test
     void findByIdReturnsCorrectListing() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing created = carListingRepository.create(userId, System.currentTimeMillis()).block();
@@ -202,17 +185,22 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing created = carListingRepository.create(userId, System.currentTimeMillis()).block();
 
-        var request = new UpdateCarListingRequestDTO(
+        long updatedAt = System.currentTimeMillis();
+        long publishedAt = System.currentTimeMillis() + 1_000;
+        var request = new CarListing(
+                created.id(), userId, ListingStatus.ARCHIVED,
                 "My Car Title", "Great description", CarBrand.TOYOTA, null,
                 "Camry", "AA1234BB", CarCondition.USED, 50000, 15000L,
                 City.KYIV, CarColor.WHITE, TransmissionType.AUTOMATIC, FuelType.PETROL,
-                50.0, DriveType.FWD, BodyType.SEDAN, 2020, 2.5, 1
+                50.0, DriveType.FWD, BodyType.SEDAN, 2020, 2.5, 1,
+                created.createdAt(), updatedAt, publishedAt
         );
 
-        carListingRepository.update(created.id(), request).block();
+        carListingRepository.update(request).block();
         StepVerifier.create(carListingRepository.findById(created.id()))
                 .assertNext(listing -> {
                     assertThat(listing.id()).isEqualTo(created.id());
+                    assertThat(listing.status()).isEqualTo(ListingStatus.ARCHIVED);
                     assertThat(listing.title()).isEqualTo("My Car Title");
                     assertThat(listing.description()).isEqualTo("Great description");
                     assertThat(listing.brand()).isEqualTo(CarBrand.TOYOTA);
@@ -232,7 +220,8 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                     assertThat(listing.year()).isEqualTo(2020);
                     assertThat(listing.engineVolume()).isEqualTo(2.5);
                     assertThat(listing.ownersCount()).isEqualTo(1);
-                    assertThat(listing.updatedAt()).isGreaterThanOrEqualTo(listing.createdAt());
+                    assertThat(listing.updatedAt()).isEqualTo(updatedAt);
+                    assertThat(listing.publishedAt()).isEqualTo(publishedAt);
                 })
                 .verifyComplete();
     }
@@ -242,7 +231,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         carListingRepository.create(userId, System.currentTimeMillis()).block(); // draft
         CarListing published = carListingRepository.create(userId, System.currentTimeMillis() + 1).block();
-        carListingRepository.updateStatus(published.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
+        carListingRepository.update(published.withStatus(ListingStatus.PUBLISHED, System.currentTimeMillis())).block();
 
         StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO()))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(published.id()))
@@ -253,7 +242,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
     void findPublishedFiltersOutListingsPublishedAfterAnchor() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
-        carListingRepository.updateStatus(listing.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
+        carListingRepository.update(listing.withStatus(ListingStatus.PUBLISHED, System.currentTimeMillis())).block();
 
         GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
         request.setPublishedBefore(System.currentTimeMillis() - 1_000);
@@ -265,11 +254,12 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
     void findPublishedReturnsCorrectFields() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
-        carListingRepository.update(listing.id(), new UpdateCarListingRequestDTO(
+        carListingRepository.update(new CarListing(
+                listing.id(), userId, ListingStatus.PUBLISHED,
                 "My Car", "Nice car", CarBrand.TOYOTA, null, "Camry",
-                null, null, null, 300000L, null, null, null, null, null, null, null, null, null, null
+                null, null, null, 300000L, null, null, null, null, null, null, null, null, null, null,
+                listing.createdAt(), System.currentTimeMillis(), System.currentTimeMillis()
         )).block();
-        carListingRepository.updateStatus(listing.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
 
         StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO()))
                 .assertNext(dto -> {
@@ -291,9 +281,9 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing listing1 = carListingRepository.create(userId, now).block();
         CarListing listing2 = carListingRepository.create(userId, now + 1).block();
         CarListing listing3 = carListingRepository.create(userId, now + 2).block();
-        carListingRepository.updateStatus(listing1.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
-        carListingRepository.updateStatus(listing3.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
-        carListingRepository.updateStatus(listing2.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
+        carListingRepository.update(listing1.withStatus(ListingStatus.PUBLISHED, System.currentTimeMillis())).block();
+        carListingRepository.update(listing3.withStatus(ListingStatus.PUBLISHED, System.currentTimeMillis())).block();
+        carListingRepository.update(listing2.withStatus(ListingStatus.PUBLISHED, System.currentTimeMillis())).block();
 
         GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
         request.setPage(0);
@@ -316,7 +306,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing1 = carListingRepository.create(userId, System.currentTimeMillis()).block();
         carListingRepository.create(userId, System.currentTimeMillis()).block(); // draft
-        carListingRepository.updateStatus(listing1.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
+        carListingRepository.update(listing1.withStatus(ListingStatus.PUBLISHED, System.currentTimeMillis())).block();
 
         StepVerifier.create(carListingRepository.countPublished(new GetPublishedListingsRequestDTO()))
                 .expectNext(1L)
@@ -327,7 +317,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
     void countPublishedFiltersOutListingsPublishedAfterAnchor() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
-        carListingRepository.updateStatus(listing.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
+        carListingRepository.update(listing.withStatus(ListingStatus.PUBLISHED, System.currentTimeMillis())).block();
 
         GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
         request.setPublishedBefore(System.currentTimeMillis() - 1_000);
@@ -351,14 +341,15 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         userService.updateDisplayName(userId, "Test User").block();
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
-        carListingRepository.update(listing.id(), new UpdateCarListingRequestDTO(
+        long publishedAt = System.currentTimeMillis();
+        carListingRepository.update(new CarListing(
+                listing.id(), userId, ListingStatus.PUBLISHED,
                 "Test Car", "Nice car", CarBrand.TOYOTA, null, "Camry",
                 "AA1234BB", CarCondition.USED, 50000, 300000L, City.KYIV,
                 CarColor.WHITE, TransmissionType.AUTOMATIC, FuelType.PETROL,
-                50.0, DriveType.FWD, BodyType.SEDAN, 2020, 2.5, 1
+                50.0, DriveType.FWD, BodyType.SEDAN, 2020, 2.5, 1,
+                listing.createdAt(), System.currentTimeMillis(), publishedAt
         )).block();
-        long publishedAt = System.currentTimeMillis();
-        carListingRepository.updateStatus(listing.id(), ListingStatus.PUBLISHED, publishedAt).block();
 
         StepVerifier.create(carListingRepository.findPublishedById(listing.id()))
                 .assertNext(dto -> {
@@ -407,7 +398,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
     void findAuthorPhoneByPublishedIdReturnsPhoneNumber() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
-        carListingRepository.updateStatus(listing.id(), ListingStatus.PUBLISHED, System.currentTimeMillis()).block();
+        carListingRepository.update(listing.withStatus(ListingStatus.PUBLISHED, System.currentTimeMillis())).block();
 
         StepVerifier.create(carListingRepository.findAuthorPhoneByPublishedId(listing.id()))
                 .assertNext(dto -> assertThat(dto.phoneNumber()).isEqualTo("+380123456789"))
@@ -434,18 +425,20 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing created = carListingRepository.create(userId, System.currentTimeMillis()).block();
 
-        var fullRequest = new UpdateCarListingRequestDTO(
+        carListingRepository.update(new CarListing(
+                created.id(), userId, ListingStatus.DRAFT,
                 "Title", null, CarBrand.TOYOTA, null, "Camry", null,
-                null, null, null, null, null, null, null, null, null, null, null, null, null
-        );
-        carListingRepository.update(created.id(), fullRequest).block();
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                created.createdAt(), System.currentTimeMillis(), created.publishedAt()
+        )).block();
 
-        var clearRequest = new UpdateCarListingRequestDTO(
+        var clearRequest = new CarListing(
+                created.id(), userId, ListingStatus.DRAFT,
                 null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                created.createdAt(), System.currentTimeMillis(), created.publishedAt()
         );
-
-        carListingRepository.update(created.id(), clearRequest).block();
+        carListingRepository.update(clearRequest).block();
         StepVerifier.create(carListingRepository.findById(created.id()))
                 .assertNext(listing -> {
                     assertThat(listing.title()).isNull();

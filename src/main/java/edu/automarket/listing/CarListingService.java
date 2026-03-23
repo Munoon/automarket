@@ -71,11 +71,12 @@ public class CarListingService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "/problems/listing-publish-cooldown", "Listing publishing cooldown in progress");
         }
 
-        return carListingRepository.updateStatus(listing.id(), newStatus, publishedAt);
+        return carListingRepository.update(listing.withStatus(newStatus, publishedAt));
     }
 
-    public Mono<Void> update(long id, UpdateCarListingRequestDTO request) {
-        return carListingRepository.update(id, request);
+    public Mono<CarListing> update(CarListing carListing, UpdateCarListingRequestDTO request) {
+        CarListing updatedListing = carListing.update(request);
+        return carListingRepository.update(updatedListing).thenReturn(updatedListing);
     }
 
     public Mono<PublicCarListingDTO> getPublishedListingByIdOrThrow(long id) {

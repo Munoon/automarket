@@ -88,11 +88,11 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
     void getPublishedListingsReturnsCorrectFields() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
-        carListingService.update(listing.id(), new UpdateCarListingRequestDTO(
+        CarListing updatedListing = carListingService.update(listing, new UpdateCarListingRequestDTO(
                 "Test Car", "A nice car", CarBrand.TOYOTA, null, "Camry",
                 null, null, null, 500000L, null, null, null, null, null, null, null, null, null, null
         )).block();
-        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+        carListingService.updateStatus(updatedListing, ListingStatus.PUBLISHED).block();
 
         long now = System.currentTimeMillis();
         webTestClient.get()
@@ -175,11 +175,11 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         userService.updateDisplayName(userId, "Test User").block();
         CarListing listing = carListingService.create(userId).block();
-        carListingService.update(listing.id(), new UpdateCarListingRequestDTO(
+        CarListing updatedListing = carListingService.update(listing, new UpdateCarListingRequestDTO(
                 "Test Car", "Nice description", CarBrand.TOYOTA, null, "Camry",
                 null, null, null, 200000L, null, null, null, null, null, null, null, null, null, null
         )).block();
-        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+        carListingService.updateStatus(updatedListing, ListingStatus.PUBLISHED).block();
 
         webTestClient.get()
                 .uri("/api/listings/public/" + listing.id())
