@@ -1,5 +1,6 @@
 package edu.automarket.listing;
 
+import edu.automarket.common.ApiException;
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.dto.AuthorPhoneDTO;
 import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
@@ -12,7 +13,6 @@ import edu.automarket.listing.model.ListingStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -35,8 +35,8 @@ public class CarListingService {
         return carListingRepository.countByUserIdAndStatuses(authorUserId, mapStatusNamesToString(null))
                 .flatMap(count -> {
                     if (count >= listingsCountPerAuthorLimit) {
-                        throw new ResponseStatusException(
-                                HttpStatus.FORBIDDEN, "You have reached the limit of listings per user");
+                        throw new ApiException(
+                                HttpStatus.FORBIDDEN, "/problems/listing-limit-reached", "You have reached the limit of listings per user");
                     }
                     return carListingRepository.create(authorUserId, System.currentTimeMillis());
                 });
@@ -53,7 +53,7 @@ public class CarListingService {
 
     public Mono<CarListing> getListingByIdOrThrow(long id) {
         return carListingRepository.findById(id)
-                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found")));
+                .switchIfEmpty(Mono.error(new ApiException(HttpStatus.NOT_FOUND, "/problems/listing-not-found", "Listing not found")));
     }
 
     public Mono<Void> delete(long id) {
@@ -68,7 +68,7 @@ public class CarListingService {
         if (newStatus == ListingStatus.PUBLISHED
             && listing.publishedAt() > 0
             && publishedAt - listing.publishedAt() < listingRepublishCooldownMS) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Listing publishing cooldown in progress");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "/problems/listing-publish-cooldown", "Listing publishing cooldown in progress");
         }
 
         return carListingRepository.updateStatus(listing.id(), newStatus, publishedAt);
@@ -80,12 +80,12 @@ public class CarListingService {
 
     public Mono<PublicCarListingDTO> getPublishedListingByIdOrThrow(long id) {
         return carListingRepository.findPublishedById(id)
-                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found")));
+                .switchIfEmpty(Mono.error(new ApiException(HttpStatus.NOT_FOUND, "/problems/listing-not-found", "Listing not found")));
     }
 
     public Mono<AuthorPhoneDTO> getPublishedListingAuthorPhoneOrThrow(long id) {
         return carListingRepository.findAuthorPhoneByPublishedId(id)
-                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found")));
+                .switchIfEmpty(Mono.error(new ApiException(HttpStatus.NOT_FOUND, "/problems/listing-not-found", "Listing not found")));
     }
 
     public Mono<PageDTO<PublicCarListingItemDTO>> getPublishedListings(GetPublishedListingsRequestDTO request) {

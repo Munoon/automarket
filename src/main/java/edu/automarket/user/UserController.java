@@ -1,6 +1,7 @@
 package edu.automarket.user;
 
 import edu.automarket.authentication.AuthenticationService;
+import edu.automarket.common.ApiException;
 import edu.automarket.listing.CarListingService;
 import edu.automarket.sms.SmsCodeService;
 import edu.automarket.user.dto.AuthRequestDTO;
@@ -22,7 +23,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -54,7 +54,7 @@ public class UserController {
                 .thenReturn(new SendVerificationCodeResponseDTO(smsCodeService.getAuthCodeTTLSeconds()))
                 .onErrorMap(e -> {
                     log.error("Failed to send SMS code", e);
-                    return new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to send SMS code");
+                    return new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "/problems/sms-send-failed", "Failed to send SMS code");
                 });
     }
 
@@ -64,7 +64,7 @@ public class UserController {
                 .then(Mono.defer(() -> userService.getUserByPhoneNumberOrCreate(request.phoneNumber())))
                 .map(user -> {
                     if (!user.active()) {
-                        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not active");
+                        throw new ApiException(HttpStatus.UNAUTHORIZED, "/problems/user-not-active", "User is not active");
                     }
 
                     String jwtToken = authenticationService.generateToken(user.id());

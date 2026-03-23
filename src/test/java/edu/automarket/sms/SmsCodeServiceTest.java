@@ -1,13 +1,13 @@
 package edu.automarket.sms;
 
 import edu.automarket.AbstractIntegrationTest;
+import edu.automarket.common.ApiException;
 import edu.automarket.sms.dto.TelegramGatewayAPIRequestDTO;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.r2dbc.core.DatabaseClient;
-import org.springframework.web.server.ResponseStatusException;
 import reactor.test.StepVerifier;
 
 import java.util.Map;
@@ -68,8 +68,8 @@ class SmsCodeServiceTest extends AbstractIntegrationTest {
     void validateSmsCodeThrowsUnauthorizedForInvalidCode() {
         StepVerifier.create(smsCodeService.validateSmsCode("+380123456789", "000000"))
                 .expectErrorSatisfies(ex -> {
-                    assertThat(ex).isInstanceOf(ResponseStatusException.class);
-                    assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+                    assertThat(ex).isInstanceOf(ApiException.class);
+                    assertThat(((ApiException) ex).getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED);
                 })
                 .verify();
     }

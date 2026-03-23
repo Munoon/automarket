@@ -3,6 +3,7 @@ package edu.automarket.listing.controller;
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.analytics.CarListingAnalyticsService;
 import edu.automarket.common.PageDTO;
+import edu.automarket.common.ProblemDTO;
 import edu.automarket.listing.CarListingService;
 import edu.automarket.listing.dto.AuthorPhoneDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
@@ -205,7 +206,14 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         webTestClient.get()
                 .uri("/api/listings/public/" + listing.id())
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isNotFound()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-not-found");
+                    assertThat(problem.title()).isEqualTo("Listing not found");
+                    assertThat(problem.status()).isEqualTo(404);
+                });
     }
 
     @Test
@@ -213,7 +221,14 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         webTestClient.get()
                 .uri("/api/listings/public/9999")
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isNotFound()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-not-found");
+                    assertThat(problem.title()).isEqualTo("Listing not found");
+                    assertThat(problem.status()).isEqualTo(404);
+                });
     }
 
     // --- GET /api/listings/public/{id}/phone ---
@@ -240,7 +255,14 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         webTestClient.get()
                 .uri("/api/listings/public/" + listing.id() + "/phone")
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isNotFound()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-not-found");
+                    assertThat(problem.title()).isEqualTo("Listing not found");
+                    assertThat(problem.status()).isEqualTo(404);
+                });
     }
 
     @Test
@@ -248,7 +270,14 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         webTestClient.get()
                 .uri("/api/listings/public/9999/phone")
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isNotFound()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-not-found");
+                    assertThat(problem.title()).isEqualTo("Listing not found");
+                    assertThat(problem.status()).isEqualTo(404);
+                });
     }
 
     // --- Analytics recording ---
@@ -316,7 +345,14 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         webTestClient.get()
                 .uri("/api/listings/public/" + listing.id())
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isNotFound()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-not-found");
+                    assertThat(problem.title()).isEqualTo("Listing not found");
+                    assertThat(problem.status()).isEqualTo(404);
+                });
 
         analyticsService.saveListingAnalytics();
 
@@ -333,7 +369,14 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         webTestClient.get()
                 .uri("/api/listings/public/" + listing.id() + "/phone")
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isNotFound()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-not-found");
+                    assertThat(problem.title()).isEqualTo("Listing not found");
+                    assertThat(problem.status()).isEqualTo(404);
+                });
 
         analyticsService.saveListingAnalytics();
 

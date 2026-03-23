@@ -1,20 +1,18 @@
 package edu.automarket.listing;
 
 import edu.automarket.AbstractIntegrationTest;
+import edu.automarket.common.ApiException;
 import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
-import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.CarBrand;
 import edu.automarket.listing.model.CarListing;
 import edu.automarket.listing.model.ListingStatus;
-import edu.automarket.user.UserRepository;
 import edu.automarket.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,8 +53,8 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         }
 
         assertThatThrownBy(() -> carListingService.create(userId1).block())
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessage("403 FORBIDDEN \"You have reached the limit of listings per user\"");
+                .isInstanceOf(ApiException.class)
+                .hasMessage("You have reached the limit of listings per user");
 
         CarListing user2Listing = carListingService.create(userId2).block();
         user2Listing = carListingService.getListingByIdOrThrow(user2Listing.id()).block();
@@ -188,8 +186,8 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         carListingService.delete(listing.id()).block();
 
         StepVerifier.create(carListingService.getListingByIdOrThrow(listing.id()))
-                .expectErrorMatches(e -> e instanceof ResponseStatusException ex
-                        && ex.getStatusCode() == HttpStatus.NOT_FOUND)
+                .expectErrorMatches(e -> e instanceof ApiException ex
+                        && ex.getStatus() == HttpStatus.NOT_FOUND)
                 .verify();
     }
 
@@ -258,8 +256,8 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         assertThat(archivedListing.status()).isEqualTo(ListingStatus.ARCHIVED);
 
         assertThatThrownBy(() -> carListingService.updateStatus(archivedListing, ListingStatus.PUBLISHED).block())
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessage("400 BAD_REQUEST \"Listing publishing cooldown in progress\"");
+                .isInstanceOf(ApiException.class)
+                .hasMessage("Listing publishing cooldown in progress");
 
         listing = carListingService.getListingByIdOrThrow(listing.id()).block();
         assertThat(listing).isNotNull();
@@ -290,16 +288,16 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         CarListing listing = carListingService.create(userId).block();
 
         StepVerifier.create(carListingService.getPublishedListingByIdOrThrow(listing.id()))
-                .expectErrorMatches(e -> e instanceof ResponseStatusException ex
-                        && ex.getStatusCode() == HttpStatus.NOT_FOUND)
+                .expectErrorMatches(e -> e instanceof ApiException ex
+                        && ex.getStatus() == HttpStatus.NOT_FOUND)
                 .verify();
     }
 
     @Test
     void getPublishedListingByIdOrThrowThrowsNotFoundForNonExistentId() {
         StepVerifier.create(carListingService.getPublishedListingByIdOrThrow(9999))
-                .expectErrorMatches(e -> e instanceof ResponseStatusException ex
-                        && ex.getStatusCode() == HttpStatus.NOT_FOUND)
+                .expectErrorMatches(e -> e instanceof ApiException ex
+                        && ex.getStatus() == HttpStatus.NOT_FOUND)
                 .verify();
     }
 
@@ -316,8 +314,8 @@ class CarListingServiceTest extends AbstractIntegrationTest {
     @Test
     void getListingByIdOrThrowThrowsNotFoundForMissingId() {
         StepVerifier.create(carListingService.getListingByIdOrThrow(9999))
-                .expectErrorMatches(e -> e instanceof ResponseStatusException ex
-                        && ex.getStatusCode() == HttpStatus.NOT_FOUND)
+                .expectErrorMatches(e -> e instanceof ApiException ex
+                        && ex.getStatus() == HttpStatus.NOT_FOUND)
                 .verify();
     }
 
@@ -442,16 +440,16 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         CarListing listing = carListingService.create(userId).block();
 
         StepVerifier.create(carListingService.getPublishedListingAuthorPhoneOrThrow(listing.id()))
-                .expectErrorMatches(e -> e instanceof ResponseStatusException ex
-                        && ex.getStatusCode() == HttpStatus.NOT_FOUND)
+                .expectErrorMatches(e -> e instanceof ApiException ex
+                        && ex.getStatus() == HttpStatus.NOT_FOUND)
                 .verify();
     }
 
     @Test
     void getPublishedListingAuthorPhoneOrThrowThrowsNotFoundForNonExistentId() {
         StepVerifier.create(carListingService.getPublishedListingAuthorPhoneOrThrow(9999))
-                .expectErrorMatches(e -> e instanceof ResponseStatusException ex
-                        && ex.getStatusCode() == HttpStatus.NOT_FOUND)
+                .expectErrorMatches(e -> e instanceof ApiException ex
+                        && ex.getStatus() == HttpStatus.NOT_FOUND)
                 .verify();
     }
 

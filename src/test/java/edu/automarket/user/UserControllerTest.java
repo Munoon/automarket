@@ -2,6 +2,7 @@ package edu.automarket.user;
 
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.authentication.AuthenticationService;
+import edu.automarket.common.ProblemDTO;
 import edu.automarket.sms.SmsCodeRepository;
 import edu.automarket.sms.SmsCodeService;
 import edu.automarket.sms.dto.TelegramGatewayAPIRequestDTO;
@@ -94,7 +95,14 @@ class UserControllerTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new SendVerificationCodeRequestDTO("+380123456789"))
                 .exchange()
-                .expectStatus().isEqualTo(500);
+                .expectStatus().isEqualTo(500)
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/sms-send-failed");
+                    assertThat(problem.title()).isEqualTo("Failed to send SMS code");
+                    assertThat(problem.status()).isEqualTo(500);
+                });
     }
 
     @Test
@@ -103,7 +111,14 @@ class UserControllerTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new SendVerificationCodeRequestDTO("12345"))
                 .exchange()
-                .expectStatus().isBadRequest();
+                .expectStatus().isBadRequest()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/validation-error");
+                    assertThat(problem.title()).isEqualTo("Validation Error");
+                    assertThat(problem.status()).isEqualTo(400);
+                });
     }
 
     @Test
@@ -112,7 +127,14 @@ class UserControllerTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new SendVerificationCodeRequestDTO(null))
                 .exchange()
-                .expectStatus().isBadRequest();
+                .expectStatus().isBadRequest()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/validation-error");
+                    assertThat(problem.title()).isEqualTo("Validation Error");
+                    assertThat(problem.status()).isEqualTo(400);
+                });
     }
 
     // --- POST /api/users/auth ---
@@ -155,7 +177,14 @@ class UserControllerTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new AuthRequestDTO("+380123456789", "000000"))
                 .exchange()
-                .expectStatus().isUnauthorized();
+                .expectStatus().isUnauthorized()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/invalid-sms-code");
+                    assertThat(problem.title()).isEqualTo("Invalid SMS code");
+                    assertThat(problem.status()).isEqualTo(401);
+                });
     }
 
     @Test
@@ -164,7 +193,14 @@ class UserControllerTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new AuthRequestDTO("12345", "123456"))
                 .exchange()
-                .expectStatus().isBadRequest();
+                .expectStatus().isBadRequest()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/validation-error");
+                    assertThat(problem.title()).isEqualTo("Validation Error");
+                    assertThat(problem.status()).isEqualTo(400);
+                });
     }
 
     @Test
@@ -179,7 +215,14 @@ class UserControllerTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new AuthRequestDTO("+380123456789", "123456"))
                 .exchange()
-                .expectStatus().isUnauthorized();
+                .expectStatus().isUnauthorized()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/user-not-active");
+                    assertThat(problem.title()).isEqualTo("User is not active");
+                    assertThat(problem.status()).isEqualTo(401);
+                });
     }
 
     // --- PATCH /api/users/display-name ---
@@ -214,7 +257,14 @@ class UserControllerTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new UpdateDisplayNameRequestDTO("Bad@Name123"))
                 .exchange()
-                .expectStatus().isBadRequest();
+                .expectStatus().isBadRequest()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/validation-error");
+                    assertThat(problem.title()).isEqualTo("Validation Error");
+                    assertThat(problem.status()).isEqualTo(400);
+                });
     }
 
     @Test
@@ -223,7 +273,14 @@ class UserControllerTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new UpdateDisplayNameRequestDTO("John Doe"))
                 .exchange()
-                .expectStatus().isUnauthorized();
+                .expectStatus().isUnauthorized()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/unauthorized");
+                    assertThat(problem.title()).isEqualTo("Unauthorized");
+                    assertThat(problem.status()).isEqualTo(401);
+                });
     }
 
     // --- GET /api/users/profile ---
@@ -247,13 +304,29 @@ class UserControllerTest extends AbstractIntegrationTest {
     @Test
     void getProfileWithoutTokenReturns401() {
         webTestClient.get().uri("/api/users/profile")
-                .exchange().expectStatus().isUnauthorized();
+                .exchange()
+                .expectStatus().isUnauthorized()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/unauthorized");
+                    assertThat(problem.title()).isEqualTo("Unauthorized");
+                    assertThat(problem.status()).isEqualTo(401);
+                });
     }
 
     @Test
     void getProfileWithInvalidTokenReturns401() {
         webTestClient.get().uri("/api/users/profile")
                 .header("Authorization", "Bearer garbage.token.value")
-                .exchange().expectStatus().isUnauthorized();
+                .exchange()
+                .expectStatus().isUnauthorized()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/unauthorized");
+                    assertThat(problem.title()).isEqualTo("Unauthorized");
+                    assertThat(problem.status()).isEqualTo(401);
+                });
     }
 }

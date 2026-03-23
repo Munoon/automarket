@@ -1,5 +1,6 @@
 package edu.automarket.listing.dto;
 
+import edu.automarket.common.ApiException;
 import edu.automarket.common.validation.AllowedCharacters;
 import edu.automarket.common.validation.CharacterType;
 import edu.automarket.listing.model.BodyType;
@@ -16,7 +17,6 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 public record UpdateCarListingRequestDTO(
         @Size(max = 200)
@@ -75,8 +75,8 @@ public record UpdateCarListingRequestDTO(
 ) {
     public void validate() {
         if (customBrandName != null && brand != CarBrand.CUSTOM) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "customBrandName can only be set when brand is CUSTOM");
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "/problems/invalid-custom-brand-name", "customBrandName can only be set when brand is CUSTOM");
         }
     }
 }

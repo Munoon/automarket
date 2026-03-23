@@ -5,7 +5,9 @@ import edu.automarket.analytics.CarListingAnalyticsCounter;
 import edu.automarket.analytics.CarListingAnalyticsRepository;
 import edu.automarket.analytics.dto.ListingAnalyticsDayDTO;
 import edu.automarket.authentication.AuthenticationService;
+import edu.automarket.common.ApiException;
 import edu.automarket.common.PageDTO;
+import edu.automarket.common.ProblemDTO;
 import edu.automarket.listing.CarListingService;
 import edu.automarket.listing.dto.OwnCarListingDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
@@ -21,7 +23,6 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.web.server.ResponseStatusException;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
@@ -81,7 +82,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         webTestClient.post()
                 .uri("/api/listings/own")
                 .exchange()
-                .expectStatus().isUnauthorized();
+                .expectStatus().isUnauthorized()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/unauthorized");
+                    assertThat(problem.title()).isEqualTo("Unauthorized");
+                    assertThat(problem.status()).isEqualTo(401);
+                });
     }
 
     @Test
@@ -110,7 +118,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                      .uri("/api/listings/own")
                      .header("Authorization", "Bearer " + token1)
                      .exchange()
-                     .expectStatus().isForbidden();
+                     .expectStatus().isForbidden()
+                     .expectHeader().contentType("application/problem+json")
+                     .expectBody(ProblemDTO.class)
+                     .value(problem -> {
+                         assertThat(problem.type()).isEqualTo("/problems/listing-limit-reached");
+                         assertThat(problem.title()).isEqualTo("You have reached the limit of listings per user");
+                         assertThat(problem.status()).isEqualTo(403);
+                     });
 
         webTestClient.post()
                      .uri("/api/listings/own")
@@ -152,7 +167,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         webTestClient.get()
                 .uri("/api/listings/own")
                 .exchange()
-                .expectStatus().isUnauthorized();
+                .expectStatus().isUnauthorized()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/unauthorized");
+                    assertThat(problem.title()).isEqualTo("Unauthorized");
+                    assertThat(problem.status()).isEqualTo(401);
+                });
     }
 
     @Test
@@ -278,7 +300,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         webTestClient.get()
                 .uri("/api/listings/own/1")
                 .exchange()
-                .expectStatus().isUnauthorized();
+                .expectStatus().isUnauthorized()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/unauthorized");
+                    assertThat(problem.title()).isEqualTo("Unauthorized");
+                    assertThat(problem.status()).isEqualTo(401);
+                });
     }
 
     @Test
@@ -290,7 +319,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .uri("/api/listings/own/9999")
                 .header("Authorization", "Bearer " + token)
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isNotFound()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-not-found");
+                    assertThat(problem.title()).isEqualTo("Listing not found");
+                    assertThat(problem.status()).isEqualTo(404);
+                });
     }
 
     @Test
@@ -304,7 +340,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .uri("/api/listings/own/" + listing.id())
                 .header("Authorization", "Bearer " + token2)
                 .exchange()
-                .expectStatus().isForbidden();
+                .expectStatus().isForbidden()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/access-denied");
+                    assertThat(problem.title()).isEqualTo("Access denied");
+                    assertThat(problem.status()).isEqualTo(403);
+                });
     }
 
     // --- PATCH /api/listings/own/{id}/status ---
@@ -341,7 +384,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                      .contentType(MediaType.APPLICATION_JSON)
                      .bodyValue(new UpdateListingStatusRequestDTO(ListingStatus.DRAFT))
                      .exchange()
-                     .expectStatus().isBadRequest();
+                     .expectStatus().isBadRequest()
+                     .expectHeader().contentType("application/problem+json")
+                     .expectBody(ProblemDTO.class)
+                     .value(problem -> {
+                         assertThat(problem.type()).isEqualTo("/problems/status-already-set");
+                         assertThat(problem.title()).isEqualTo("Status already set");
+                         assertThat(problem.status()).isEqualTo(400);
+                     });
     }
 
     @Test
@@ -351,7 +401,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new UpdateListingStatusRequestDTO(ListingStatus.PUBLISHED))
                 .exchange()
-                .expectStatus().isUnauthorized();
+                .expectStatus().isUnauthorized()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/unauthorized");
+                    assertThat(problem.title()).isEqualTo("Unauthorized");
+                    assertThat(problem.status()).isEqualTo(401);
+                });
     }
 
     @Test
@@ -365,7 +422,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new UpdateListingStatusRequestDTO(ListingStatus.PUBLISHED))
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isNotFound()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-not-found");
+                    assertThat(problem.title()).isEqualTo("Listing not found");
+                    assertThat(problem.status()).isEqualTo(404);
+                });
     }
 
     @Test
@@ -381,7 +445,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new UpdateListingStatusRequestDTO(ListingStatus.PUBLISHED))
                 .exchange()
-                .expectStatus().isForbidden();
+                .expectStatus().isForbidden()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/access-denied");
+                    assertThat(problem.title()).isEqualTo("Access denied");
+                    assertThat(problem.status()).isEqualTo(403);
+                });
     }
 
     @Test
@@ -423,7 +494,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                      .contentType(MediaType.APPLICATION_JSON)
                      .bodyValue(new UpdateListingStatusRequestDTO(ListingStatus.PUBLISHED))
                      .exchange()
-                     .expectStatus().isBadRequest();
+                     .expectStatus().isBadRequest()
+                     .expectHeader().contentType("application/problem+json")
+                     .expectBody(ProblemDTO.class)
+                     .value(problem -> {
+                         assertThat(problem.type()).isEqualTo("/problems/listing-publish-cooldown");
+                         assertThat(problem.title()).isEqualTo("Listing publishing cooldown in progress");
+                         assertThat(problem.status()).isEqualTo(400);
+                     });
 
         listing = carListingService.getListingByIdOrThrow(listing.id()).block();
         assertThat(listing).isNotNull();
@@ -488,7 +566,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                         null, null, null, null, null, null, null, null, null, null, null, null, null
                 ))
                 .exchange()
-                .expectStatus().isUnauthorized();
+                .expectStatus().isUnauthorized()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/unauthorized");
+                    assertThat(problem.title()).isEqualTo("Unauthorized");
+                    assertThat(problem.status()).isEqualTo(401);
+                });
     }
 
     @Test
@@ -505,7 +590,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                         null, null, null, null, null, null, null, null, null, null, null, null, null
                 ))
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isNotFound()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-not-found");
+                    assertThat(problem.title()).isEqualTo("Listing not found");
+                    assertThat(problem.status()).isEqualTo(404);
+                });
     }
 
     @Test
@@ -524,7 +616,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                         null, null, null, null, null, null, null, null, null, null, null, null, null
                 ))
                 .exchange()
-                .expectStatus().isForbidden();
+                .expectStatus().isForbidden()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/access-denied");
+                    assertThat(problem.title()).isEqualTo("Access denied");
+                    assertThat(problem.status()).isEqualTo(403);
+                });
     }
 
     @Test
@@ -542,7 +641,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                         null, null, null, null, null, null, null, null, null, null, null, null, null
                 ))
                 .exchange()
-                .expectStatus().isBadRequest();
+                .expectStatus().isBadRequest()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/validation-error");
+                    assertThat(problem.title()).isEqualTo("Validation Error");
+                    assertThat(problem.status()).isEqualTo(400);
+                });
     }
 
     @Test
@@ -560,7 +666,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                         null, null, null, null, null, null, null, null, null, null, null, null, null
                 ))
                 .exchange()
-                .expectStatus().isBadRequest();
+                .expectStatus().isBadRequest()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/invalid-custom-brand-name");
+                    assertThat(problem.title()).isEqualTo("customBrandName can only be set when brand is CUSTOM");
+                    assertThat(problem.status()).isEqualTo(400);
+                });
     }
 
     // --- DELETE /api/listings/own/{id} ---
@@ -579,8 +692,8 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .expectBody().isEmpty();
 
         StepVerifier.create(carListingService.getListingByIdOrThrow(listing.id()))
-                .expectErrorMatches(e -> e instanceof ResponseStatusException ex
-                        && ex.getStatusCode() == HttpStatus.NOT_FOUND)
+                .expectErrorMatches(e -> e instanceof ApiException ex
+                        && ex.getStatus() == HttpStatus.NOT_FOUND)
                 .verify();
     }
 
@@ -589,7 +702,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         webTestClient.delete()
                 .uri("/api/listings/own/1")
                 .exchange()
-                .expectStatus().isUnauthorized();
+                .expectStatus().isUnauthorized()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/unauthorized");
+                    assertThat(problem.title()).isEqualTo("Unauthorized");
+                    assertThat(problem.status()).isEqualTo(401);
+                });
     }
 
     @Test
@@ -601,7 +721,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .uri("/api/listings/own/9999")
                 .header("Authorization", "Bearer " + token)
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isNotFound()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-not-found");
+                    assertThat(problem.title()).isEqualTo("Listing not found");
+                    assertThat(problem.status()).isEqualTo(404);
+                });
     }
 
     @Test
@@ -615,7 +742,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .uri("/api/listings/own/" + listing.id())
                 .header("Authorization", "Bearer " + token2)
                 .exchange()
-                .expectStatus().isForbidden();
+                .expectStatus().isForbidden()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/access-denied");
+                    assertThat(problem.title()).isEqualTo("Access denied");
+                    assertThat(problem.status()).isEqualTo(403);
+                });
     }
 
     // --- GET /api/listings/own/{id}/analytics ---
@@ -778,7 +912,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         webTestClient.get()
                 .uri("/api/listings/own/1/analytics")
                 .exchange()
-                .expectStatus().isUnauthorized();
+                .expectStatus().isUnauthorized()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/unauthorized");
+                    assertThat(problem.title()).isEqualTo("Unauthorized");
+                    assertThat(problem.status()).isEqualTo(401);
+                });
     }
 
     @Test
@@ -790,7 +931,14 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .uri("/api/listings/own/9999/analytics")
                 .header("Authorization", "Bearer " + token)
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isNotFound()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-not-found");
+                    assertThat(problem.title()).isEqualTo("Listing not found");
+                    assertThat(problem.status()).isEqualTo(404);
+                });
     }
 
     @Test
@@ -804,6 +952,13 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .uri("/api/listings/own/" + listing.id() + "/analytics")
                 .header("Authorization", "Bearer " + token2)
                 .exchange()
-                .expectStatus().isForbidden();
+                .expectStatus().isForbidden()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/access-denied");
+                    assertThat(problem.title()).isEqualTo("Access denied");
+                    assertThat(problem.status()).isEqualTo(403);
+                });
     }
 }

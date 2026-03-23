@@ -1,5 +1,6 @@
 package edu.automarket.sms;
 
+import edu.automarket.common.ApiException;
 import edu.automarket.sms.dto.TelegramGatewayAPIRequestDTO;
 import edu.automarket.sms.dto.TelegramGatewayAPIResponseDTO;
 import org.apache.logging.log4j.LogManager;
@@ -9,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import java.security.SecureRandom;
@@ -51,7 +51,7 @@ public class SmsCodeService {
         return smsCodeRepository.validateSmsCodeAndDelete(phoneNumber, code, minCreatedAt)
                 .flatMap(valid -> valid
                         ? Mono.empty()
-                        : Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid SMS code")));
+                        : Mono.error(new ApiException(HttpStatus.UNAUTHORIZED, "/problems/invalid-sms-code", "Invalid SMS code")));
     }
 
     private void sendSmsViaTelegram(String phoneNumber, String authCode) {

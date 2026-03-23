@@ -2,18 +2,16 @@ package edu.automarket.listing.controller;
 
 import edu.automarket.analytics.CarListingAnalyticsService;
 import edu.automarket.analytics.dto.ListingAnalyticsDayDTO;
+import edu.automarket.common.ApiException;
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.CarListingService;
-import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.OwnCarListingDTO;
+import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.dto.UpdateListingStatusRequestDTO;
 import edu.automarket.listing.model.ListingStatus;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,9 +23,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 
 @RestController
 @RequestMapping("/api/listings/own")
@@ -65,7 +64,7 @@ public class OwnCarListingController {
         return carListingService.getListingByIdOrThrow(id)
                 .map(listing -> {
                     if (listing.authorUserId() != userId) {
-                        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+                        throw new ApiException(HttpStatus.FORBIDDEN, "/problems/access-denied", "Access denied");
                     }
                     return new OwnCarListingDTO(listing);
                 });
@@ -81,7 +80,7 @@ public class OwnCarListingController {
         return carListingService.getListingByIdOrThrow(id)
                 .flatMapMany(listing -> {
                     if (listing.authorUserId() != userId) {
-                        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+                        throw new ApiException(HttpStatus.FORBIDDEN, "/problems/access-denied", "Access denied");
                     }
                     return carListingAnalyticsService.getListingAnalyticsByDay(id, zoneId);
                 });
@@ -97,12 +96,12 @@ public class OwnCarListingController {
         return carListingService.getListingByIdOrThrow(id)
                 .flatMap(listing -> {
                     if (listing.authorUserId() != userId) {
-                        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+                        throw new ApiException(HttpStatus.FORBIDDEN, "/problems/access-denied", "Access denied");
                     }
 
                     ListingStatus newStatus = request.status();
                     if (listing.status() == newStatus) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Status already set");
+                        throw new ApiException(HttpStatus.BAD_REQUEST, "/problems/status-already-set", "Status already set");
                     }
 
                     return carListingService.updateStatus(listing, newStatus);
@@ -120,7 +119,7 @@ public class OwnCarListingController {
         return carListingService.getListingByIdOrThrow(id)
                 .flatMap(listing -> {
                     if (listing.authorUserId() != userId) {
-                        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+                        throw new ApiException(HttpStatus.FORBIDDEN, "/problems/access-denied", "Access denied");
                     }
                     return carListingService.update(id, request);
                 });
@@ -135,7 +134,7 @@ public class OwnCarListingController {
         return carListingService.getListingByIdOrThrow(id)
                 .flatMap(listing -> {
                     if (listing.authorUserId() != userId) {
-                        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+                        throw new ApiException(HttpStatus.FORBIDDEN, "/problems/access-denied", "Access denied");
                     }
                     return carListingService.delete(id);
                 });
