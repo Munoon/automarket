@@ -288,6 +288,23 @@ class CarListingServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void updateStatusToPublishedFailsWhenRequiredFieldsAreMissing() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+
+        assertThatThrownBy(() -> carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block())
+                .isInstanceOf(ApiException.class)
+                .hasMessage("Listing field is required for publishing: title");
+
+        StepVerifier.create(carListingService.getListingByIdOrThrow(listing.id()))
+                .assertNext(updated -> {
+                    assertThat(updated.status()).isEqualTo(ListingStatus.DRAFT);
+                    assertThat(updated.publishedAt()).isEqualTo(0);
+                })
+                .verifyComplete();
+    }
+
+    @Test
     void getPublishedListingByIdOrThrowReturnsPublishedListing() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
@@ -511,6 +528,32 @@ class CarListingServiceTest extends AbstractIntegrationTest {
                     assertThat(listing.title()).isEqualTo("Updated Title");
                     assertThat(listing.brand()).isEqualTo(CarBrand.TOYOTA);
                     assertThat(listing.model()).isEqualTo("Corolla");
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void updatePublishedListingFailsWhenRequiredFieldsBecomeMissing() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        CarListing published = carListingService.getListingByIdOrThrow(listing.id()).block();
+
+        var invalidUpdate = new UpdateCarListingRequestDTO(
+                null, null, CarBrand.TOYOTA, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        assertThatThrownBy(() -> carListingService.update(published, invalidUpdate).block())
+                .isInstanceOf(ApiException.class)
+                .hasMessage("Listing field is required for publishing: title");
+
+        StepVerifier.create(carListingService.getListingByIdOrThrow(listing.id()))
+                .assertNext(updated -> {
+                    assertThat(updated.status()).isEqualTo(ListingStatus.PUBLISHED);
+                    assertThat(updated.title()).isNotNull();
                 })
                 .verifyComplete();
     }

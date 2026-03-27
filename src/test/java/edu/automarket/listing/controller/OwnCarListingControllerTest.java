@@ -533,6 +533,35 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         assertThat(listing.status()).isEqualTo(ListingStatus.PUBLISHED);
     }
 
+    @Test
+    void updateStatusToPublishedWithIncompleteListingReturns400() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        webTestClient.patch()
+                .uri("/api/listings/own/" + listing.id() + "/status")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new UpdateListingStatusRequestDTO(ListingStatus.PUBLISHED))
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-incomplete");
+                    assertThat(problem.title()).isEqualTo("Listing field is required for publishing: title");
+                    assertThat(problem.status()).isEqualTo(400);
+                });
+
+        StepVerifier.create(carListingService.getListingByIdOrThrow(listing.id()))
+                .assertNext(updated -> {
+                    assertThat(updated.status()).isEqualTo(ListingStatus.DRAFT);
+                    assertThat(updated.publishedAt()).isEqualTo(0);
+                })
+                .verifyComplete();
+    }
+
     // --- PATCH /api/listings/own/{id} ---
 
     @Test
@@ -719,6 +748,33 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                          assertThat(problem.title()).isEqualTo("customBrandName is required when brand is CUSTOM");
                          assertThat(problem.status()).isEqualTo(400);
                      });
+    }
+
+    @Test
+    void updatePublishedListingFailsWhenRequiredFieldsBecomeMissing() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.patch()
+                .uri("/api/listings/own/" + listing.id())
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new UpdateCarListingRequestDTO(
+                        null, null, CarBrand.TOYOTA, null, null, null,
+                        null, null, null, null, null, null, null, null, null, null, null, null, null
+                ))
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-incomplete");
+                    assertThat(problem.title()).isEqualTo("Listing field is required for publishing: title");
+                    assertThat(problem.status()).isEqualTo(400);
+                });
     }
 
     // --- DELETE /api/listings/own/{id} ---
