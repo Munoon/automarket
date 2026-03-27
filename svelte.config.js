@@ -21,11 +21,11 @@ const config = {
             appTemplate: 'src/main/svelte/app.html'
         },
 		adapter: adapter({
-            pages: 'build',
-            assets: 'build',
-            fallback: undefined,
+            pages: 'target/svelte',
+            assets: 'target/svelte',
+            fallback: 'fallback.html',
             precompress: false,
-            strict: true
+            strict: false
         })
 	}
 };

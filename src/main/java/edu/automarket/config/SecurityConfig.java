@@ -46,7 +46,8 @@ public class SecurityConfig {
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/api/users/send-verification-code", "/api/users/auth").permitAll()
                         .pathMatchers("/api/listings/public/**").permitAll()
-                        .anyExchange().authenticated()
+                        .pathMatchers("/api/**").authenticated()
+                        .anyExchange().permitAll()
                 )
                 .exceptionHandling(spec -> spec.authenticationEntryPoint(this::writeProblemResponse))
                 .addFilterAt(jwtAuthFilter, SecurityWebFiltersOrder.AUTHENTICATION)
