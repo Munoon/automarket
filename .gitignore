@@ -31,3 +31,14 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### NPM ###
+node_modules/
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
