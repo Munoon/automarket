@@ -6,15 +6,23 @@ import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
+import edu.automarket.listing.model.BodyType;
 import edu.automarket.listing.model.CarBrand;
+import edu.automarket.listing.model.CarColor;
+import edu.automarket.listing.model.CarCondition;
 import edu.automarket.listing.model.CarListing;
+import edu.automarket.listing.model.City;
+import edu.automarket.listing.model.DriveType;
+import edu.automarket.listing.model.FuelType;
 import edu.automarket.listing.model.ListingStatus;
+import edu.automarket.listing.model.TransmissionType;
 import edu.automarket.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import reactor.test.StepVerifier;
 
+import static edu.automarket.listing.CarListingTestUtils.UPDATE_CAR_LISTING_REQUEST_DTO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
@@ -105,6 +113,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing draft = carListingService.create(userId).block();
         CarListing published = carListingService.create(userId).block();
+        published = carListingService.update(published, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
 
         StepVerifier.create(carListingService.getOwnListings(
@@ -122,13 +131,16 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         carListingService.create(userId).block();
         CarListing published = carListingService.create(userId).block();
+        published = carListingService.update(published, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
+
+        long publishedListingId = published.id();
 
         StepVerifier.create(carListingService.getOwnListings(
                         userId, new ListingStatus[]{ListingStatus.PUBLISHED}, 0, 20))
                 .assertNext(page -> {
                     assertThat(page.totalElements()).isEqualTo(1);
-                    assertThat(page.content().get(0).id()).isEqualTo(published.id());
+                    assertThat(page.content().get(0).id()).isEqualTo(publishedListingId);
                     assertThat(page.content().get(0).status()).isEqualTo(ListingStatus.PUBLISHED);
                 })
                 .verifyComplete();
@@ -140,6 +152,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         CarListing draft = carListingService.create(userId).block();
         CarListing published = carListingService.create(userId).block();
         CarListing archived = carListingService.create(userId).block();
+        published = carListingService.update(published, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
         carListingService.updateStatus(archived, ListingStatus.ARCHIVED).block();
 
@@ -210,6 +223,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
     void updateStatusSetPublishedAt() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing created = carListingService.create(userId).block();
+        created = carListingService.update(created, UPDATE_CAR_LISTING_REQUEST_DTO).block();
 
         carListingService.updateStatus(created, ListingStatus.PUBLISHED).block();
         long publishedAt = System.currentTimeMillis();
@@ -226,6 +240,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
     void updateStatusPreservesPublishedAtWhenArchiving() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing created = carListingService.create(userId).block();
+        created = carListingService.update(created, UPDATE_CAR_LISTING_REQUEST_DTO).block();
 
         carListingService.updateStatus(created, ListingStatus.PUBLISHED).block();
         CarListing published = carListingService.getListingByIdOrThrow(created.id()).block();
@@ -244,6 +259,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
     void updateStatusCooldownOnRepublish() throws InterruptedException {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
 
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
         CarListing publishedListing = carListingService.getListingByIdOrThrow(listing.id()).block();
@@ -275,10 +291,13 @@ class CarListingServiceTest extends AbstractIntegrationTest {
     void getPublishedListingByIdOrThrowReturnsPublishedListing() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
+        long listingId = listing.id();
+
         StepVerifier.create(carListingService.getPublishedListingByIdOrThrow(listing.id()))
-                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listingId))
                 .verifyComplete();
     }
 
@@ -324,13 +343,16 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         carListingService.create(userId).block(); // draft
         CarListing published = carListingService.create(userId).block();
+        published = carListingService.update(published, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
+
+        long publishedListingId = published.id();
 
         StepVerifier.create(carListingService.getPublishedListings(new GetPublishedListingsRequestDTO()))
                     .assertNext(page -> {
                     assertThat(page.totalElements()).isEqualTo(1);
                     assertThat(page.content()).hasSize(1);
-                    assertThat(page.content().get(0).id()).isEqualTo(published.id());
+                    assertThat(page.content().get(0).id()).isEqualTo(publishedListingId);
                 })
                     .verifyComplete();
     }
@@ -339,6 +361,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
     void getPublishedListingsFiltersOutListingsPublishedAfterAnchor() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
         GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
@@ -357,7 +380,9 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         CarListing listing = carListingService.create(userId).block();
         CarListing updatedListing = carListingService.update(listing, new UpdateCarListingRequestDTO(
                 "Sport Car", "Fast and furious", CarBrand.CUSTOM, "Batmobile", "Dark Knight",
-                null, null, null, 999999L, null, null, null, null, null, null, null, null, null, null
+                "AA2222BB", CarCondition.NEW, 1234, 999999L,
+                City.KYIV, CarColor.RED, TransmissionType.MANUAL, FuelType.ELECTRIC, 25.4,
+                DriveType.FWD, BodyType.SEDAN, 2024, 34.1, 4
         )).block();
         carListingService.updateStatus(updatedListing, ListingStatus.PUBLISHED).block();
 
@@ -395,9 +420,16 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         CarListing listing1 = carListingService.create(userId).block();
         CarListing listing2 = carListingService.create(userId).block();
         CarListing listing3 = carListingService.create(userId).block();
+        listing1 = carListingService.update(listing1, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        listing2 = carListingService.update(listing2, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        listing3 = carListingService.update(listing3, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(listing1, ListingStatus.PUBLISHED).block();
         carListingService.updateStatus(listing3, ListingStatus.PUBLISHED).block();
         carListingService.updateStatus(listing2, ListingStatus.PUBLISHED).block();
+
+        long listing1Id = listing1.id();
+        long listing2Id = listing2.id();
+        long listing3Id = listing3.id();
 
         GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
         request.setPage(0);
@@ -406,8 +438,8 @@ class CarListingServiceTest extends AbstractIntegrationTest {
                     .assertNext(page -> {
                         assertThat(page.totalElements()).isEqualTo(3);
                         assertThat(page.content()).hasSize(2);
-                        assertThat(page.content().get(0).id()).isEqualTo(listing2.id());
-                        assertThat(page.content().get(1).id()).isEqualTo(listing3.id());
+                        assertThat(page.content().get(0).id()).isEqualTo(listing2Id);
+                        assertThat(page.content().get(1).id()).isEqualTo(listing3Id);
                     })
                     .verifyComplete();
 
@@ -418,7 +450,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
                 .assertNext(page -> {
                     assertThat(page.totalElements()).isEqualTo(3);
                     assertThat(page.content()).hasSize(1);
-                    assertThat(page.content().get(0).id()).isEqualTo(listing1.id());
+                    assertThat(page.content().get(0).id()).isEqualTo(listing1Id);
                 })
                 .verifyComplete();
     }
@@ -427,6 +459,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
     void getPublishedListingAuthorPhoneOrThrowReturnsPhone() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
         StepVerifier.create(carListingService.getPublishedListingAuthorPhoneOrThrow(listing.id()))

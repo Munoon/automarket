@@ -10,15 +10,23 @@ import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
+import edu.automarket.listing.model.BodyType;
 import edu.automarket.listing.model.CarBrand;
+import edu.automarket.listing.model.CarColor;
+import edu.automarket.listing.model.CarCondition;
 import edu.automarket.listing.model.CarListing;
+import edu.automarket.listing.model.City;
+import edu.automarket.listing.model.DriveType;
+import edu.automarket.listing.model.FuelType;
 import edu.automarket.listing.model.ListingStatus;
+import edu.automarket.listing.model.TransmissionType;
 import edu.automarket.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
+import static edu.automarket.listing.CarListingTestUtils.UPDATE_CAR_LISTING_REQUEST_DTO;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PublicCarListingControllerTest extends AbstractIntegrationTest {
@@ -52,7 +60,9 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         carListingService.create(userId).block(); // draft
         CarListing published = carListingService.create(userId).block();
+        published = carListingService.update(published, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
+        long publishedListingId = published.id();
 
         webTestClient.get()
                 .uri("/api/listings/public")
@@ -62,7 +72,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
                 .value(page -> {
                     assertThat(page.totalElements()).isEqualTo(1);
                     assertThat(page.content()).hasSize(1);
-                    assertThat(page.content().get(0).id()).isEqualTo(published.id());
+                    assertThat(page.content().get(0).id()).isEqualTo(publishedListingId);
                 });
     }
 
@@ -70,6 +80,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
     void getPublishedListingsFiltersOutListingsPublishedAfterAnchor() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
         long before = System.currentTimeMillis() - 1_000;
@@ -88,11 +99,15 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
     void getPublishedListingsReturnsCorrectFields() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         CarListing updatedListing = carListingService.update(listing, new UpdateCarListingRequestDTO(
                 "Test Car", "A nice car", CarBrand.TOYOTA, null, "Camry",
-                null, null, null, 500000L, null, null, null, null, null, null, null, null, null, null
+                "AA2222BB", CarCondition.NEW, 1234, 500000L,
+                City.KYIV, CarColor.RED, TransmissionType.MANUAL, FuelType.ELECTRIC, 25.4,
+                DriveType.FWD, BodyType.SEDAN, 2024, 34.1, 4
         )).block();
         carListingService.updateStatus(updatedListing, ListingStatus.PUBLISHED).block();
+        long listingId = listing.id();
 
         long now = System.currentTimeMillis();
         webTestClient.get()
@@ -103,7 +118,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
                 .value(page -> {
                     assertThat(page.totalElements()).isEqualTo(1);
                     PublicCarListingItemDTO dto = page.content().get(0);
-                    assertThat(dto.id()).isEqualTo(listing.id());
+                    assertThat(dto.id()).isEqualTo(listingId);
                     assertThat(dto.title()).isEqualTo("Test Car");
                     assertThat(dto.description()).isEqualTo("A nice car");
                     assertThat(dto.price()).isEqualTo(500000L);
@@ -138,9 +153,17 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         CarListing listing2 = carListingService.create(userId).block();
         CarListing listing3 = carListingService.create(userId).block();
 
+        listing1 = carListingService.update(listing1, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        listing2 = carListingService.update(listing2, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        listing3 = carListingService.update(listing3, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+
         carListingService.updateStatus(listing1, ListingStatus.PUBLISHED).block();
         carListingService.updateStatus(listing3, ListingStatus.PUBLISHED).block();
         carListingService.updateStatus(listing2, ListingStatus.PUBLISHED).block();
+
+        long listing1Id = listing1.id();
+        long listing2Id = listing2.id();
+        long listing3Id = listing3.id();
 
         long anchor = System.currentTimeMillis();
 
@@ -152,8 +175,8 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
                 .value(page -> {
                     assertThat(page.totalElements()).isEqualTo(3);
                     assertThat(page.content()).hasSize(2);
-                    assertThat(page.content().get(0).id()).isEqualTo(listing2.id());
-                    assertThat(page.content().get(1).id()).isEqualTo(listing3.id());
+                    assertThat(page.content().get(0).id()).isEqualTo(listing2Id);
+                    assertThat(page.content().get(1).id()).isEqualTo(listing3Id);
                 });
 
         webTestClient.get()
@@ -164,7 +187,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
                 .value(page -> {
                     assertThat(page.totalElements()).isEqualTo(3);
                     assertThat(page.content()).hasSize(1);
-                    assertThat(page.content().get(0).id()).isEqualTo(listing1.id());
+                    assertThat(page.content().get(0).id()).isEqualTo(listing1Id);
                 });
     }
 
@@ -177,7 +200,9 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         CarListing listing = carListingService.create(userId).block();
         CarListing updatedListing = carListingService.update(listing, new UpdateCarListingRequestDTO(
                 "Test Car", "Nice description", CarBrand.TOYOTA, null, "Camry",
-                null, null, null, 200000L, null, null, null, null, null, null, null, null, null, null
+                "AA2222BB", CarCondition.NEW, 1234, 200000L, City.KHARKIV, CarColor.RED,
+                TransmissionType.MANUAL, FuelType.ELECTRIC, 24.3, DriveType.AWD, BodyType.SEDAN,
+                2024, 34.5, 10
         )).block();
         carListingService.updateStatus(updatedListing, ListingStatus.PUBLISHED).block();
 
@@ -194,6 +219,20 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
                     assertThat(dto.brand()).isEqualTo(CarBrand.TOYOTA);
                     assertThat(dto.price()).isEqualTo(200000L);
                     assertThat(dto.model()).isEqualTo("Camry");
+                    assertThat(dto.licensePlate()).isEqualTo("AA2222BB");
+                    assertThat(dto.condition()).isEqualTo(CarCondition.NEW);
+                    assertThat(dto.mileage()).isEqualTo(1234);
+                    assertThat(dto.price()).isEqualTo(200000L);
+                    assertThat(dto.city()).isEqualTo(City.KHARKIV);
+                    assertThat(dto.color()).isEqualTo(CarColor.RED);
+                    assertThat(dto.transmission()).isEqualTo(TransmissionType.MANUAL);
+                    assertThat(dto.fuelType()).isEqualTo(FuelType.ELECTRIC);
+                    assertThat(dto.tankVolume()).isEqualTo(24.3);
+                    assertThat(dto.driveType()).isEqualTo(DriveType.AWD);
+                    assertThat(dto.bodyType()).isEqualTo(BodyType.SEDAN);
+                    assertThat(dto.year()).isEqualTo(2024);
+                    assertThat(dto.engineVolume()).isEqualTo(34.5);
+                    assertThat(dto.ownersCount()).isEqualTo(10);
                     assertThat(dto.publishedAt()).isPositive();
                 });
     }
@@ -237,6 +276,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
     void getAuthorPhoneReturnsPhoneForPublishedListingWithoutToken() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
         webTestClient.get()
@@ -286,6 +326,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
     void getById_recordsView_whenListingIsPublished() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
         webTestClient.get()
@@ -304,6 +345,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
     void getAuthorPhone_recordsPhoneRequest_whenListingIsPublished() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
         webTestClient.get()
@@ -323,6 +365,8 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing1 = carListingService.create(userId).block();
         CarListing listing2 = carListingService.create(userId).block();
+        listing1 = carListingService.update(listing1, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        listing2 = carListingService.update(listing2, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(listing1, ListingStatus.PUBLISHED).block();
         carListingService.updateStatus(listing2, ListingStatus.PUBLISHED).block();
 
