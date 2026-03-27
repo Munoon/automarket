@@ -32,6 +32,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
+import static edu.automarket.listing.CarListingTestUtils.UPDATE_CAR_LISTING_REQUEST_DTO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.Offset.offset;
 
@@ -184,6 +185,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         String token = authenticationService.generateToken(userId);
         CarListing draft = carListingService.create(userId).block();
         CarListing published = carListingService.create(userId).block();
+        published = carListingService.update(published, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
 
         webTestClient.get()
@@ -205,7 +207,10 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         String token = authenticationService.generateToken(userId);
         carListingService.create(userId).block();
         CarListing published = carListingService.create(userId).block();
+        published = carListingService.update(published, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
+
+        long publishedListingId = published.id();
 
         webTestClient.get()
                 .uri("/api/listings/own?statuses=PUBLISHED")
@@ -215,7 +220,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .expectBody(PAGE_TYPE)
                 .value(page -> {
                     assertThat(page.totalElements()).isEqualTo(1);
-                    assertThat(page.content().get(0).id()).isEqualTo(published.id());
+                    assertThat(page.content().get(0).id()).isEqualTo(publishedListingId);
                     assertThat(page.content().get(0).status()).isEqualTo(ListingStatus.PUBLISHED);
                 });
     }
@@ -227,6 +232,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         carListingService.create(userId).block();
         CarListing published = carListingService.create(userId).block();
         CarListing archived = carListingService.create(userId).block();
+        published = carListingService.update(published, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
         carListingService.updateStatus(archived, ListingStatus.ARCHIVED).block();
 
@@ -358,6 +364,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         String token = authenticationService.generateToken(userId);
         CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
 
         webTestClient.patch()
                 .uri("/api/listings/own/" + listing.id() + "/status")
@@ -461,6 +468,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         String token = authenticationService.generateToken(userId);
         CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
 
         webTestClient.patch()
                      .uri("/api/listings/own/" + listing.id() + "/status")
@@ -523,6 +531,35 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         listing = carListingService.getListingByIdOrThrow(listing.id()).block();
         assertThat(listing).isNotNull();
         assertThat(listing.status()).isEqualTo(ListingStatus.PUBLISHED);
+    }
+
+    @Test
+    void updateStatusToPublishedWithIncompleteListingReturns400() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        webTestClient.patch()
+                .uri("/api/listings/own/" + listing.id() + "/status")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new UpdateListingStatusRequestDTO(ListingStatus.PUBLISHED))
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-incomplete");
+                    assertThat(problem.title()).isEqualTo("Listing field is required for publishing: title");
+                    assertThat(problem.status()).isEqualTo(400);
+                });
+
+        StepVerifier.create(carListingService.getListingByIdOrThrow(listing.id()))
+                .assertNext(updated -> {
+                    assertThat(updated.status()).isEqualTo(ListingStatus.DRAFT);
+                    assertThat(updated.publishedAt()).isEqualTo(0);
+                })
+                .verifyComplete();
     }
 
     // --- PATCH /api/listings/own/{id} ---
@@ -711,6 +748,33 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                          assertThat(problem.title()).isEqualTo("customBrandName is required when brand is CUSTOM");
                          assertThat(problem.status()).isEqualTo(400);
                      });
+    }
+
+    @Test
+    void updatePublishedListingFailsWhenRequiredFieldsBecomeMissing() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.patch()
+                .uri("/api/listings/own/" + listing.id())
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new UpdateCarListingRequestDTO(
+                        null, null, CarBrand.TOYOTA, null, null, null,
+                        null, null, null, null, null, null, null, null, null, null, null, null, null
+                ))
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-incomplete");
+                    assertThat(problem.title()).isEqualTo("Listing field is required for publishing: title");
+                    assertThat(problem.status()).isEqualTo(400);
+                });
     }
 
     // --- DELETE /api/listings/own/{id} ---
