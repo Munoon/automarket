@@ -1,2 +1,5 @@
-<h1>Automarket</h1>
-<p><a href="/own-listings">Go to own listings</a></p>
+<script lang="ts">
+	import { t } from '$lib/i18n';
+</script>
+
+<h1>{$t('home.welcome')}</h1>
