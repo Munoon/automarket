@@ -179,6 +179,7 @@
                     </div>
                     <Input
                         type="tel"
+                        name="phone-number"
                         inputmode="numeric"
                         placeholder="967584954"
                         class="rounded-l-none! placeholder-gray-500"
@@ -205,6 +206,7 @@
                     <div class='flex gap-2 items-center justify-center' bind:this={verificationCodeInputsDiv}>
                         <Input
                             type="text"
+                            name="code-1"
                             disabled={isLoading}
                             bind:value={verificationCode[0]}
                             class='size-12! text-center text-lg'
@@ -215,6 +217,7 @@
                             />
                         <Input
                             type="text"
+                            name="code-2"
                             disabled={isLoading}
                             bind:value={verificationCode[1]}
                             class='size-12! text-center text-lg'
@@ -224,6 +227,7 @@
                             />
                         <Input
                             type="text"
+                            name="code-3"
                             disabled={isLoading}
                             bind:value={verificationCode[2]}
                             class='size-12! text-center text-lg'
@@ -233,6 +237,7 @@
                             />
                         <Input
                             type="text"
+                            name="code-4"
                             disabled={isLoading}
                             bind:value={verificationCode[3]}
                             class='size-12! text-center text-lg'
@@ -242,6 +247,7 @@
                             />
                         <Input
                             type="text"
+                            name="code-5"
                             disabled={isLoading}
                             bind:value={verificationCode[4]}
                             class='size-12! text-center text-lg'
@@ -251,6 +257,7 @@
                             />
                         <Input
                             type="text"
+                            name="code-6"
                             disabled={isLoading}
                             bind:value={verificationCode[5]}
                             class='size-12! text-center text-lg'
