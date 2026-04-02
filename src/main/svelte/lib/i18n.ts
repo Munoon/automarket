@@ -5,14 +5,42 @@ type Language = 'en' | 'uk';
 
 export const translations = {
 	en: {
-        'header.createListing': 'Create Listing',
-        'header.signIn': 'Sign In',
-        'home.welcome': 'Welcome to automarket'
+                'header.createListing': 'Create Listing',
+                'header.signIn': 'Sign In',
+                'home.welcome': 'Welcome to automarket',
+                'auth.signIn': 'Sign In',
+                'auth.weWillSendCode': 'We will send you a verification code to your phone number.',
+                'auth.phoneNumberInvalid': 'Phone number must contain 9 digits',
+                'auth.sendCode': 'Send Code',
+                'auth.sending': 'Sending...',
+                'auth.verifyCode': 'Verify Code',
+                'auth.verificationCode': 'Verification Code',
+                'auth.verificationCodeInvalid': 'Code must be 6 digits',
+                'auth.verificationCodeIncorrect': 'Verification code is incorrect',
+                'auth.verify': 'Verify',
+                'auth.verifying': 'Verifying...',
+                'auth.codeExpiresIn': 'Code expires in',
+                'auth.codeExpired': 'Verification code has expired. Please request a new one.',
+                'auth.error': 'An error occurred. Please try again.'
 	},
 	uk: {
-        'header.createListing': 'Створити оголошення',
-        'header.signIn': 'Увійти',
-        'home.welcome': 'Ласкаво просимо до automarket'
+                'header.createListing': 'Створити оголошення',
+                'header.signIn': 'Увійти',
+                'home.welcome': 'Ласкаво просимо до automarket',
+                'auth.signIn': 'Увійти',
+                'auth.weWillSendCode': 'Ми надішлемо вам код підтвердження на ваш номер телефону.',
+                'auth.phoneNumberInvalid': 'Номер телефону повинен містити 9 цифр',
+                'auth.sendCode': 'Надіслати код',
+                'auth.sending': 'Надсилання...',
+                'auth.verifyCode': 'Підтвердити код',
+                'auth.verificationCode': 'Код підтвердження',
+                'auth.verificationCodeInvalid': 'Код повинен складатися з 6 цифр',
+                'auth.verificationCodeIncorrect': 'Неправильний код підтвердження',
+                'auth.verify': 'Підтвердити',
+                'auth.verifying': 'Перевірка...',
+                'auth.codeExpiresIn': 'Код закінчується через',
+                'auth.codeExpired': 'Код підтвердження закінчився. Будь ласка, запросіть новий.',
+                'auth.error': 'Сталася помилка. Будь ласка, спробуйте ще раз.'
 	}
 };
 

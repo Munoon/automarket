@@ -2,8 +2,10 @@
 	import { Navbar, NavBrand, Button, NavHamburger } from 'flowbite-svelte';
 	import { PlusOutline, UserOutline } from 'flowbite-svelte-icons';
 	import { language, t } from '$lib/i18n';
+	import LoginModal from './LoginModal.svelte';
 
 	let showLanguageDropdown = $state(false);
+	let showLoginModal = $state(false);
 
 	function setLanguage(code: 'en' | 'uk') {
 		language.set(code);
@@ -16,8 +18,11 @@
 	}
 
 	function handleSignIn() {
-		// TODO: Navigate to sign in page
-		console.log('Sign in clicked');
+		showLoginModal = true;
+	}
+
+	function handleCloseLoginModal() {
+		showLoginModal = false;
 	}
 
 	function toggleLanguageDropdown() {
@@ -76,3 +81,5 @@
 		<NavHamburger />
 	</div>
 </Navbar>
+
+<LoginModal bind:isOpen={showLoginModal} onClose={handleCloseLoginModal} />
