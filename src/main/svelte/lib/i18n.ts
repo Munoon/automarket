@@ -7,6 +7,7 @@ export const translations = {
 	en: {
                 'header.createListing': 'Create Listing',
                 'header.signIn': 'Sign In',
+                'header.signOut': 'Sign Out',
                 'home.welcome': 'Welcome to automarket',
                 'auth.signIn': 'Sign In',
                 'auth.weWillSendCode': 'We will send you a verification code to your phone number.',
@@ -26,6 +27,7 @@ export const translations = {
 	uk: {
                 'header.createListing': 'Створити оголошення',
                 'header.signIn': 'Увійти',
+                'header.signOut': 'Вийти',
                 'home.welcome': 'Ласкаво просимо до automarket',
                 'auth.signIn': 'Увійти',
                 'auth.weWillSendCode': 'Ми надішлемо вам код підтвердження на ваш номер телефону.',

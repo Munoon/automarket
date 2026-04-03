@@ -1,11 +1,20 @@
 <script lang="ts">
 	import { Navbar, NavBrand, Button, NavHamburger } from 'flowbite-svelte';
-	import { PlusOutline, UserOutline } from 'flowbite-svelte-icons';
+	import { PlusOutline, UserOutline, ChevronDownOutline, ArrowRightToBracketOutline } from 'flowbite-svelte-icons';
 	import { language, t } from '$lib/i18n';
+	import { authStore } from '$lib/stores/authStore';
 	import LoginModal from './LoginModal.svelte';
 
 	let showLanguageDropdown = $state(false);
 	let showLoginModal = $state(false);
+	let showProfileDropdown = $state(false);
+
+	$effect(() => {
+		// Close profile dropdown when clicking outside would happen, but we rely on the button state
+		if (showLoginModal) {
+			showProfileDropdown = false;
+		}
+	});
 
 	function setLanguage(code: 'en' | 'uk') {
 		language.set(code);
@@ -25,8 +34,17 @@
 		showLoginModal = false;
 	}
 
+	function handleSignOut() {
+		authStore.clearAuth();
+		showProfileDropdown = false;
+	}
+
 	function toggleLanguageDropdown() {
 		showLanguageDropdown = !showLanguageDropdown;
+	}
+
+	function toggleProfileDropdown() {
+		showProfileDropdown = !showProfileDropdown;
 	}
 </script>
 
@@ -42,15 +60,43 @@
 			<PlusOutline class="me-1 h-5 w-5 stroke-2" />
 			{$t('header.createListing')}
 		</Button>
-		<Button 
-			size="sm" 
-			outline 
-			onclick={handleSignIn}
-			class="navbar-outline-btn border-gray-300 dark:border-gray-500 text-gray-900 dark:text-gray-100 hover:border-blue-600 dark:hover:border-blue-500 hover:text-gray-900! hover:dark:text-gray-100!"
-		>
-			<UserOutline class="me-1 h-4 w-4" />
-			{$t('header.signIn')}
-		</Button>
+
+		{#if $authStore.profile}
+			<div class="relative">
+				<Button
+					size="sm"
+					outline
+					onclick={toggleProfileDropdown}
+					class="navbar-outline-btn border-gray-300 dark:border-gray-500 text-gray-900 dark:text-gray-100 hover:border-blue-600 dark:hover:border-blue-500 hover:text-gray-900! hover:dark:text-gray-100! flex items-center gap-1"
+				>
+					<UserOutline class="h-4 w-4" />
+					<span>{$authStore.profile.displayName || $authStore.profile.phoneNumber}</span>
+					<ChevronDownOutline class="h-4 w-4" />
+				</Button>
+
+				{#if showProfileDropdown}
+					<div class="absolute right-0 mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden dark:border-gray-600 dark:bg-gray-700 z-50">
+						<button
+							onclick={handleSignOut}
+							class="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 dark:text-red-500 dark:hover:bg-gray-600"
+						>
+							<ArrowRightToBracketOutline class="h-4 w-4" />
+							{$t('header.signOut')}
+						</button>
+					</div>
+				{/if}
+			</div>
+		{:else}
+			<Button 
+				size="sm" 
+				outline 
+				onclick={handleSignIn}
+				class="navbar-outline-btn border-gray-300 dark:border-gray-500 text-gray-900 dark:text-gray-100 hover:border-blue-600 dark:hover:border-blue-500 hover:text-gray-900! hover:dark:text-gray-100!"
+			>
+				<UserOutline class="me-1 h-4 w-4" />
+				{$t('header.signIn')}
+			</Button>
+		{/if}
 		
 		<div class="relative">
 			<Button

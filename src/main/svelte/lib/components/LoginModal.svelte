@@ -3,6 +3,7 @@
 	import { ExclamationCircleOutline } from 'flowbite-svelte-icons';
 	import { t } from '$lib/i18n';
 	import { apiClient, type ProblemException } from '$lib/apiClient';
+	import { authStore } from '$lib/stores/authStore';
 
 	interface Props {
 		isOpen: boolean;
@@ -81,10 +82,12 @@
 
 		isLoading = true;
 		try {
-			await apiClient.authenticate({
+			const response = await apiClient.authenticate({
 				phoneNumber: '+380' + phoneNumber,
 				code
 			});
+
+			authStore.setAuth(response);
 
 			// Successfully authenticated
 			handleClose();

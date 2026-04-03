@@ -1,3 +1,5 @@
+import { authStore } from '$lib/stores/authStore';
+
 export interface RequestOptions {
 	maxRetries?: number;
 	retryTimeoutMS?: number;
@@ -192,7 +194,6 @@ export interface AuthorPhone {
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 type QueryParams = object;
 
-const AUTH_TOKEN_STORAGE_KEY = 'automarket_auth_token';
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_RETRY_TIMEOUT_MS = 5000;
 const FALLBACK_INTERNAL_PROBLEM: ProblemDetails = {
@@ -204,8 +205,6 @@ const FALLBACK_INTERNAL_PROBLEM: ProblemDetails = {
 class ServerProblemException extends ProblemException {}
 
 export class ApiClient {
-	private authToken: string | null | undefined = undefined;
-
 	public async sendVerificationCode(
 		body: SendVerificationCodeRequest,
 		options: RequestOptions = {}
@@ -214,9 +213,7 @@ export class ApiClient {
 	}
 
 	public async authenticate(body: AuthRequest, options: RequestOptions = {}): Promise<AuthResponse> {
-		const response = await this.send<AuthResponse>('POST', '/api/users/auth', body, undefined, options);
-		this.setAuthToken(response.token);
-		return response;
+		return this.send<AuthResponse>('POST', '/api/users/auth', body, undefined, options);
 	}
 
 	public async getProfile(options: RequestOptions = {}): Promise<UserProfile> {
@@ -294,14 +291,6 @@ export class ApiClient {
 		return this.send<Page<PublicCarListingItem>>('GET', '/api/listings/public', undefined, body, options);
 	}
 
-	public setToken(token: string | null): void {
-		this.setAuthToken(token);
-	}
-
-	public clearToken(): void {
-		this.setAuthToken(null);
-	}
-
 	private async send<T>(
 		method: HttpMethod,
 		path: string,
@@ -366,9 +355,15 @@ export class ApiClient {
 		}
 
 		if (requiresAuth) {
-			const token = this.getAuthToken();
+			const token = authStore.getToken();
 			if (token) {
 				headers.set('Authorization', `Bearer ${token}`);
+			} else {
+				throw new ProblemException({
+					type: '/problems/authentication-required',
+					title: 'Authentication Required',
+					status: 401
+				});
 			}
 		}
 
@@ -420,32 +415,6 @@ export class ApiClient {
 		}
 
 		return url;
-	}
-
-	private getAuthToken(): string | null {
-		if (this.authToken !== undefined) {
-			return this.authToken;
-		}
-
-		if (typeof localStorage === 'undefined') {
-			this.authToken = null;
-			return this.authToken;
-		}
-
-		this.authToken = localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
-		return this.authToken;
-	}
-
-	private setAuthToken(token: string | null): void {
-		this.authToken = token;
-		if (typeof localStorage === 'undefined') {
-			return;
-		}
-		if (token === null) {
-			localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
-			return;
-		}
-		localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
 	}
 
 	private async extractProblem(response: Response): Promise<ProblemDetails> {
