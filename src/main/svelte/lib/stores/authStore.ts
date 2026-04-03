@@ -2,22 +2,23 @@ import { writable } from 'svelte/store';
 import type { UserProfile, Limits, AuthResponse } from '$lib/apiClient';
 
 export interface AuthState {
+	initialized: boolean;
 	token: string | null;
 	profile: UserProfile | null;
 	limits: Limits | null;
 }
 
 const AUTH_TOKEN_STORAGE_KEY = 'automarket_auth_token';
-let isInitialized = false;
 
 function createAuthStore() {
 	let currentState: AuthState = {
+		initialized: false,
 		token: null,
 		profile: null,
 		limits: null
 	};
 
-	const { subscribe, set, update } = writable<AuthState>(currentState);
+	const { subscribe, set } = writable<AuthState>(currentState);
 
 	const api = {
 		subscribe,
@@ -27,6 +28,7 @@ function createAuthStore() {
 				localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
 			}
 			currentState = {
+				initialized: true,
 				token,
 				profile,
 				limits
@@ -38,6 +40,7 @@ function createAuthStore() {
 				localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
 			}
 			currentState = {
+				initialized: true,
 				token: null,
 				profile: null,
 				limits: null
@@ -48,41 +51,50 @@ function createAuthStore() {
 			return currentState.token;
 		},
 		initialize: async () => {
-			if (isInitialized) return;
-			isInitialized = true;
+			if (currentState.initialized) return;
 
 			// Load token from localStorage
-			if (typeof localStorage !== 'undefined') {
-				const storedToken = localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
-				if (storedToken) {
-					// Update currentState first so getToken() returns the token, when fetching the profile
+			const storedToken = typeof localStorage !== 'undefined'
+				? localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
+				: null;
+			if (storedToken) {
+				// Update currentState first so getToken() returns the token, when fetching the profile
+				currentState = {
+					initialized: false,
+					token: storedToken,
+					profile: null,
+					limits: null
+				};
+				set(currentState);
+
+				// Load profile
+				try {
+					// Dynamically import to avoid circular dependency
+					const { apiClient } = await import('$lib/apiClient');
+					const profile = await apiClient.getProfile();
+					
 					currentState = {
+						initialized: true,
 						token: storedToken,
-						profile: null,
-						limits: null
+						profile,
+						limits: { // TODO add actual limits here when available
+							listingRepublishCooldownMS: 0,
+							listingsCountLimitPerAuthor: 0
+						}
 					};
 					set(currentState);
-
-					// Load profile
-					try {
-						// Dynamically import to avoid circular dependency
-                        const { apiClient } = await import('$lib/apiClient');
-                        const profile = await apiClient.getProfile();
-						
-						currentState = {
-							...currentState,
-							profile,
-							limits: { // TODO add actual limits here when available
-								listingRepublishCooldownMS: 0,
-								listingsCountLimitPerAuthor: 0
-							}
-						};
-                        set(currentState);
-					} catch (error) {
-						console.error('Failed to load user profile', error);
-                        // api.clearAuth();
-					}
+				} catch (error) {
+					console.error('Failed to load user profile', error);
+					// api.clearAuth();
 				}
+			} else {
+				currentState = {
+					initialized: true,
+					token: null,
+					profile: null,
+					limits: null
+				};
+				set(currentState);
 			}
 		}
 	};

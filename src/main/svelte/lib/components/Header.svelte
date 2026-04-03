@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Navbar, NavBrand, Button, NavHamburger } from 'flowbite-svelte';
+	import { Navbar, NavBrand, Button, NavHamburger, Skeleton } from 'flowbite-svelte';
 	import { PlusOutline, UserOutline, ChevronDownOutline, ArrowRightToBracketOutline } from 'flowbite-svelte-icons';
-	import { language, t } from '$lib/i18n';
+	import { language, t, type Language } from '$lib/i18n';
 	import { authStore } from '$lib/stores/authStore';
 	import LoginModal from './LoginModal.svelte';
 
@@ -16,7 +16,7 @@
 		}
 	});
 
-	function setLanguage(code: 'en' | 'uk') {
+	function setLanguage(code: Language) {
 		language.set(code);
 		showLanguageDropdown = false;
 	}
@@ -61,7 +61,10 @@
 			{$t('header.createListing')}
 		</Button>
 
-		{#if $authStore.profile}
+		{#if !$authStore.initialized}
+			<!-- Skeleton -->
+			<div class="animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700 h-9 w-25"></div>
+		{:else if $authStore.profile}
 			<div class="relative">
 				<Button
 					size="sm"
@@ -108,18 +111,18 @@
 			</Button>
 			{#if showLanguageDropdown}
 				<div class="absolute right-0 mt-1 w-auto min-w-max rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden dark:border-gray-600 dark:bg-gray-700">
-                    <button
-                        onclick={() => setLanguage('en')}
-                        class="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-600 {$language === 'en' ? 'bg-gray-100 dark:bg-gray-600' : ''}"
-                    >
-                        🇬🇧 English
-                    </button>
-                    <button
-                        onclick={() => setLanguage('uk')}
-                        class="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-600 {$language === 'uk' ? 'bg-gray-100 dark:bg-gray-600' : ''}"
-                    >
-                        🇺🇦 Ukrainian
-                    </button>
+					<button
+							onclick={() => setLanguage('en')}
+							class="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-600 {$language === 'en' ? 'bg-gray-100 dark:bg-gray-600' : ''}"
+					>
+							🇬🇧 English
+					</button>
+					<button
+							onclick={() => setLanguage('uk')}
+							class="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-600 {$language === 'uk' ? 'bg-gray-100 dark:bg-gray-600' : ''}"
+					>
+							🇺🇦 Ukrainian
+					</button>
 				</div>
 			{/if}
 		</div>
