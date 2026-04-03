@@ -22,6 +22,15 @@ export const translations = {
         'auth.verifying': 'Verifying...',
         'auth.codeExpiresIn': 'Code expires in',
         'auth.codeExpired': 'Verification code has expired. Please request a new one.',
+        'auth.displayName': 'Name',
+        'auth.displayNameLabel': 'Your Name',
+        'auth.displayNamePlaceholder': 'John Doe',
+        'auth.displayNameHint': 'This name will be visible to other users.',
+        'auth.displayNameRequired': 'Name is required',
+        'auth.displayNameTooLong': 'Name must be 100 characters or less',
+        'auth.displayNameInvalidCharacters': 'Name can only contain letters, spaces, and apostrophes',
+        'auth.saving': 'Saving...',
+        'auth.save': 'Save',
         'auth.error': 'An error occurred. Please try again.'
 	},
 	uk: {
@@ -42,6 +51,15 @@ export const translations = {
         'auth.verifying': 'Перевірка...',
         'auth.codeExpiresIn': 'Код закінчується через',
         'auth.codeExpired': 'Код підтвердження закінчився. Будь ласка, запросіть новий.',
+        'auth.displayName': 'Ім\'я',
+        'auth.displayNameLabel': 'Ваше ім\'я',
+        'auth.displayNamePlaceholder': 'Іван Іванов',
+        'auth.displayNameHint': 'Це ім\'я буде видно іншим користувачам.',
+        'auth.displayNameRequired': 'Ім\'я обов\'язкове',
+        'auth.displayNameTooLong': 'Ім\'я повинно бути 100 символів або менше',
+        'auth.displayNameInvalidCharacters': 'Ім\'я може містити тільки літери, пробіли та апострофи',
+        'auth.saving': 'Збереження...',
+        'auth.save': 'Зберегти',
         'auth.error': 'Сталася помилка. Будь ласка, спробуйте ще раз.'
 	}
 };

@@ -3,6 +3,7 @@ import { authStore } from '$lib/stores/authStore';
 export interface RequestOptions {
 	maxRetries?: number;
 	retryTimeoutMS?: number;
+	token?: string;
 }
 
 export interface ProblemDetails {
@@ -325,7 +326,7 @@ export class ApiClient {
 
 		for (let attempt = 0; attempt <= maxRetries; attempt++) {
 			try {
-				return await this.executeOnce<T>(method, path, body, queryParams, requiresAuth);
+				return await this.executeOnce<T>(method, path, body, queryParams, requiresAuth, options);
 			} catch (error) {
 				if (error instanceof ServerProblemException) {
 					throw error;
@@ -345,7 +346,8 @@ export class ApiClient {
 		path: string,
 		body: unknown,
 		queryParams: QueryParams | undefined,
-		requiresAuth: boolean
+		requiresAuth: boolean,
+		options: RequestOptions = {}
 	): Promise<T> {
 		const headers = new Headers();
 		headers.set('Accept', 'application/json');
@@ -355,7 +357,7 @@ export class ApiClient {
 		}
 
 		if (requiresAuth) {
-			const token = authStore.getToken();
+			const token = options.token || authStore.getToken();
 			if (token) {
 				headers.set('Authorization', `Bearer ${token}`);
 			} else {

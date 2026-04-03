@@ -12,13 +12,15 @@
 
 	let { isOpen = $bindable(), onClose }: Props = $props();
 
-	type Stage = 'phone' | 'code';
+	type Stage = 'phone' | 'code' | 'displayName';
 
 	let stage: Stage = $state('phone');
 	let phoneNumber: string = $state('');
 	let verificationCode: string[] = $state([]);
+	let displayName: string = $state('');
 	let error: string | null = $state(null);
 	let isLoading: boolean = $state(false);
+	let authResponse: any = $state(null);
 	let timeRemaining: number = $state(0);
 	let totalTimeToLive: number = $state(0);
 	let timerInterval: ReturnType<typeof setInterval> | null = null;
@@ -87,10 +89,19 @@
 				code
 			});
 
-			authStore.setAuth(response);
-
-			// Successfully authenticated
-			handleClose();
+			// Check if user has a display name
+			if (!response.profile.displayName) {
+				authResponse = response;
+                stage = 'displayName';
+				displayName = '';
+				clearTimer();
+				isLoading = false;
+				return;
+			} else {
+                // User already has a display name, proceed with login
+                authStore.setAuth(response);
+                handleClose();
+            }
 		} catch (err) {
 			const problem = (err as ProblemException).problem;
             error = problem?.type === '/problems/invalid-sms-code'
@@ -133,6 +144,52 @@
         }
     }
 
+	function isValidDisplayNameCharacter(char: string): boolean {
+		// Allow any Unicode letter, spaces, and apostrophes
+        if (char === ' ' || char === "'") return true;
+		if (/\p{L}/u.test(char)) return true;
+		return false;
+	}
+
+	async function handleSaveDisplayName(e: Event) {
+		e.preventDefault();
+		error = null;
+
+		const trimmedDisplayName = displayName.trim();
+
+		if (!trimmedDisplayName) {
+			error = $t('auth.displayNameRequired');
+			return;
+		}
+
+		if (trimmedDisplayName.length > 100) {
+			error = $t('auth.displayNameTooLong');
+			return;
+		}
+
+		// Allow only alphabetical characters, spaces, and apostrophes
+		for (let i = 0; i < trimmedDisplayName.length; i++) {
+			if (!isValidDisplayNameCharacter(trimmedDisplayName[i])) {
+				error = $t('auth.displayNameInvalidCharacters');
+				return;
+			}
+		}
+
+		isLoading = true;
+		try {
+			await apiClient.updateDisplayName({ displayName: trimmedDisplayName }, { token: authResponse!.token });
+			if (authResponse) {
+                authResponse.profile.displayName = trimmedDisplayName;
+				authStore.setAuth(authResponse);
+			}
+			handleClose();
+		} catch (err) {
+			const problem = (err as ProblemException).problem;
+			error = problem?.title || $t('auth.error');
+			isLoading = false;
+		}
+	}
+
 	function handleClose() {
 		isOpen = false;
 		onClose();
@@ -141,9 +198,11 @@
 		stage = 'phone';
 		phoneNumber = '';
 		verificationCode = [];
+		displayName = '';
 		error = null;
 		clearTimer();
 		isLoading = false;
+		authResponse = null;
 	}
 
 	// Cleanup timer on unmount
@@ -163,7 +222,13 @@
 	<div class="space-y-6">
 		<div class="flex items-center justify-between">
 			<h3 class="text-xl font-semibold text-gray-900 dark:text-white">
-				{stage === 'phone' ? $t('auth.signIn') : $t('auth.verifyCode')}
+                {#if stage === 'phone'}
+                    {$t('auth.signIn')}
+                {:else if stage === 'code'}
+                    {$t('auth.verifyCode')}
+                {:else if stage === 'displayName'}
+                    {$t('auth.displayName')}
+                {/if}
 			</h3>
 		</div>
 
@@ -289,6 +354,31 @@
                     type="submit"
                 >
                     {isLoading ? $t('auth.verifying') : $t('auth.verify')}
+                </Button>
+			</form>
+		{:else if stage === 'displayName'}
+			<form class="space-y-4" onsubmit={handleSaveDisplayName}>
+				<div>
+					<Label class="mb-2 block">{$t('auth.displayNameLabel')}</Label>
+                    <Input
+                        type="text"
+                        name="display-name"
+                        disabled={isLoading}
+                        bind:value={displayName}
+                        placeholder={$t('auth.displayNamePlaceholder')}
+                        required
+                        autofocus
+                        />
+                    <Helper class="mt-2 text-sm">{$t('auth.displayNameHint')}</Helper>
+				</div>
+
+				<Button
+                    disabled={isLoading}
+                    color='blue'
+                    class="w-full"
+                    type="submit"
+                >
+                    {isLoading ? $t('auth.saving') : $t('auth.save')}
                 </Button>
 			</form>
 		{/if}
