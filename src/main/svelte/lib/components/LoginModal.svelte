@@ -2,15 +2,9 @@
 	import { Modal, Button, Input, Label, Alert, Progressbar, Helper } from 'flowbite-svelte';
 	import { ExclamationCircleOutline } from 'flowbite-svelte-icons';
 	import { t } from '$lib/i18n';
-	import { apiClient, type ProblemException } from '$lib/apiClient';
+	import { apiClient, type AuthResponse, type ProblemException } from '$lib/apiClient';
 	import { authStore } from '$lib/stores/authStore';
-
-	interface Props {
-		isOpen: boolean;
-		onClose: () => void;
-	}
-
-	let { isOpen = $bindable(), onClose }: Props = $props();
+	import { pendingAuthAction } from '$lib/composables/useAuthAction';
 
 	type Stage = 'phone' | 'code' | 'displayName';
 
@@ -98,9 +92,7 @@
 				isLoading = false;
 				return;
 			} else {
-                // User already has a display name, proceed with login
-                authStore.setAuth(response);
-                handleClose();
+                handleAuthentication(response);
             }
 		} catch (err) {
 			const problem = (err as ProblemException).problem;
@@ -180,9 +172,8 @@
 			await apiClient.updateDisplayName({ displayName: trimmedDisplayName }, { token: authResponse!.token });
 			if (authResponse) {
                 authResponse.profile.displayName = trimmedDisplayName;
-				authStore.setAuth(authResponse);
 			}
-			handleClose();
+			handleAuthentication(authResponse);
 		} catch (err) {
 			const problem = (err as ProblemException).problem;
 			error = problem?.title || $t('auth.error');
@@ -190,11 +181,17 @@
 		}
 	}
 
-	function handleClose() {
-		isOpen = false;
-		onClose();
+    function handleAuthentication(response: AuthResponse) {
+        authStore.setAuth(response);
+        const action = $pendingAuthAction;
+        handleClose();
+        if (action) {
+            action();
+        }
+    }
 
-		// Reset state
+	function handleClose() {
+		pendingAuthAction.set(null);
 		stage = 'phone';
 		phoneNumber = '';
 		verificationCode = [];
@@ -211,14 +208,13 @@
 	});
 </script>
 
-<Modal 
-	bind:open={isOpen} 
+<Modal
+	open={$pendingAuthAction != null}
     onclose={handleClose}
-	outsideclose={false} 
+	outsideclose={false}
 	size="xs"
 	placement="center"
-    class="m-auto"
->
+    class="m-auto">
 	<div class="space-y-6">
 		<div class="flex items-center justify-between">
 			<h3 class="text-xl font-semibold text-gray-900 dark:text-white">

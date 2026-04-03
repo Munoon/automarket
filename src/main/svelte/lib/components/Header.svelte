@@ -3,35 +3,30 @@
 	import { PlusOutline, UserOutline, ChevronDownOutline, ArrowRightToBracketOutline } from 'flowbite-svelte-icons';
 	import { language, t, type Language } from '$lib/i18n';
 	import { authStore } from '$lib/stores/authStore';
-	import LoginModal from './LoginModal.svelte';
+	import { apiClient } from '$lib/apiClient';
+	import { toastStore } from '$lib/stores/toastStore';
+	import { withAuth } from '$lib/composables/useAuthAction';
+	import { goto } from '$app/navigation';
 
 	let showLanguageDropdown = $state(false);
-	let showLoginModal = $state(false);
 	let showProfileDropdown = $state(false);
-
-	$effect(() => {
-		// Close profile dropdown when clicking outside would happen, but we rely on the button state
-		if (showLoginModal) {
-			showProfileDropdown = false;
-		}
-	});
+	let isCreatingListing = $state(false);
 
 	function setLanguage(code: Language) {
 		language.set(code);
 		showLanguageDropdown = false;
 	}
 
-	function handleCreateListing() {
-		// TODO: Navigate to create listing page
-		console.log('Create listing clicked');
-	}
-
-	function handleSignIn() {
-		showLoginModal = true;
-	}
-
-	function handleCloseLoginModal() {
-		showLoginModal = false;
+	async function createListing() {
+		isCreatingListing = true;
+		try {
+			const listing = await apiClient.createOwnListing();
+			isCreatingListing = false;
+			await goto(`/${listing.id}/edit`);
+		} catch (err) {
+			isCreatingListing = false;
+			toastStore.addApiError(err);
+		}
 	}
 
 	function handleSignOut() {
@@ -56,7 +51,7 @@
 	</NavBrand>
 
 	<div class="flex items-center gap-3 md:order-2">
-		<Button size="sm" color="blue" onclick={handleCreateListing} class="!px-2">
+		<Button size="sm" color="blue" onclick={() => withAuth(createListing)} class="!px-2 disabled:bg-blue-400 disabled:text-blue-100 disabled:cursor-not-allowed" disabled={isCreatingListing || !$authStore.initialized}>
 			<PlusOutline class="me-1 h-5 w-5 stroke-2" />
 			{$t('header.createListing')}
 		</Button>
@@ -93,7 +88,7 @@
 			<Button 
 				size="sm" 
 				outline 
-				onclick={handleSignIn}
+				onclick={() => withAuth(() => {})}
 				class="navbar-outline-btn border-gray-300 dark:border-gray-500 text-gray-900 dark:text-gray-100 hover:border-blue-600 dark:hover:border-blue-500 hover:text-gray-900! hover:dark:text-gray-100!"
 			>
 				<UserOutline class="me-1 h-4 w-4" />
@@ -128,5 +123,3 @@
 		</div>
 	</div>
 </Navbar>
-
-<LoginModal bind:isOpen={showLoginModal} onClose={handleCloseLoginModal} />
