@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Navbar, NavBrand, Button, NavHamburger, Skeleton } from 'flowbite-svelte';
+	import { Navbar, NavBrand, Button } from 'flowbite-svelte';
 	import { PlusOutline, UserOutline, ChevronDownOutline, ArrowRightToBracketOutline } from 'flowbite-svelte-icons';
 	import { language, t, type Language } from '$lib/i18n';
 	import { authStore } from '$lib/stores/authStore';
@@ -126,8 +126,6 @@
 				</div>
 			{/if}
 		</div>
-		
-		<NavHamburger />
 	</div>
 </Navbar>
 
