@@ -105,7 +105,7 @@
 				{$language === 'en' ? '🇬🇧' : '🇺🇦'}
 			</Button>
 			{#if showLanguageDropdown}
-				<div class="absolute right-0 mt-1 w-auto min-w-max rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden dark:border-gray-600 dark:bg-gray-700">
+				<div class="absolute right-0 mt-1 w-auto min-w-max rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden dark:border-gray-600 dark:bg-gray-700 z-49">
 					<button
 							onclick={() => setLanguage('en')}
 							class="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-600 {$language === 'en' ? 'bg-gray-100 dark:bg-gray-600' : ''}"
