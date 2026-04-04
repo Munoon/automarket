@@ -8,9 +8,17 @@ export interface AuthState {
 	limits: Limits | null;
 }
 
+export interface AuthStore {
+	subscribe: (run: (value: AuthState) => void) => () => void;
+	setAuth: (authResponse: AuthResponse) => void;
+	clearAuth: () => void;
+	getToken: () => string | null;
+	initialize: (fetchProfile: () => Promise<UserProfile>) => Promise<void>;
+}
+
 const AUTH_TOKEN_STORAGE_KEY = 'automarket_auth_token';
 
-function createAuthStore() {
+function createAuthStore(): AuthStore {
 	let currentState: AuthState = {
 		initialized: false,
 		token: null,
@@ -50,7 +58,7 @@ function createAuthStore() {
 		getToken: (): string | null => {
 			return currentState.token;
 		},
-		initialize: async () => {
+		initialize: async (fetchProfile: () => Promise<UserProfile>) => {
 			if (currentState.initialized) return;
 
 			// Load token from localStorage
@@ -69,10 +77,7 @@ function createAuthStore() {
 
 				// Load profile
 				try {
-					// Dynamically import to avoid circular dependency
-					const { apiClient } = await import('$lib/apiClient');
-					const profile = await apiClient.getProfile();
-					
+					const profile = await fetchProfile();
 					currentState = {
 						initialized: true,
 						token: storedToken,
@@ -85,7 +90,7 @@ function createAuthStore() {
 					set(currentState);
 				} catch (error) {
 					console.error('Failed to load user profile', error);
-					// api.clearAuth();
+					api.clearAuth();
 				}
 			} else {
 				currentState = {
@@ -102,8 +107,3 @@ function createAuthStore() {
 }
 
 export const authStore = createAuthStore();
-
-// Auto-initialize on module load in browser
-if (typeof window !== 'undefined') {
-	authStore.initialize();
-}
