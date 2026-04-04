@@ -27,6 +27,11 @@ export interface Page<T> {
 	totalElements: number;
 }
 
+export interface ProfileResponse {
+	user: UserProfile;
+	limits: Limits;
+}
+
 export interface UserProfile {
 	id: number;
 	phoneNumber: string;
@@ -227,8 +232,8 @@ export class ApiClient {
 		return this.send<AuthResponse>('POST', '/api/users/auth', body, undefined, options);
 	}
 
-	public async getProfile(options: RequestOptions = {}): Promise<UserProfile> {
-		return this.sendAuthenticated<UserProfile>('GET', '/api/users/profile', undefined, undefined, options);
+	public async getProfile(options: RequestOptions = {}): Promise<ProfileResponse> {
+		return this.sendAuthenticated<ProfileResponse>('GET', '/api/users/profile', undefined, undefined, options);
 	}
 
 	public async updateDisplayName(

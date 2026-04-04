@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
-import type { UserProfile, Limits, AuthResponse } from '$lib/apiClient';
+import type { ProfileResponse, UserProfile, Limits, AuthResponse } from '$lib/apiClient';
+import { toastStore } from '$lib/stores/toastStore';
 
 export interface AuthState {
 	initialized: boolean;
@@ -13,7 +14,7 @@ export interface AuthStore {
 	setAuth: (authResponse: AuthResponse) => void;
 	clearAuth: () => void;
 	getToken: () => string | null;
-	initialize: (fetchProfile: () => Promise<UserProfile>) => Promise<void>;
+	initialize: (fetchProfile: () => Promise<ProfileResponse>) => Promise<void>;
 }
 
 const AUTH_TOKEN_STORAGE_KEY = 'automarket_auth_token';
@@ -58,7 +59,7 @@ function createAuthStore(): AuthStore {
 		getToken: (): string | null => {
 			return currentState.token;
 		},
-		initialize: async (fetchProfile: () => Promise<UserProfile>) => {
+		initialize: async (fetchProfile: () => Promise<ProfileResponse>) => {
 			if (currentState.initialized) return;
 
 			// Load token from localStorage
@@ -81,15 +82,13 @@ function createAuthStore(): AuthStore {
 					currentState = {
 						initialized: true,
 						token: storedToken,
-						profile,
-						limits: { // TODO add actual limits here when available
-							listingRepublishCooldownMS: 0,
-							listingsCountLimitPerAuthor: 0
-						}
+						profile: profile.user,
+						limits: profile.limits
 					};
 					set(currentState);
 				} catch (error) {
 					console.error('Failed to load user profile', error);
+					toastStore.addError('Failed to load user profile');
 					api.clearAuth();
 				}
 			} else {

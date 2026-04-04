@@ -7,6 +7,7 @@ import edu.automarket.sms.SmsCodeService;
 import edu.automarket.user.dto.AuthRequestDTO;
 import edu.automarket.user.dto.AuthResponseDTO;
 import edu.automarket.user.dto.LimitsDTO;
+import edu.automarket.user.dto.ProfileResponseDTO;
 import edu.automarket.user.dto.SendVerificationCodeRequestDTO;
 import edu.automarket.user.dto.SendVerificationCodeResponseDTO;
 import edu.automarket.user.dto.UpdateDisplayNameRequestDTO;
@@ -74,8 +75,9 @@ public class UserController {
     }
 
     @GetMapping("/profile")
-    public Mono<UserDTO> getProfile(@AuthenticationPrincipal Long userId) {
-        return userService.getUserByIdOrThrow(userId).map(UserDTO::new);
+    public Mono<ProfileResponseDTO> getProfile(@AuthenticationPrincipal Long userId) {
+        return userService.getUserByIdOrThrow(userId)
+                .map(user -> new ProfileResponseDTO(new UserDTO(user), limits));
     }
 
     @PatchMapping("/display-name")

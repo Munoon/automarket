@@ -8,6 +8,7 @@ import edu.automarket.sms.SmsCodeService;
 import edu.automarket.sms.dto.TelegramGatewayAPIRequestDTO;
 import edu.automarket.user.dto.AuthRequestDTO;
 import edu.automarket.user.dto.AuthResponseDTO;
+import edu.automarket.user.dto.ProfileResponseDTO;
 import edu.automarket.user.dto.SendVerificationCodeRequestDTO;
 import edu.automarket.user.dto.SendVerificationCodeResponseDTO;
 import edu.automarket.user.dto.UpdateDisplayNameRequestDTO;
@@ -153,7 +154,10 @@ class UserControllerTest extends AbstractIntegrationTest {
                     assertThat(dto.token()).isNotBlank();
                     assertThat(dto.tokenExpiresInSeconds()).isPositive();
                     assertThat(dto.profile().phoneNumber()).isEqualTo("+380123456789");
+
                     assertThat(dto.limits()).isNotNull();
+                    assertThat(dto.limits().listingRepublishCooldownMS()).isEqualTo(2_000);
+                    assertThat(dto.limits().listingsCountLimitPerAuthor()).isEqualTo(30);
                 });
     }
 
@@ -243,8 +247,8 @@ class UserControllerTest extends AbstractIntegrationTest {
                      .header("Authorization", "Bearer " + token)
                      .exchange()
                      .expectStatus().isOk()
-                     .expectBody(UserDTO.class)
-                     .value(dto -> assertThat(dto.displayName()).isEqualTo("John Doe"));
+                     .expectBody(ProfileResponseDTO.class)
+                     .value(dto -> assertThat(dto.user().displayName()).isEqualTo("John Doe"));
     }
 
     @Test
@@ -294,10 +298,15 @@ class UserControllerTest extends AbstractIntegrationTest {
                 .header("Authorization", "Bearer " + token)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(UserDTO.class)
+                .expectBody(ProfileResponseDTO.class)
                 .value(dto -> {
-                    assertThat(dto.id()).isEqualTo(user.id());
-                    assertThat(dto.phoneNumber()).isEqualTo("+380123456789");
+                    assertThat(dto.user()).isNotNull();
+                    assertThat(dto.user().id()).isEqualTo(user.id());
+                    assertThat(dto.user().phoneNumber()).isEqualTo("+380123456789");
+
+                    assertThat(dto.limits()).isNotNull();
+                    assertThat(dto.limits().listingRepublishCooldownMS()).isEqualTo(2_000);
+                    assertThat(dto.limits().listingsCountLimitPerAuthor()).isEqualTo(30);
                 });
     }
 
