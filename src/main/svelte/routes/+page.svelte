@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { t } from '$lib/i18n';
+  import ListingsGrid from './ListingsGrid.svelte';
 </script>
 
-<h1>{$t('home.welcome')}</h1>
+<div class="max-w-7xl mx-auto px-6 py-8">
+  <ListingsGrid />
+</div>

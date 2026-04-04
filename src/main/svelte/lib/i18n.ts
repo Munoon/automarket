@@ -5,10 +5,54 @@ export type Language = 'en' | 'uk';
 
 export const translations = {
 	en: {
+		'fuelType.PETROL': 'Petrol',
+		'fuelType.DIESEL': 'Diesel',
+		'fuelType.LPG': 'LPG',
+		'fuelType.ELECTRIC': 'Electric',
+		'fuelType.HYBRID': 'Hybrid',
+		'fuelType.PLUG_IN_HYBRID': 'Plug-in Hybrid',
+
+		'transmission.MANUAL': 'Manual',
+		'transmission.AUTOMATIC': 'Automatic',
+		'transmission.CVT': 'CVT',
+		'transmission.SEMI_AUTOMATIC': 'Semi-automatic',
+
+		'city.KYIV': 'Kyiv',
+		'city.KHARKIV': 'Kharkiv',
+		'city.ODESA': 'Odesa',
+		'city.DNIPRO': 'Dnipro',
+		'city.ZAPORIZHZHIA': 'Zaporizhzhia',
+		'city.LVIV': 'Lviv',
+		'city.KRYVYI_RIH': 'Kryvyi Rih',
+		'city.MYKOLAIV': 'Mykolaiv',
+		'city.MARIUPOL': 'Mariupol',
+		'city.VINNYTSIA': 'Vinnytsia',
+		'city.KHERSON': 'Kherson',
+		'city.POLTAVA': 'Poltava',
+		'city.CHERNIHIV': 'Chernihiv',
+		'city.CHERKASY': 'Cherkasy',
+		'city.SUMY': 'Sumy',
+		'city.KHMELNYTSKYI': 'Khmelnytskyi',
+		'city.IVANO_FRANKIVSK': 'Ivano-Frankivsk',
+		'city.RIVNE': 'Rivne',
+		'city.ZHYTOMYR': 'Zhytomyr',
+		'city.TERNOPIL': 'Ternopil',
+		'city.LUTSK': 'Lutsk',
+		'city.UZHHOROD': 'Uzhhorod',
+		'city.CHERNIVTSI': 'Chernivtsi',
+		'city.KREMENCHUK': 'Kremenchuk',
+		'city.BILA_TSERKVA': 'Bila Tserkva',
+		'city.MELITOPOL': 'Melitopol',
+		'city.MUKACHEVO': 'Mukachevo',
+		'city.DROHOBYCH': 'Drohobych',
+
+        'mileage.km': 'km',
+        'currency.uah': 'UAH',
+
+        'listings.empty': 'No listings found.',
         'header.createListing': 'Create Listing',
         'header.signIn': 'Sign In',
         'header.signOut': 'Sign Out',
-        'home.welcome': 'Welcome to automarket',
         'auth.signIn': 'Sign In',
         'auth.weWillSendCode': 'We will send you a verification code to your phone number.',
         'auth.phoneNumberInvalid': 'Phone number must contain 9 digits',
@@ -34,10 +78,54 @@ export const translations = {
         'auth.error': 'An error occurred. Please try again.'
 	},
 	uk: {
+		'fuelType.PETROL': 'Бензин',
+		'fuelType.DIESEL': 'Дизель',
+		'fuelType.LPG': 'Газ (ЗПГ)',
+		'fuelType.ELECTRIC': 'Електро',
+		'fuelType.HYBRID': 'Гібрид',
+		'fuelType.PLUG_IN_HYBRID': 'Плагін-гібрид',
+
+		'transmission.MANUAL': 'Механічна',
+		'transmission.AUTOMATIC': 'Автоматична',
+		'transmission.CVT': 'Варіатор',
+		'transmission.SEMI_AUTOMATIC': 'Напівавтоматична',
+
+		'city.KYIV': 'Київ',
+		'city.KHARKIV': 'Харків',
+		'city.ODESA': 'Одеса',
+		'city.DNIPRO': 'Дніпро',
+		'city.ZAPORIZHZHIA': 'Запоріжжя',
+		'city.LVIV': 'Львів',
+		'city.KRYVYI_RIH': 'Кривий Ріг',
+		'city.MYKOLAIV': 'Миколаїв',
+		'city.MARIUPOL': 'Маріуполь',
+		'city.VINNYTSIA': 'Вінниця',
+		'city.KHERSON': 'Херсон',
+		'city.POLTAVA': 'Полтава',
+		'city.CHERNIHIV': 'Чернігів',
+		'city.CHERKASY': 'Черкаси',
+		'city.SUMY': 'Суми',
+		'city.KHMELNYTSKYI': 'Хмельницький',
+		'city.IVANO_FRANKIVSK': 'Івано-Франківськ',
+		'city.RIVNE': 'Рівне',
+		'city.ZHYTOMYR': 'Житомир',
+		'city.TERNOPIL': 'Тернопіль',
+		'city.LUTSK': 'Луцьк',
+		'city.UZHHOROD': 'Ужгород',
+		'city.CHERNIVTSI': 'Чернівці',
+		'city.KREMENCHUK': 'Кременчук',
+		'city.BILA_TSERKVA': 'Біла Церква',
+		'city.MELITOPOL': 'Мелітополь',
+		'city.MUKACHEVO': 'Мукачево',
+		'city.DROHOBYCH': 'Дрогобич',
+
+        'mileage.km': 'км',
+        'currency.uah': 'грн',
+
+        'listings.empty': 'Оголошень не знайдено.',
         'header.createListing': 'Створити оголошення',
         'header.signIn': 'Увійти',
         'header.signOut': 'Вийти',
-        'home.welcome': 'Ласкаво просимо до automarket',
         'auth.signIn': 'Увійти',
         'auth.weWillSendCode': 'Ми надішлемо вам код підтвердження на ваш номер телефону.',
         'auth.phoneNumberInvalid': 'Номер телефону повинен містити 9 цифр',
@@ -64,7 +152,7 @@ export const translations = {
 	}
 };
 
-type TranslationKey = keyof typeof translations['en'];
+export type TranslationKey = keyof typeof translations['en'];
 
 function createLanguageStore(): Writable<Language> {
 	// Get language from localStorage if available, otherwise default to 'en'

@@ -70,6 +70,16 @@ export interface UpdateListingStatusRequest {
 	status: ListingStatus;
 }
 
+export type FuelType = 'PETROL' | 'DIESEL' | 'LPG' | 'ELECTRIC' | 'HYBRID' | 'PLUG_IN_HYBRID';
+
+export type TransmissionType = 'MANUAL' | 'AUTOMATIC' | 'CVT' | 'SEMI_AUTOMATIC';
+
+export type City = 'KYIV' | 'KHARKIV' | 'ODESA' | 'DNIPRO' | 'ZAPORIZHZHIA' |
+    'LVIV' | 'KRYVYI_RIH' | 'MYKOLAIV' | 'MARIUPOL' | 'VINNYTSIA' | 'KHERSON' |
+    'POLTAVA' | 'CHERNIHIV' | 'CHERKASY' | 'SUMY' | 'KHMELNYTSKYI' | 'IVANO_FRANKIVSK' |
+    'RIVNE' | 'ZHYTOMYR' | 'TERNOPIL' | 'LUTSK' | 'UZHHOROD' | 'CHERNIVTSI' |
+    'KREMENCHUK' | 'BILA_TSERKVA' | 'MELITOPOL' | 'MUKACHEVO' | 'DROHOBYCH';
+
 export interface OwnCarListing {
 	id: number;
 	status: ListingStatus;
@@ -82,10 +92,10 @@ export interface OwnCarListing {
 	condition: string | null;
 	mileage: number | null;
 	price: number | null;
-	city: string | null;
+	city: City | null;
 	color: string | null;
-	transmission: string | null;
-	fuelType: string | null;
+	transmission: TransmissionType | null;
+	fuelType: FuelType | null;
 	tankVolume: number | null;
 	driveType: string | null;
 	bodyType: string | null;
@@ -118,10 +128,10 @@ export interface UpdateOwnListingRequest {
 	condition?: string;
 	mileage?: number;
 	price?: number;
-	city?: string;
+	city?: City;
 	color?: string;
-	transmission?: string;
-	fuelType?: string;
+	transmission?: TransmissionType;
+	fuelType?: FuelType;
 	tankVolume?: number;
 	driveType?: string;
 	bodyType?: string;
@@ -159,10 +169,10 @@ export interface PublicCarListing {
 	condition: string | null;
 	mileage: number | null;
 	price: number | null;
-	city: string | null;
+	city: City | null;
 	color: string | null;
-	transmission: string | null;
-	fuelType: string | null;
+	transmission: TransmissionType | null;
+	fuelType: FuelType | null;
 	tankVolume: number | null;
 	driveType: string | null;
 	bodyType: string | null;
