@@ -409,11 +409,12 @@ class CarListingServiceTest extends AbstractIntegrationTest {
                     PublicCarListingItemDTO dto = page.content().get(0);
                     assertThat(dto.id()).isEqualTo(listing.id());
                     assertThat(dto.title()).isEqualTo("Sport Car");
-                    assertThat(dto.description()).isEqualTo("Fast and furious");
                     assertThat(dto.price()).isEqualTo(999999L);
-                    assertThat(dto.brand()).isEqualTo(CarBrand.CUSTOM);
-                    assertThat(dto.customBrandName()).isEqualTo("Batmobile");
-                    assertThat(dto.model()).isEqualTo("Dark Knight");
+                    assertThat(dto.mileage()).isEqualTo(1234);
+                    assertThat(dto.fuelType()).isEqualTo(FuelType.ELECTRIC);
+                    assertThat(dto.transmission()).isEqualTo(TransmissionType.MANUAL);
+                    assertThat(dto.city()).isEqualTo(City.KYIV);
+                    assertThat(dto.year()).isEqualTo(2024);
                 })
                 .verifyComplete();
     }

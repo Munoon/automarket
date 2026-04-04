@@ -11,14 +11,7 @@
   let { listing }: { listing: PublicCarListingItem } = $props();
 
   const href = $derived(`/${listingSlug(listing.id, listing.title)}`);
-
-  // TODO: these fields will be added to PublicCarListingItem later
   const images = $derived([{ src: noImageUrl, alt: listing.title ?? 'Car photo' }]);
-  const mileage: number | null = 100;
-  const fuelType: FuelType | null = 'DIESEL';
-  const transmission: TransmissionType | null = 'AUTOMATIC';
-  const city: City | null = 'KHARKIV';
-  const year: number | null = 2025;
 </script>
 
 <Card class="w-72 p-0 overflow-hidden flex flex-col cursor-pointer hover:border-blue-500 transition-colors" onclick={() => goto(href)}>
@@ -42,19 +35,19 @@
     </p>
 
     <div class="flex gap-2 flex-wrap">
-      <Badge color="gray" class="text-xs">{fuelType != null ? $t(fuelTypeKey(fuelType)) : '—'}</Badge>
-      <Badge color="gray" class="text-xs">{transmission != null ? $t(transmissionKey(transmission)) : '—'}</Badge>
-      <Badge color="indigo" class="text-xs">{year ?? '—'}</Badge>
+      <Badge color="gray" class="text-xs">{listing.fuelType != null ? $t(fuelTypeKey(listing.fuelType)) : '—'}</Badge>
+      <Badge color="gray" class="text-xs">{listing.transmission != null ? $t(transmissionKey(listing.transmission)) : '—'}</Badge>
+      <Badge color="indigo" class="text-xs">{listing.year ?? '—'}</Badge>
     </div>
 
     <div class="mt-auto pt-2 border-t border-gray-100 dark:border-gray-700 flex flex-col gap-1">
       <span class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
         <GaugeIcon class="w-3.5 h-3.5 shrink-0" />
-        {mileage != null ? mileage.toLocaleString() + ' ' + $t('mileage.km') : '—'}
+        {listing.mileage != null ? listing.mileage.toLocaleString() + ' ' + $t('mileage.km') : '—'}
       </span>
       <span class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
         <MapPinOutline class="w-3.5 h-3.5 shrink-0" />
-        {city != null ? $t(cityKey(city)) : '—'}
+        {listing.city != null ? $t(cityKey(listing.city)) : '—'}
       </span>
     </div>
   </div>

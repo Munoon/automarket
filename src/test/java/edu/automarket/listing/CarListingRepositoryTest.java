@@ -257,7 +257,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         carListingRepository.update(new CarListing(
                 listing.id(), userId, ListingStatus.PUBLISHED,
                 "My Car", "Nice car", CarBrand.TOYOTA, null, "Camry",
-                null, null, null, 300000L, null, null, null, null, null, null, null, null, null, null,
+                null, null, 100, 300000L, City.KYIV, null, TransmissionType.MANUAL, FuelType.ELECTRIC, null, null, null, 2025, null, null,
                 listing.createdAt(), System.currentTimeMillis(), System.currentTimeMillis()
         )).block();
 
@@ -265,11 +265,12 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 .assertNext(dto -> {
                     assertThat(dto.id()).isEqualTo(listing.id());
                     assertThat(dto.title()).isEqualTo("My Car");
-                    assertThat(dto.description()).isEqualTo("Nice car");
                     assertThat(dto.price()).isEqualTo(300000L);
-                    assertThat(dto.brand()).isEqualTo(CarBrand.TOYOTA);
-                    assertThat(dto.customBrandName()).isNull();
-                    assertThat(dto.model()).isEqualTo("Camry");
+                    assertThat(dto.mileage()).isEqualTo(100);
+                    assertThat(dto.fuelType()).isEqualTo(FuelType.ELECTRIC);
+                    assertThat(dto.transmission()).isEqualTo(TransmissionType.MANUAL);
+                    assertThat(dto.city()).isEqualTo(City.KYIV);
+                    assertThat(dto.year()).isEqualTo(2025);
                 })
                 .verifyComplete();
     }

@@ -1,14 +1,17 @@
 package edu.automarket.listing.dto;
 
-import edu.automarket.listing.model.CarBrand;
+import edu.automarket.listing.model.City;
+import edu.automarket.listing.model.FuelType;
+import edu.automarket.listing.model.TransmissionType;
 
 public record PublicCarListingItemDTO(
         long id,
         String title,
         Long price,
-        String description,
-        CarBrand brand,
-        String customBrandName,
-        String model
+        Integer mileage,
+        FuelType fuelType,
+        TransmissionType transmission,
+        City city,
+        Integer year
 ) {
 }

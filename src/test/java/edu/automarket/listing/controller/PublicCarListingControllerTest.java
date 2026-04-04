@@ -120,11 +120,12 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
                     PublicCarListingItemDTO dto = page.content().get(0);
                     assertThat(dto.id()).isEqualTo(listingId);
                     assertThat(dto.title()).isEqualTo("Test Car");
-                    assertThat(dto.description()).isEqualTo("A nice car");
                     assertThat(dto.price()).isEqualTo(500000L);
-                    assertThat(dto.brand()).isEqualTo(CarBrand.TOYOTA);
-                    assertThat(dto.customBrandName()).isNull();
-                    assertThat(dto.model()).isEqualTo("Camry");
+                    assertThat(dto.mileage()).isEqualTo(1234);
+                    assertThat(dto.fuelType()).isEqualTo(FuelType.ELECTRIC);
+                    assertThat(dto.transmission()).isEqualTo(TransmissionType.MANUAL);
+                    assertThat(dto.city()).isEqualTo(City.KYIV);
+                    assertThat(dto.year()).isEqualTo(2024);
                 });
     }
 

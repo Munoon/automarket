@@ -108,7 +108,7 @@ public class CarListingRepository {
 
     //language=postgresql
     private static final String SELECT_PUBLISHED_QUERY = """
-            SELECT id, title, price, description, brand::text, custom_brand_name, model
+            SELECT id, title, price, mileage, fuel_type::text, transmission::text, city::text, year
             FROM car_listings
             WHERE status = 'PUBLISHED'
               AND published_at <= :publishedBefore
@@ -284,15 +284,18 @@ public class CarListingRepository {
                 .bind("size", request.getSize())
                 .bind("offset", (long) request.getPage() * request.getSize())
                 .map(row -> {
-                    String brandStr = row.get(4, String.class);
+                    String fuelTypeStr = row.get(4, String.class);
+                    String transmissionTypeStr = row.get(5, String.class);
+                    String cityStr = row.get(6, String.class);
                     return new PublicCarListingItemDTO(
                             row.get(0, Long.class),
                             row.get(1, String.class),
                             row.get(2, Long.class),
-                            row.get(3, String.class),
-                            brandStr != null ? CarBrand.valueOf(brandStr) : null,
-                            row.get(5, String.class),
-                            row.get(6, String.class)
+                            row.get(3, Integer.class),
+                            fuelTypeStr != null ? FuelType.valueOf(fuelTypeStr) : null,
+                            transmissionTypeStr != null ? TransmissionType.valueOf(transmissionTypeStr) : null,
+                            cityStr != null ? City.valueOf(cityStr) : null,
+                            row.get(7, Integer.class)
                     );
                 })
                 .all();

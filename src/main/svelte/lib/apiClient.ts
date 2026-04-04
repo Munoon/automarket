@@ -191,10 +191,11 @@ export interface PublicCarListingItem {
 	id: number;
 	title: string | null;
 	price: number | null;
-	description: string | null;
-	brand: string | null;
-	customBrandName: string | null;
-	model: string | null;
+	mileage: number | null;
+	fuelType: FuelType | null;
+	transmission: TransmissionType | null;
+	city: City | null;
+	year: number | null;
 }
 
 export interface GetPublicListingsRequest {
