@@ -69,8 +69,6 @@ export interface UpdateDisplayNameRequest {
 	displayName: string;
 }
 
-export type ListingStatus = string;
-
 export interface UpdateListingStatusRequest {
 	status: ListingStatus;
 }
@@ -78,6 +76,24 @@ export interface UpdateListingStatusRequest {
 export type FuelType = 'PETROL' | 'DIESEL' | 'LPG' | 'ELECTRIC' | 'HYBRID' | 'PLUG_IN_HYBRID';
 
 export type TransmissionType = 'MANUAL' | 'AUTOMATIC' | 'CVT' | 'SEMI_AUTOMATIC';
+
+export type BodyType = 'SEDAN' | 'HATCHBACK' | 'WAGON' | 'COUPE' | 'CONVERTIBLE' | 'SUV' |
+	'CROSSOVER' | 'MINIVAN' | 'PICKUP' | 'VAN';
+
+export type CarBrand = 'TOYOTA' | 'VOLKSWAGEN' | 'BMW' | 'MERCEDES_BENZ' | 'AUDI' |
+	'SKODA' | 'HYUNDAI' | 'KIA' | 'FORD' | 'OPEL' | 'RENAULT' | 'PEUGEOT' | 'CITROEN' |
+	'HONDA' | 'MAZDA' | 'NISSAN' | 'MITSUBISHI' | 'SUBARU' | 'SUZUKI' | 'LEXUS' | 'LAND_ROVER' |
+	'JEEP' | 'CHEVROLET' | 'FIAT' | 'VOLVO' | 'SEAT' | 'DACIA' | 'ALFA_ROMEO' | 'PORSCHE' |
+	'LADA' | 'ZAZ' | 'CUSTOM';
+
+export type CarColor = 'WHITE' | 'BLACK' | 'SILVER' | 'GRAY' | 'RED' | 'BLUE' | 'DARK_BLUE' |
+	'GREEN' | 'DARK_GREEN' | 'YELLOW' | 'ORANGE' | 'BROWN' | 'BEIGE' | 'PURPLE' | 'GOLDEN' | 'BURGUNDY';
+
+export type CarCondition = 'NEW' | 'USED';
+
+export type DriveType = 'FWD' | 'RWD' | 'AWD' | 'FOUR_WD';
+
+export type ListingStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
 export type City = 'KYIV' | 'KHARKIV' | 'ODESA' | 'DNIPRO' | 'ZAPORIZHZHIA' |
     'LVIV' | 'KRYVYI_RIH' | 'MYKOLAIV' | 'MARIUPOL' | 'VINNYTSIA' | 'KHERSON' |
@@ -90,20 +106,20 @@ export interface OwnCarListing {
 	status: ListingStatus;
 	title: string | null;
 	description: string | null;
-	brand: string | null;
+	brand: CarBrand | null;
 	customBrandName: string | null;
 	model: string | null;
 	licensePlate: string | null;
-	condition: string | null;
+	condition: CarCondition | null;
 	mileage: number | null;
 	price: number | null;
 	city: City | null;
-	color: string | null;
+	color: CarColor | null;
 	transmission: TransmissionType | null;
 	fuelType: FuelType | null;
 	tankVolume: number | null;
-	driveType: string | null;
-	bodyType: string | null;
+	driveType: DriveType | null;
+	bodyType: BodyType | null;
 	year: number | null;
 	engineVolume: number | null;
 	ownersCount: number | null;
@@ -126,20 +142,20 @@ export interface OwnCarListingListItem {
 export interface UpdateOwnListingRequest {
 	title?: string;
 	description?: string;
-	brand?: string;
+	brand?: CarBrand;
 	customBrandName?: string;
 	model?: string;
 	licensePlate?: string;
-	condition?: string;
+	condition?: CarCondition;
 	mileage?: number;
 	price?: number;
 	city?: City;
-	color?: string;
+	color?: CarColor;
 	transmission?: TransmissionType;
 	fuelType?: FuelType;
 	tankVolume?: number;
-	driveType?: string;
-	bodyType?: string;
+	driveType?: DriveType;
+	bodyType?: BodyType;
 	year?: number;
 	engineVolume?: number;
 	ownersCount?: number;
@@ -148,7 +164,7 @@ export interface UpdateOwnListingRequest {
 export interface GetOwnListingsRequest {
 	page?: number;
 	size?: number;
-	statuses?: string[];
+	statuses?: ListingStatus[];
 }
 
 export interface GetOwnListingAnalyticsRequest {
@@ -156,10 +172,11 @@ export interface GetOwnListingAnalyticsRequest {
 }
 
 export interface ListingAnalyticsDay {
-	day: string;
+	ts: number;
 	impressionsCount: number;
 	viewsCount: number;
 	phoneRequestsCount: number;
+	favouritesCount: number;
 }
 
 export interface PublicCarListing {
@@ -167,20 +184,20 @@ export interface PublicCarListing {
 	authorDisplayName: string | null;
 	title: string | null;
 	description: string | null;
-	brand: string | null;
+	brand: CarBrand | null;
 	customBrandName: string | null;
 	model: string | null;
 	licensePlate: string | null;
-	condition: string | null;
+	condition: CarCondition | null;
 	mileage: number | null;
 	price: number | null;
 	city: City | null;
-	color: string | null;
+	color: CarColor | null;
 	transmission: TransmissionType | null;
 	fuelType: FuelType | null;
 	tankVolume: number | null;
-	driveType: string | null;
-	bodyType: string | null;
+	driveType: DriveType | null;
+	bodyType: BodyType | null;
 	year: number | null;
 	engineVolume: number | null;
 	ownersCount: number | null;
