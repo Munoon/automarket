@@ -43,7 +43,7 @@
 	</NavBrand>
 
 	<div class="flex items-center gap-3 md:order-2">
-		<Button size="sm" color="blue" onclick={() => withAuth(createListing)} class="!px-2 disabled:bg-blue-400 disabled:text-blue-100 disabled:cursor-not-allowed" disabled={isCreatingListing || !$authStore.initialized}>
+		<Button size="sm" color="blue" onclick={() => withAuth(createListing)} class="px-2! disabled:bg-blue-400 disabled:text-blue-100 disabled:cursor-not-allowed" disabled={isCreatingListing || !$authStore.initialized}>
 			<PlusOutline class="me-1 h-5 w-5 stroke-2" />
 			{$t('header.createListing')}
 		</Button>
@@ -81,7 +81,7 @@
 
 		<Button
 			size="sm"
-			class="text-lg !p-1 hover:opacity-90"
+			class="text-lg p-1! hover:opacity-90"
 			onclick={() => (langDropdownOpen = !langDropdownOpen)}
 		>
 			{$language === 'en' ? '🇬🇧' : '🇺🇦'}

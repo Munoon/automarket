@@ -5,6 +5,7 @@
 	import { t } from '$lib/i18n';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import ListingDetails from '$lib/components/ListingDetails.svelte';
+	import ListingDetailsSkeleton from '$lib/components/ListingDetailsSkeleton.svelte';
 
 	let listing = $state<PublicCarListing | null>(null);
 	let error = $state<{ status: number; message: string } | null>(null);
@@ -51,9 +52,7 @@
 </svelte:head>
 
 {#if loading}
-	<div class="flex justify-center py-24">
-		<div class="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-gray-600"></div>
-	</div>
+	<ListingDetailsSkeleton />
 {:else if error}
 	<ErrorPage status={error.status} message={error.message} />
 {:else if listing}
