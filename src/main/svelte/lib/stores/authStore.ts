@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { ProfileResponse, UserProfile, Limits, AuthResponse } from '$lib/apiClient';
+import type { ProfileResponse, UserProfile, Limits, AuthResponse, RequestOptions } from '$lib/apiClient';
 import { toastStore } from '$lib/stores/toastStore';
 
 export interface AuthState {
@@ -14,7 +14,7 @@ export interface AuthStore {
 	setAuth: (authResponse: AuthResponse) => void;
 	clearAuth: () => void;
 	getToken: () => string | null;
-	initialize: (fetchProfile: () => Promise<ProfileResponse>) => Promise<void>;
+	initialize: (fetchProfile: (options: RequestOptions) => Promise<ProfileResponse>) => Promise<void>;
 }
 
 const AUTH_TOKEN_STORAGE_KEY = 'automarket_auth_token';
@@ -59,7 +59,7 @@ function createAuthStore(): AuthStore {
 		getToken: (): string | null => {
 			return currentState.token;
 		},
-		initialize: async (fetchProfile: () => Promise<ProfileResponse>) => {
+		initialize: async (fetchProfile: (options: RequestOptions) => Promise<ProfileResponse>) => {
 			if (currentState.initialized) return;
 
 			// Load token from localStorage
@@ -67,18 +67,9 @@ function createAuthStore(): AuthStore {
 				? localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
 				: null;
 			if (storedToken) {
-				// Update currentState first so getToken() returns the token, when fetching the profile
-				currentState = {
-					initialized: false,
-					token: storedToken,
-					profile: null,
-					limits: null
-				};
-				set(currentState);
-
 				// Load profile
 				try {
-					const profile = await fetchProfile();
+					const profile = await fetchProfile({ token: storedToken });
 					currentState = {
 						initialized: true,
 						token: storedToken,

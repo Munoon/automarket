@@ -6,12 +6,12 @@
 	import LoginModal from '$lib/components/LoginModal.svelte';
 	import { onMount } from 'svelte';
 	import { authStore } from '$lib/stores/authStore';
-	import { apiClient } from '$lib/apiClient';
+	import { apiClient, type RequestOptions } from '$lib/apiClient';
 
 	let { children } = $props();
 
 	onMount(() => {
-		authStore.initialize(() => apiClient.getProfile());
+		authStore.initialize((options: RequestOptions) => apiClient.getProfile(options));
 	});
 </script>
 
