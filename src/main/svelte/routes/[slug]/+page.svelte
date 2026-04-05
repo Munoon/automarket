@@ -4,6 +4,7 @@
 	import { apiClient, ProblemException, type PublicCarListing } from '$lib/apiClient';
 	import { t } from '$lib/i18n';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
+	import ListingDetails from '$lib/components/ListingDetails.svelte';
 
 	let listing = $state<PublicCarListing | null>(null);
 	let error = $state<{ status: number; message: string } | null>(null);
@@ -43,6 +44,12 @@
 	});
 </script>
 
+<svelte:head>
+	{#if listing?.title}
+		<title>{listing.title}</title>
+	{/if}
+</svelte:head>
+
 {#if loading}
 	<div class="flex justify-center py-24">
 		<div class="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-gray-600"></div>
@@ -50,7 +57,5 @@
 {:else if error}
 	<ErrorPage status={error.status} message={error.message} />
 {:else if listing}
-	<div class="max-w-7xl mx-auto px-6 py-8">
-		<h1 class="text-2xl font-bold">{listing.title}</h1>
-	</div>
+	<ListingDetails {listing} />
 {/if}

@@ -1,4 +1,4 @@
-import type { FuelType, TransmissionType, City } from '$lib/apiClient';
+import type { FuelType, TransmissionType, City, BodyType, CarColor, DriveType, CarCondition, CarBrand } from '$lib/apiClient';
 import type { TranslationKey } from '$lib/i18n';
 
 export function fuelTypeKey(fuelType: FuelType): TranslationKey {
@@ -11,6 +11,26 @@ export function transmissionKey(transmission: TransmissionType): TranslationKey 
 
 export function cityKey(city: City): TranslationKey {
 	return `city.${city}`;
+}
+
+export function bodyTypeKey(bodyType: BodyType): TranslationKey {
+	return `bodyType.${bodyType}`;
+}
+
+export function colorKey(color: CarColor): TranslationKey {
+	return `color.${color}`;
+}
+
+export function driveTypeKey(driveType: DriveType): TranslationKey {
+	return `driveType.${driveType}`;
+}
+
+export function conditionKey(condition: CarCondition): TranslationKey {
+	return `condition.${condition}`;
+}
+
+export function brandKey(brand: CarBrand): TranslationKey {
+	return `brand.${brand}`;
 }
 
 export function listingSlug(id: number, title: string | null): string {
