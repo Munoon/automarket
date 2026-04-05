@@ -50,6 +50,8 @@ export const translations = {
         'currency.uah': 'UAH',
 
         'listings.empty': 'No listings found.',
+        'error.notFound': 'Page not found',
+        'error.internal': 'Internal error',
         'header.createListing': 'Create Listing',
         'header.signIn': 'Sign In',
         'header.signOut': 'Sign Out',
@@ -123,6 +125,8 @@ export const translations = {
         'currency.uah': 'грн',
 
         'listings.empty': 'Оголошень не знайдено.',
+        'error.notFound': 'Сторінку не знайдено',
+        'error.internal': 'Внутрішня помилка',
         'header.createListing': 'Створити оголошення',
         'header.signIn': 'Увійти',
         'header.signOut': 'Вийти',
