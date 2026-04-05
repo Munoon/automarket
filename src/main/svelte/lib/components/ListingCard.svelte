@@ -26,11 +26,11 @@
   </div>
 
   <div class="p-4 flex flex-col gap-2 flex-1">
-    <h5 class="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 leading-snug">
+    <h5 class="text-sm font-semibold text-primary line-clamp-2 leading-snug">
       {listing.title ?? '—'}
     </h5>
 
-    <p class="text-xl font-bold text-blue-600 dark:text-blue-400 text-right">
+    <p class="text-xl font-bold text-accent text-right">
       {listing.price != null ? listing.price.toLocaleString('uk-UA', { maximumFractionDigits: 0 }) + ' ' + $t('currency.uah') : '—'}
     </p>
 
@@ -41,11 +41,11 @@
     </div>
 
     <div class="mt-auto pt-2 border-t border-gray-100 dark:border-gray-700 flex flex-col gap-1">
-      <span class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+      <span class="text-xs text-muted flex items-center gap-1">
         <GaugeIcon class="w-3.5 h-3.5 shrink-0" />
         {listing.mileage != null ? listing.mileage.toLocaleString() + ' ' + $t('mileage.km') : '—'}
       </span>
-      <span class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+      <span class="text-xs text-muted flex items-center gap-1">
         <MapPinOutline class="w-3.5 h-3.5 shrink-0" />
         {listing.city != null ? $t(cityKey(listing.city)) : '—'}
       </span>

@@ -217,7 +217,7 @@
     class="m-auto">
 	<div class="space-y-6">
 		<div class="flex items-center justify-between">
-			<h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+			<h3 class="text-xl font-semibold text-primary">
                 {#if stage === 'phone'}
                     {$t('auth.signIn')}
                 {:else if stage === 'code'}
@@ -238,7 +238,7 @@
 		{#if stage === 'phone'}
 			<form class="space-y-4" onsubmit={handleSendCode}>
                 <div class="flex">
-                    <div class="z-10 inline-flex shrink-0 items-center rounded-s-lg border border-r-0 border-gray-300 bg-gray-100 px-3 py-2 text-center text-sm font-medium text-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:ring-gray-700">
+                    <div class="z-10 inline-flex shrink-0 items-center rounded-s-lg border border-r-0 border-gray-300 bg-gray-100 px-3 py-2 text-center text-sm font-medium text-muted dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-gray-700">
                         🇺🇦 +380
                     </div>
                     <Input
