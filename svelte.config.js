@@ -16,6 +16,7 @@ const config = {
 	kit: {
 	    files: {
             assets: 'src/main/svelte/static',
+            hooks: { server: 'hooks.server' },
             lib: 'src/main/svelte/lib',
             routes: 'src/main/svelte/routes',
             appTemplate: 'src/main/svelte/app.html'

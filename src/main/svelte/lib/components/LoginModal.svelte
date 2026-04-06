@@ -1,10 +1,15 @@
 <script lang="ts">
+    import { browser } from '$app/environment';
 	import { Modal, Button, Input, Label, Alert, Progressbar, Helper } from 'flowbite-svelte';
 	import { ExclamationCircleOutline } from 'flowbite-svelte-icons';
 	import { t } from '$lib/i18n';
 	import { apiClient, type AuthResponse, type ProblemException } from '$lib/apiClient';
 	import { authStore } from '$lib/stores/authStore';
 	import { pendingAuthAction } from '$lib/composables/useAuthAction';
+    import { toastStore } from '$lib/stores/toastStore';
+
+    const captchaEnabled = browser && !!window.__config?.hcaptchaSitekey;
+    const prefersLightScheme = browser && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)')?.matches;
 
 	type Stage = 'phone' | 'code' | 'displayName';
 
@@ -19,6 +24,10 @@
 	let totalTimeToLive: number = $state(0);
 	let timerInterval: ReturnType<typeof setInterval> | null = null;
 	let verificationCodeInputsDiv: HTMLDivElement | undefined = $state();
+    let captchaWidgetId: number | null = $state(null);
+    let captchaToken: string | null = $state(null);
+    let captchaContainer: HTMLDivElement | undefined = $state();
+    let pendingSend: boolean = false;
     
 	function startTimer(totalSeconds: number) {
 		totalTimeToLive = totalSeconds;
@@ -54,16 +63,37 @@
 			return;
 		}
 
+        if (captchaEnabled && !captchaToken) {
+            if (captchaWidgetId !== null) {
+                pendingSend = true;
+                hcaptcha.execute(captchaWidgetId);
+            } else {
+                toastStore.addError("Failed to load the captcha. Please try again later.");
+            }
+            return;
+        }
+
+        await doSendCode();
+	}
+
+    async function doSendCode() {
 		isLoading = true;
 		try {
-			const response = await apiClient.sendVerificationCode({ phoneNumber: '+380' + phoneNumber });
+			const response = await apiClient.sendVerificationCode({
+                phoneNumber: '+380' + phoneNumber,
+                captchaToken
+            });
 			startTimer(response.codeTimeToLiveSeconds);
-            isLoading = false;
 		} catch (err) {
 			const problem = (err as ProblemException).problem;
 			error = problem?.title || $t('auth.error');
-			isLoading = false;
-		}
+		} finally {
+            captchaToken = null;
+            if (captchaWidgetId !== null) {
+                hcaptcha.reset(captchaWidgetId);
+            }
+            isLoading = false;
+        }
 	}
 
 	async function handleVerifyCode(e?: Event) {
@@ -200,11 +230,44 @@
 		clearTimer();
 		isLoading = false;
 		authResponse = null;
+        pendingSend = false;
 	}
 
-	// Cleanup timer on unmount
 	$effect(() => {
-		return () => clearTimer();
+        // Reading $pendingAuthAction makes this effect re-run when the modal opens/closes,
+        // which handles the case where flowbite hides the modal with CSS (captchaContainer
+        // never changes to undefined, so bind:this alone wouldn't trigger a re-run).
+        if (!captchaEnabled || !captchaContainer || $pendingAuthAction === null) return;
+
+        captchaWidgetId = hcaptcha.render(captchaContainer, {
+            sitekey: window.__config.hcaptchaSitekey,
+            callback: (token: string) => {
+                captchaToken = token;
+                if (pendingSend) {
+                    pendingSend = false;
+                    doSendCode();
+                }
+            },
+            'error-callback': (err: unknown) => {
+                console.error('hCaptcha error:', err);
+                toastStore.addError("Captcha error. Please try again.");
+                isLoading = false;
+            },
+            'expired-callback': () => {
+                captchaToken = null;
+                pendingSend = false;
+            }
+        });
+
+        return () => {
+            clearTimer();
+            captchaToken = null;
+            pendingSend = false;
+            if (captchaWidgetId !== null) {
+                hcaptcha.remove(captchaWidgetId);
+                captchaWidgetId = null;
+            }
+        };
 	});
 </script>
 
@@ -254,6 +317,11 @@
                         />
                 </div>
                 <Helper class="mt-2 text-sm">{$t('auth.weWillSendCode')}</Helper>
+                {#if captchaEnabled}
+                    <div bind:this={captchaContainer}
+                        data-size='normal'
+                        data-theme={prefersLightScheme ? 'light' : 'dark'}></div>
+                {/if}
                 <Button
                     class="my-2 w-full text-sm"
                     color="blue"

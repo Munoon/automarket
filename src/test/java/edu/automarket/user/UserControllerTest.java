@@ -2,6 +2,7 @@ package edu.automarket.user;
 
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.authentication.AuthenticationService;
+import edu.automarket.captcha.CaptchaService;
 import edu.automarket.common.ProblemDTO;
 import edu.automarket.sms.SmsCodeRepository;
 import edu.automarket.sms.SmsCodeService;
@@ -25,10 +26,15 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class UserControllerTest extends AbstractIntegrationTest {
 
@@ -50,17 +56,22 @@ class UserControllerTest extends AbstractIntegrationTest {
     @MockitoSpyBean
     private SmsCodeService smsCodeService;
 
+    @MockitoSpyBean
+    private CaptchaService captchaService;
+
     // --- POST /api/users/send-verification-code ---
 
     @Test
     void sendVerificationCodeWithValidPhoneReturns200WithTtl() {
         webTestClient.post().uri("/api/users/send-verification-code")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new SendVerificationCodeRequestDTO("+380123456789"))
+                .bodyValue(new SendVerificationCodeRequestDTO("+380123456789", "sample-captcha-token"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(SendVerificationCodeResponseDTO.class)
                 .value(dto -> assertThat(dto.codeTimeToLiveSeconds()).isEqualTo(60));
+
+        verify(captchaService, times(1)).validateCaptcha(eq("sample-captcha-token"), any());
     }
 
     @Test
@@ -69,7 +80,7 @@ class UserControllerTest extends AbstractIntegrationTest {
 
         webTestClient.post().uri("/api/users/send-verification-code")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new SendVerificationCodeRequestDTO("+380123456789"))
+                .bodyValue(new SendVerificationCodeRequestDTO("+380123456789", null))
                 .exchange()
                 .expectStatus().isOk();
 
@@ -94,7 +105,7 @@ class UserControllerTest extends AbstractIntegrationTest {
 
         webTestClient.post().uri("/api/users/send-verification-code")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new SendVerificationCodeRequestDTO("+380123456789"))
+                .bodyValue(new SendVerificationCodeRequestDTO("+380123456789", null))
                 .exchange()
                 .expectStatus().isEqualTo(500)
                 .expectHeader().contentType("application/problem+json")
@@ -110,7 +121,7 @@ class UserControllerTest extends AbstractIntegrationTest {
     void sendVerificationCodeWithInvalidPhoneFormatReturns400() {
         webTestClient.post().uri("/api/users/send-verification-code")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new SendVerificationCodeRequestDTO("12345"))
+                .bodyValue(new SendVerificationCodeRequestDTO("12345", null))
                 .exchange()
                 .expectStatus().isBadRequest()
                 .expectHeader().contentType("application/problem+json")
@@ -126,7 +137,7 @@ class UserControllerTest extends AbstractIntegrationTest {
     void sendVerificationCodeWithNullPhoneReturns400() {
         webTestClient.post().uri("/api/users/send-verification-code")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new SendVerificationCodeRequestDTO(null))
+                .bodyValue(new SendVerificationCodeRequestDTO(null, null))
                 .exchange()
                 .expectStatus().isBadRequest()
                 .expectHeader().contentType("application/problem+json")
@@ -136,6 +147,26 @@ class UserControllerTest extends AbstractIntegrationTest {
                     assertThat(problem.title()).isEqualTo("Validation Error");
                     assertThat(problem.status()).isEqualTo(400);
                 });
+    }
+
+    @Test
+    void sendVerificationCodeWithInvalidCaptcha() {
+        when(captchaService.validateCaptcha(any(), any())).thenReturn(Mono.just(false));
+
+        webTestClient.post().uri("/api/users/send-verification-code")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new SendVerificationCodeRequestDTO("+380123456789", null))
+                .exchange()
+                .expectStatus().isEqualTo(400)
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/invalid-captcha");
+                    assertThat(problem.title()).isEqualTo("Invalid captcha");
+                    assertThat(problem.status()).isEqualTo(400);
+                });
+
+        verify(captchaService, times(1)).validateCaptcha(isNull(), any());
     }
 
     // --- POST /api/users/auth ---

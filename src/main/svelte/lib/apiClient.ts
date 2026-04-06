@@ -52,6 +52,7 @@ export interface AuthRequest {
 
 export interface SendVerificationCodeRequest {
 	phoneNumber: string;
+	captchaToken: string | null;
 }
 
 export interface SendVerificationCodeResponse {

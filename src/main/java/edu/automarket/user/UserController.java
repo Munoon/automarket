@@ -1,6 +1,7 @@
 package edu.automarket.user;
 
 import edu.automarket.authentication.AuthenticationService;
+import edu.automarket.captcha.CaptchaService;
 import edu.automarket.common.ApiException;
 import edu.automarket.listing.CarListingService;
 import edu.automarket.sms.SmsCodeService;
@@ -16,6 +17,7 @@ import jakarta.validation.Valid;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -33,15 +35,18 @@ public class UserController {
     private final UserService userService;
     private final AuthenticationService authenticationService;
     private final SmsCodeService smsCodeService;
+    private final CaptchaService captchaService;
     private final LimitsDTO limits;
 
     public UserController(UserService userService,
                           AuthenticationService authenticationService,
                           SmsCodeService smsCodeService,
+                          CaptchaService captchaService,
                           CarListingService carListingService) {
         this.userService = userService;
         this.authenticationService = authenticationService;
         this.smsCodeService = smsCodeService;
+        this.captchaService = captchaService;
         this.limits = new LimitsDTO(
                 carListingService.getListingRepublishCooldownMS(),
                 carListingService.getListingsCountPerAuthorLimit()
@@ -50,13 +55,21 @@ public class UserController {
 
     @PostMapping("/send-verification-code")
     public Mono<SendVerificationCodeResponseDTO> sendVerificationCode(
-            @Valid @RequestBody SendVerificationCodeRequestDTO request) {
-        return smsCodeService.sendSms(request.phoneNumber())
-                .thenReturn(new SendVerificationCodeResponseDTO(smsCodeService.getAuthCodeTTLSeconds()))
-                .onErrorMap(e -> {
-                    log.error("Failed to send SMS code", e);
-                    return new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "/problems/sms-send-failed", "Failed to send SMS code");
-                });
+            @Valid @RequestBody SendVerificationCodeRequestDTO request,
+            ServerHttpRequest httpRequest) {
+        return captchaService.validateCaptcha(request.captchaToken(), httpRequest).flatMap(valid -> {
+            if (!valid) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "/problems/invalid-captcha", "Invalid captcha");
+            }
+
+            return smsCodeService.sendSms(request.phoneNumber())
+                    .thenReturn(new SendVerificationCodeResponseDTO(smsCodeService.getAuthCodeTTLSeconds()))
+                    .onErrorMap(e -> {
+                        log.error("Failed to send SMS code", e);
+                        return new ApiException(HttpStatus.INTERNAL_SERVER_ERROR,
+                                "/problems/sms-send-failed", "Failed to send SMS code");
+                    });
+        });
     }
 
     @PostMapping("/auth")
