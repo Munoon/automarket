@@ -11,19 +11,21 @@
   let loading = $state(true);
   let loadingMore = $state(false);
   let error = $state<string | null>(null);
-  let currentPage = $state(0);
   let totalElements = $state(0);
   let publishedBefore = $state<number | null>(null);
   let sentinel = $state<HTMLElement | null>(null);
 
   const hasMore = $derived(listings.length < totalElements);
 
-  async function loadPage(page: number) {
+  async function loadPage() {
     try {
-      const result = await apiClient.getPublicListings({ page, size: PAGE_SIZE, publishedBefore: publishedBefore ?? undefined });
+      const result = await apiClient.getPublicListings({
+        offset: listings.length,
+        size: PAGE_SIZE,
+        publishedBefore: publishedBefore ?? undefined
+      });
       listings = [...listings, ...result.content];
       totalElements = result.totalElements;
-      currentPage = page;
     } catch (e) {
       error = e instanceof ProblemException ? e.message : 'Failed to load listings.';
     }
@@ -40,7 +42,7 @@
     const observer = new IntersectionObserver(async (entries) => {
       if (!entries[0].isIntersecting || loadingMore || !hasMore) return;
       loadingMore = true;
-      await loadPage(currentPage + 1);
+      await loadPage();
       loadingMore = false;
     });
 
@@ -50,7 +52,7 @@
 
   onMount(async () => {
     publishedBefore = Date.now();
-    await loadPage(0);
+    await loadPage();
     loading = false;
   });
 </script>

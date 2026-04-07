@@ -49,11 +49,11 @@ public class OwnCarListingController {
     @GetMapping
     public Mono<PageDTO<OwnCarListingListItemDTO>> getOwnListings(
             @AuthenticationPrincipal long userId,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) ListingStatus[] statuses
     ) {
-        return carListingService.getOwnListings(userId, statuses, page, size);
+        return carListingService.getOwnListings(userId, statuses, offset, size);
     }
 
     @GetMapping("/{id}")

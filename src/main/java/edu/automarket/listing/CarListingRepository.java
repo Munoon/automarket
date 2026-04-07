@@ -169,12 +169,12 @@ public class CarListingRepository {
                 .one();
     }
 
-    public Flux<OwnCarListingListItemDTO> findByUserIdAndStatuses(long authorUserId, String[] statuses, int page, int size) {
+    public Flux<OwnCarListingListItemDTO> findByUserIdAndStatuses(long authorUserId, String[] statuses, int offset, int size) {
         return client.sql(SELECT_BY_USER_ID_AND_STATUSES_QUERY)
                 .bind("authorUserId", authorUserId)
                 .bind("statuses", statuses)
+                .bind("offset", offset)
                 .bind("size", size)
-                .bind("offset", (long) page * size)
                 .map(row -> new OwnCarListingListItemDTO(
                         row.get(0, Long.class),
                         ListingStatus.valueOf(row.get(1, String.class)),
@@ -282,7 +282,7 @@ public class CarListingRepository {
         return client.sql(SELECT_PUBLISHED_QUERY)
                 .bind("publishedBefore", request.getPublishedBefore())
                 .bind("size", request.getSize())
-                .bind("offset", (long) request.getPage() * request.getSize())
+                .bind("offset", request.getOffset())
                 .map(row -> {
                     String fuelTypeStr = row.get(4, String.class);
                     String transmissionTypeStr = row.get(5, String.class);

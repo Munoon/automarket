@@ -163,7 +163,7 @@ export interface UpdateOwnListingRequest {
 }
 
 export interface GetOwnListingsRequest {
-	page?: number;
+	offset?: number;
 	size?: number;
 	statuses?: ListingStatus[];
 }
@@ -218,7 +218,7 @@ export interface PublicCarListingItem {
 
 export interface GetPublicListingsRequest {
 	publishedBefore?: number;
-	page?: number;
+	offset?: number;
 	size?: number;
 }
 

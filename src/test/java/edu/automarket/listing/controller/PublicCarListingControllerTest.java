@@ -169,7 +169,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         long anchor = System.currentTimeMillis();
 
         webTestClient.get()
-                .uri("/api/listings/public?publishedBefore=" + anchor + "&page=0&size=2")
+                .uri("/api/listings/public?publishedBefore=" + anchor + "&offset=0&size=2")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(PAGE_TYPE)
@@ -181,7 +181,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
                 });
 
         webTestClient.get()
-                .uri("/api/listings/public?publishedBefore=" + anchor + "&page=1&size=2")
+                .uri("/api/listings/public?publishedBefore=" + anchor + "&offset=2&size=2")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(PAGE_TYPE)

@@ -119,7 +119,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                     .verifyComplete();
 
         StepVerifier.create(carListingRepository.findByUserIdAndStatuses(
-                        userId, new String[]{"DRAFT"}, 1, 2))
+                        userId, new String[]{"DRAFT"}, 2, 2))
                     .assertNext(listing -> assertThat(listing.id()).isEqualTo(listing1.id()))
                     .verifyComplete();
     }
@@ -287,7 +287,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         carListingRepository.update(listing2.withStatus(ListingStatus.PUBLISHED, System.currentTimeMillis())).block();
 
         GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
-        request.setPage(0);
+        request.setOffset(0);
         request.setSize(2);
         StepVerifier.create(carListingRepository.findPublished(request))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing2.id()))
@@ -295,7 +295,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 .verifyComplete();
 
         request = new GetPublishedListingsRequestDTO();
-        request.setPage(1);
+        request.setOffset(2);
         request.setSize(2);
         StepVerifier.create(carListingRepository.findPublished(request))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing1.id()))

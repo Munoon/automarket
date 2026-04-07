@@ -42,12 +42,12 @@ public class CarListingService {
                 });
     }
 
-    public Mono<PageDTO<OwnCarListingListItemDTO>> getOwnListings(long userId, ListingStatus[] statuses, int page, int size) {
+    public Mono<PageDTO<OwnCarListingListItemDTO>> getOwnListings(long userId, ListingStatus[] statuses, int offset, int size) {
         String[] statusNames = mapStatusNamesToString(statuses);
 
         return Mono.zip(
                 carListingRepository.countByUserIdAndStatuses(userId, statusNames),
-                carListingRepository.findByUserIdAndStatuses(userId, statusNames, page, size).collectList()
+                carListingRepository.findByUserIdAndStatuses(userId, statusNames, offset, size).collectList()
         ).map(tuple -> new PageDTO<>(tuple.getT2(), tuple.getT1()));
     }
 

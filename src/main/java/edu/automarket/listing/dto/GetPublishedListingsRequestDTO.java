@@ -2,7 +2,7 @@ package edu.automarket.listing.dto;
 
 public final class GetPublishedListingsRequestDTO {
     private Long publishedBefore;
-    private int page;
+    private int offset;
     private int size = 20;
 
     public long getPublishedBefore() {
@@ -16,12 +16,12 @@ public final class GetPublishedListingsRequestDTO {
         this.publishedBefore = publishedBefore;
     }
 
-    public int getPage() {
-        return page;
+    public int getOffset() {
+        return offset;
     }
 
-    public void setPage(int page) {
-        this.page = page;
+    public void setOffset(int offset) {
+        this.offset = offset;
     }
 
     public int getSize() {

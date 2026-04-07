@@ -182,7 +182,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
                 })
                 .verifyComplete();
 
-        StepVerifier.create(carListingService.getOwnListings(userId, null, 1, 2))
+        StepVerifier.create(carListingService.getOwnListings(userId, null, 2, 2))
                 .assertNext(page -> {
                     assertThat(page.totalElements()).isEqualTo(3);
                     assertThat(page.content()).hasSize(1);
@@ -450,7 +450,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         long listing3Id = listing3.id();
 
         GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
-        request.setPage(0);
+        request.setOffset(0);
         request.setSize(2);
         StepVerifier.create(carListingService.getPublishedListings(request))
                     .assertNext(page -> {
@@ -462,7 +462,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
                     .verifyComplete();
 
         request = new GetPublishedListingsRequestDTO();
-        request.setPage(1);
+        request.setOffset(2);
         request.setSize(2);
         StepVerifier.create(carListingService.getPublishedListings(request))
                 .assertNext(page -> {

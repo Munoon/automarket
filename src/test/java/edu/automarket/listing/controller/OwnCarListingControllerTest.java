@@ -258,7 +258,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         carListingService.create(userId).block();
 
         webTestClient.get()
-                .uri("/api/listings/own?page=0&size=2")
+                .uri("/api/listings/own?offset=0&size=2")
                 .header("Authorization", "Bearer " + token)
                 .exchange()
                 .expectStatus().isOk()
