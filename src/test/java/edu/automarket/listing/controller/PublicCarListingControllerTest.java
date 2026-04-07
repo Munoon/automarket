@@ -1,6 +1,7 @@
 package edu.automarket.listing.controller;
 
 import edu.automarket.AbstractIntegrationTest;
+import edu.automarket.analytics.AggregatedListingsAnalyticsDTO;
 import edu.automarket.analytics.CarListingAnalyticsService;
 import edu.automarket.common.PageDTO;
 import edu.automarket.common.ProblemDTO;
@@ -337,7 +338,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
         analyticsService.saveListingAnalytics();
 
-        OwnCarListingListItemDTO dto = queryAnalytics(userId, listing.id());
+        AggregatedListingsAnalyticsDTO dto = AggregatedListingsAnalyticsDTO.compute(analyticsService, listing.id());
         assertThat(dto).isNotNull();
         assertThat(dto.viewsCount()).isEqualTo(1);
     }
@@ -356,7 +357,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
         analyticsService.saveListingAnalytics();
 
-        OwnCarListingListItemDTO dto = queryAnalytics(userId, listing.id());
+        AggregatedListingsAnalyticsDTO dto = AggregatedListingsAnalyticsDTO.compute(analyticsService, listing.id());
         assertThat(dto).isNotNull();
         assertThat(dto.phoneRequestsCount()).isEqualTo(1);
     }
@@ -378,8 +379,10 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
         analyticsService.saveListingAnalytics();
 
-        assertThat(queryAnalytics(userId, listing1.id()).impressionsCount()).isEqualTo(1);
-        assertThat(queryAnalytics(userId, listing2.id()).impressionsCount()).isEqualTo(1);
+        assertThat(AggregatedListingsAnalyticsDTO.compute(analyticsService, listing1.id()).impressionsCount())
+                .isEqualTo(1);
+        assertThat(AggregatedListingsAnalyticsDTO.compute(analyticsService, listing2.id()).impressionsCount())
+                .isEqualTo(1);
     }
 
     @Test
@@ -401,7 +404,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
         analyticsService.saveListingAnalytics();
 
-        OwnCarListingListItemDTO dto = queryAnalytics(userId, listing.id());
+        AggregatedListingsAnalyticsDTO dto = AggregatedListingsAnalyticsDTO.compute(analyticsService, listing.id());
         assertThat(dto).isNotNull();
         assertThat(dto.viewsCount()).isEqualTo(0);
     }
@@ -425,18 +428,8 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
         analyticsService.saveListingAnalytics();
 
-        OwnCarListingListItemDTO dto = queryAnalytics(userId, listing.id());
+        AggregatedListingsAnalyticsDTO dto = AggregatedListingsAnalyticsDTO.compute(analyticsService, listing.id());
         assertThat(dto).isNotNull();
         assertThat(dto.phoneRequestsCount()).isEqualTo(0);
-    }
-
-    private OwnCarListingListItemDTO queryAnalytics(long userId, long listingId) {
-        PageDTO<OwnCarListingListItemDTO> page = carListingService.getOwnListings(userId, null, 0, 100).block();
-        for (OwnCarListingListItemDTO item : page.content()) {
-            if (item.id() == listingId) {
-                return item;
-            }
-        }
-        return null;
     }
 }

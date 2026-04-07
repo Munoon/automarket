@@ -45,33 +45,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void findByUserIdAndStatusesReturnsDraftListing() {
-        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
-        CarListing draft = carListingRepository.create(userId, System.currentTimeMillis()).block();
-        CarListing published = carListingRepository.create(userId, System.currentTimeMillis() + 1).block();
-        carListingRepository.update(published.withStatus(ListingStatus.PUBLISHED, System.currentTimeMillis())).block();
-
-        StepVerifier.create(carListingRepository.findByUserIdAndStatuses(
-                        userId, new String[]{"DRAFT"}, 0, 20))
-                .assertNext(listing -> {
-                    assertThat(listing.id()).isEqualTo(draft.id());
-                    assertThat(listing.status()).isEqualTo(ListingStatus.DRAFT);
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void findByUserIdAndStatusesFiltersOutNonMatchingStatus() {
-        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
-        carListingRepository.create(userId, System.currentTimeMillis()).block();
-
-        StepVerifier.create(carListingRepository.findByUserIdAndStatuses(
-                        userId, new String[]{"PUBLISHED"}, 0, 20))
-                .verifyComplete();
-    }
-
-    @Test
-    void findByUserIdAndStatusesWithMultipleStatusesReturnsMatchingListings() {
+    void findByUserIdAndStatuses() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         long now = System.currentTimeMillis();
         CarListing draft = carListingRepository.create(userId, now).block();
@@ -81,13 +55,10 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         carListingRepository.update(published.withStatus(ListingStatus.PUBLISHED, publishedAt)).block();
         carListingRepository.update(archived.withStatus(ListingStatus.ARCHIVED, publishedAt)).block();
 
-        StepVerifier.create(carListingRepository.findByUserIdAndStatuses(
-                        userId, new String[]{"DRAFT", "PUBLISHED"}, 0, 20))
-                .assertNext(listing -> {
-                    assertThat(listing.id()).isEqualTo(published.id());
-                    assertThat(listing.publishedAt()).isEqualTo(publishedAt);
-                })
+        StepVerifier.create(carListingRepository.findByUserIdAndStatuses(userId, 0, 20))
                 .assertNext(listing -> assertThat(listing.id()).isEqualTo(draft.id()))
+                .assertNext(listing -> assertThat(listing.id()).isEqualTo(published.id()))
+                .assertNext(listing -> assertThat(listing.id()).isEqualTo(archived.id()))
                 .verifyComplete();
     }
 
@@ -98,8 +69,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         carListingRepository.create(userId1, System.currentTimeMillis()).block();
         CarListing secondUserListing = carListingRepository.create(userId2, System.currentTimeMillis()).block();
 
-        StepVerifier.create(carListingRepository.findByUserIdAndStatuses(
-                        userId2, new String[]{"DRAFT"}, 0, 20))
+        StepVerifier.create(carListingRepository.findByUserIdAndStatuses(userId2, 0, 20))
                     .assertNext(listing -> assertThat(listing.id()).isEqualTo(secondUserListing.id()))
                     .verifyComplete();
     }
@@ -112,14 +82,12 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing listing2 = carListingRepository.create(userId, now + 1).block();
         CarListing listing3 = carListingRepository.create(userId, now + 2).block();
 
-        StepVerifier.create(carListingRepository.findByUserIdAndStatuses(
-                        userId, new String[]{"DRAFT"}, 0, 2))
+        StepVerifier.create(carListingRepository.findByUserIdAndStatuses(userId, 0, 2))
                     .assertNext(listing -> assertThat(listing.id()).isEqualTo(listing3.id()))
                     .assertNext(listing -> assertThat(listing.id()).isEqualTo(listing2.id()))
                     .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findByUserIdAndStatuses(
-                        userId, new String[]{"DRAFT"}, 2, 2))
+        StepVerifier.create(carListingRepository.findByUserIdAndStatuses(userId, 2, 2))
                     .assertNext(listing -> assertThat(listing.id()).isEqualTo(listing1.id()))
                     .verifyComplete();
     }
@@ -130,20 +98,8 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         carListingRepository.create(userId, System.currentTimeMillis()).block();
         carListingRepository.create(userId, System.currentTimeMillis()).block();
 
-        StepVerifier.create(carListingRepository.countByUserIdAndStatuses(
-                        userId, new String[]{"DRAFT"}))
+        StepVerifier.create(carListingRepository.countByUserIdAndStatuses(userId))
                 .expectNext(2L)
-                .verifyComplete();
-    }
-
-    @Test
-    void countByUserIdAndStatusesReturnsZeroForNonMatchingStatus() {
-        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
-        carListingRepository.create(userId, System.currentTimeMillis()).block();
-
-        StepVerifier.create(carListingRepository.countByUserIdAndStatuses(
-                        userId, new String[]{"PUBLISHED"}))
-                .expectNext(0L)
                 .verifyComplete();
     }
 

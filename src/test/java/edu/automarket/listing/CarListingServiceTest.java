@@ -78,7 +78,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         CarListing listing1 = carListingService.create(userId).block();
         CarListing listing2 = carListingService.create(userId).block();
 
-        StepVerifier.create(carListingService.getOwnListings(userId, null, 0, 20))
+        StepVerifier.create(carListingService.getOwnListings(userId, 0, 20))
                 .assertNext(page -> {
                     assertThat(page.totalElements()).isEqualTo(2);
                     assertThat(page.content()).hasSize(2);
@@ -93,76 +93,8 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         carListingService.create(userId).block();
 
-        StepVerifier.create(carListingService.getOwnListings(userId, null, 0, 20))
+        StepVerifier.create(carListingService.getOwnListings(userId, 0, 20))
                 .assertNext(page -> assertThat(page.totalElements()).isEqualTo(1))
-                .verifyComplete();
-    }
-
-    @Test
-    void getOwnListingsWithEmptyStatusesReturnsAllListings() {
-        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
-        carListingService.create(userId).block();
-
-        StepVerifier.create(carListingService.getOwnListings(userId, new ListingStatus[]{}, 0, 20))
-                .assertNext(page -> assertThat(page.totalElements()).isEqualTo(1))
-                .verifyComplete();
-    }
-
-    @Test
-    void getOwnListingsWithDraftFilterReturnsDraftListings() {
-        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
-        CarListing draft = carListingService.create(userId).block();
-        CarListing published = carListingService.create(userId).block();
-        published = carListingService.update(published, UPDATE_CAR_LISTING_REQUEST_DTO).block();
-        carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
-
-        StepVerifier.create(carListingService.getOwnListings(
-                        userId, new ListingStatus[]{ListingStatus.DRAFT}, 0, 20))
-                .assertNext(page -> {
-                    assertThat(page.totalElements()).isEqualTo(1);
-                    assertThat(page.content().get(0).id()).isEqualTo(draft.id());
-                    assertThat(page.content().get(0).status()).isEqualTo(ListingStatus.DRAFT);
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void getOwnListingsWithPublishedFilterReturnsOnlyPublishedListings() {
-        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
-        carListingService.create(userId).block();
-        CarListing published = carListingService.create(userId).block();
-        published = carListingService.update(published, UPDATE_CAR_LISTING_REQUEST_DTO).block();
-        carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
-
-        long publishedListingId = published.id();
-
-        StepVerifier.create(carListingService.getOwnListings(
-                        userId, new ListingStatus[]{ListingStatus.PUBLISHED}, 0, 20))
-                .assertNext(page -> {
-                    assertThat(page.totalElements()).isEqualTo(1);
-                    assertThat(page.content().get(0).id()).isEqualTo(publishedListingId);
-                    assertThat(page.content().get(0).status()).isEqualTo(ListingStatus.PUBLISHED);
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void getOwnListingsWithMultipleStatusesReturnsMatchingListings() {
-        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
-        CarListing draft = carListingService.create(userId).block();
-        CarListing published = carListingService.create(userId).block();
-        CarListing archived = carListingService.create(userId).block();
-        published = carListingService.update(published, UPDATE_CAR_LISTING_REQUEST_DTO).block();
-        carListingService.updateStatus(published, ListingStatus.PUBLISHED).block();
-        carListingService.updateStatus(archived, ListingStatus.ARCHIVED).block();
-
-        StepVerifier.create(carListingService.getOwnListings(
-                        userId, new ListingStatus[]{ListingStatus.DRAFT, ListingStatus.PUBLISHED}, 0, 20))
-                .assertNext(page -> {
-                    assertThat(page.totalElements()).isEqualTo(2);
-                    assertThat(page.content()).extracting(OwnCarListingListItemDTO::status)
-                            .containsExactlyInAnyOrder(ListingStatus.DRAFT, ListingStatus.PUBLISHED);
-                })
                 .verifyComplete();
     }
 
@@ -173,7 +105,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         CarListing listing2 = carListingService.create(userId).block();
         CarListing listing3 = carListingService.create(userId).block();
 
-        StepVerifier.create(carListingService.getOwnListings(userId, null, 0, 2))
+        StepVerifier.create(carListingService.getOwnListings(userId, 0, 2))
                 .assertNext(page -> {
                     assertThat(page.totalElements()).isEqualTo(3);
                     assertThat(page.content()).hasSize(2);
@@ -182,7 +114,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
                 })
                 .verifyComplete();
 
-        StepVerifier.create(carListingService.getOwnListings(userId, null, 2, 2))
+        StepVerifier.create(carListingService.getOwnListings(userId, 2, 2))
                 .assertNext(page -> {
                     assertThat(page.totalElements()).isEqualTo(3);
                     assertThat(page.content()).hasSize(1);

@@ -50,10 +50,9 @@ public class OwnCarListingController {
     public Mono<PageDTO<OwnCarListingListItemDTO>> getOwnListings(
             @AuthenticationPrincipal long userId,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) ListingStatus[] statuses
+            @RequestParam(defaultValue = "20") int size
     ) {
-        return carListingService.getOwnListings(userId, statuses, offset, size);
+        return carListingService.getOwnListings(userId, offset, size);
     }
 
     @GetMapping("/{id}")

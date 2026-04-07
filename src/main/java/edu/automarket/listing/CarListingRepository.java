@@ -34,23 +34,17 @@ public class CarListingRepository {
 
     //language=postgresql
     private static final String SELECT_BY_USER_ID_AND_STATUSES_QUERY = """
-            SELECT id, status::text, title, published_at,
-                   COALESCE(impressions_count, 0), COALESCE(views_count, 0),
-                   COALESCE(phone_requests_count, 0), COALESCE(favourites_count, 0)
+            SELECT id, status::text, title, price
             FROM car_listings
-            LEFT JOIN (
-                SELECT listing_id,
-                       sum(impressions_count) AS impressions_count,
-                       sum(views_count) AS views_count,
-                       sum(phone_requests_count) AS phone_requests_count,
-                       sum(favourites_count) AS favourites_count
-                FROM car_listing_analytics
-                WHERE listing_id IN (SELECT id FROM car_listings WHERE author_user_id = :authorUserId)
-                GROUP BY listing_id
-            ) an ON an.listing_id = car_listings.id
             WHERE author_user_id = :authorUserId
-              AND status::text = ANY(:statuses)
-            ORDER BY created_at DESC
+            ORDER BY
+                CASE status
+                    WHEN 'DRAFT' THEN 1
+                    WHEN 'PUBLISHED' THEN 2
+                    WHEN 'ARCHIVED' THEN 3
+                    ELSE 4
+                END ASC,
+                created_at DESC
             LIMIT :size OFFSET :offset
             """;
 
@@ -103,7 +97,6 @@ public class CarListingRepository {
             SELECT COUNT(*)
             FROM car_listings
             WHERE author_user_id = :authorUserId
-              AND status::text = ANY(:statuses)
             """;
 
     //language=postgresql
@@ -169,29 +162,23 @@ public class CarListingRepository {
                 .one();
     }
 
-    public Flux<OwnCarListingListItemDTO> findByUserIdAndStatuses(long authorUserId, String[] statuses, int offset, int size) {
+    public Flux<OwnCarListingListItemDTO> findByUserIdAndStatuses(long authorUserId, int offset, int size) {
         return client.sql(SELECT_BY_USER_ID_AND_STATUSES_QUERY)
                 .bind("authorUserId", authorUserId)
-                .bind("statuses", statuses)
                 .bind("offset", offset)
                 .bind("size", size)
                 .map(row -> new OwnCarListingListItemDTO(
                         row.get(0, Long.class),
                         ListingStatus.valueOf(row.get(1, String.class)),
                         row.get(2, String.class),
-                        row.get(3, Long.class),
-                        row.get(4, Long.class),
-                        row.get(5, Long.class),
-                        row.get(6, Long.class),
-                        row.get(7, Long.class)
+                        row.get(3, Long.class)
                 ))
                 .all();
     }
 
-    public Mono<Long> countByUserIdAndStatuses(long authorUserId, String[] statuses) {
+    public Mono<Long> countByUserIdAndStatuses(long authorUserId) {
         return client.sql(COUNT_BY_USER_ID_AND_STATUSES_QUERY)
                 .bind("authorUserId", authorUserId)
-                .bind("statuses", statuses)
                 .map(row -> row.get(0, Long.class))
                 .one();
     }

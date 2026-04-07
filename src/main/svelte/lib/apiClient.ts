@@ -133,11 +133,7 @@ export interface OwnCarListingListItem {
 	id: number;
 	status: ListingStatus;
 	title: string | null;
-	publishedAt: number;
-	impressionsCount: number;
-	viewsCount: number;
-	phoneRequestsCount: number;
-	favouritesCount: number;
+	price: number | null;
 }
 
 export interface UpdateOwnListingRequest {
@@ -165,7 +161,6 @@ export interface UpdateOwnListingRequest {
 export interface GetOwnListingsRequest {
 	offset?: number;
 	size?: number;
-	statuses?: ListingStatus[];
 }
 
 export interface GetOwnListingAnalyticsRequest {

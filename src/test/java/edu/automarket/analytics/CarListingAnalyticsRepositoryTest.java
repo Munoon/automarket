@@ -1,12 +1,12 @@
 package edu.automarket.analytics;
 
 import edu.automarket.AbstractIntegrationTest;
-import edu.automarket.common.PageDTO;
 import edu.automarket.listing.CarListingService;
-import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.r2dbc.core.DatabaseClient;
+import reactor.test.StepVerifier;
 
 import java.time.Duration;
 import java.util.List;
@@ -20,10 +20,16 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
     private CarListingAnalyticsRepository analyticsRepository;
 
     @Autowired
+    private CarListingAnalyticsService analyticsService;
+
+    @Autowired
     private CarListingService carListingService;
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private DatabaseClient databaseClient;
 
     @Test
     void saveAnalytics_insertsRowWithCorrectCounters() {
@@ -39,7 +45,7 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
         long ts = System.currentTimeMillis();
         analyticsRepository.saveAnalytics(ts, List.of(Map.entry(listingId, counter))).block();
 
-        OwnCarListingListItemDTO listingDTO = queryAnalytics(userId, listingId);
+        AggregatedListingsAnalyticsDTO listingDTO = AggregatedListingsAnalyticsDTO.compute(analyticsService, listingId);
         assertThat(listingDTO).isNotNull();
         assertThat(listingDTO.impressionsCount()).isEqualTo(5);
         assertThat(listingDTO.viewsCount()).isEqualTo(3);
@@ -64,11 +70,11 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
                 Map.entry(listingId2, counter2)
         )).block();
 
-        OwnCarListingListItemDTO listingDTO = queryAnalytics(userId, listingId1);
+        AggregatedListingsAnalyticsDTO listingDTO = AggregatedListingsAnalyticsDTO.compute(analyticsService, listingId1);
         assertThat(listingDTO).isNotNull();
         assertThat(listingDTO.impressionsCount()).isEqualTo(2);
 
-        listingDTO = queryAnalytics(userId, listingId2);
+        listingDTO = AggregatedListingsAnalyticsDTO.compute(analyticsService, listingId2);
         assertThat(listingDTO).isNotNull();
         assertThat(listingDTO.impressionsCount()).isEqualTo(4);
     }
@@ -89,7 +95,7 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
         analyticsRepository.saveAnalytics(ts1, List.of(Map.entry(listingId, counter1))).block();
         analyticsRepository.saveAnalytics(ts2, List.of(Map.entry(listingId, counter2))).block();
 
-        OwnCarListingListItemDTO listingDTO = queryAnalytics(userId, listingId);
+        AggregatedListingsAnalyticsDTO listingDTO = AggregatedListingsAnalyticsDTO.compute(analyticsService, listingId);
         assertThat(listingDTO).isNotNull();
         assertThat(listingDTO.impressionsCount()).isEqualTo(10);
     }
@@ -112,7 +118,7 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
         analyticsRepository.saveAnalytics(ts, List.of(Map.entry(listingId, counter1))).block();
         analyticsRepository.saveAnalytics(ts, List.of(Map.entry(listingId, counter2))).block();
 
-        OwnCarListingListItemDTO listingDTO = queryAnalytics(userId, listingId);
+        AggregatedListingsAnalyticsDTO listingDTO = AggregatedListingsAnalyticsDTO.compute(analyticsService, listingId);
         assertThat(listingDTO).isNotNull();
         assertThat(listingDTO.impressionsCount()).isEqualTo(8);
         assertThat(listingDTO.viewsCount()).isEqualTo(3);
@@ -135,25 +141,13 @@ class CarListingAnalyticsRepositoryTest extends AbstractIntegrationTest {
         analyticsRepository.saveAnalytics(ts, List.of(Map.entry(listingId, counter1))).block();
         analyticsRepository.saveAnalytics(yearAgoTS, List.of(Map.entry(listingId, counter2))).block();
 
-        OwnCarListingListItemDTO listingDTO = queryAnalytics(userId, listingId);
-        assertThat(listingDTO).isNotNull();
-        assertThat(listingDTO.impressionsCount()).isEqualTo(8);
+        StepVerifier.create(databaseClient.sql("SELECT SUM(impressions_count) FROM car_listing_analytics").map(row -> row.get(0, Long.class)).one())
+                .assertNext(count -> assertThat(count).isEqualTo(8));
 
         Long rowsDeleted = analyticsRepository.clearOldAnalytics(System.currentTimeMillis() - Duration.ofDays(5).toMillis()).block();
         assertThat(rowsDeleted).isNotNull().isEqualTo(1);
 
-        listingDTO = queryAnalytics(userId, listingId);
-        assertThat(listingDTO).isNotNull();
-        assertThat(listingDTO.impressionsCount()).isEqualTo(3);
-    }
-
-    private OwnCarListingListItemDTO queryAnalytics(long userId, long listingId) {
-        PageDTO<OwnCarListingListItemDTO> page = carListingService.getOwnListings(userId, null, 0, 100).block();
-        for (OwnCarListingListItemDTO itemDTO : page.content()) {
-            if (itemDTO.id() == listingId) {
-                return itemDTO;
-            }
-        }
-        return null;
+        StepVerifier.create(databaseClient.sql("SELECT SUM(impressions_count) FROM car_listing_analytics").map(row -> row.get(0, Long.class)).one())
+                .assertNext(count -> assertThat(count).isEqualTo(3));
     }
 }

@@ -137,6 +137,12 @@ export const translations = {
         'mileage.km': 'km',
         'currency.uah': 'UAH',
 
+        'listingStatus.DRAFT': 'Draft',
+        'listingStatus.PUBLISHED': 'Published',
+        'listingStatus.ARCHIVED': 'Archived',
+
+        'myListings.title': 'My listings',
+        'myListings.showArchived': 'Show archived',
         'listings.empty': 'No listings found.',
         'error.notFound': 'Page not found',
         'error.internal': 'Internal error',
@@ -300,6 +306,12 @@ export const translations = {
         'mileage.km': 'км',
         'currency.uah': 'грн',
 
+        'listingStatus.DRAFT': 'Чернетка',
+        'listingStatus.PUBLISHED': 'Опубліковано',
+        'listingStatus.ARCHIVED': 'В архіві',
+
+        'myListings.title': 'Мої оголошення',
+        'myListings.showArchived': 'Показати архівовані',
         'listings.empty': 'Оголошень не знайдено.',
         'error.notFound': 'Сторінку не знайдено',
         'error.internal': 'Внутрішня помилка',

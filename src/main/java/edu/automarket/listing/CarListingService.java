@@ -32,7 +32,7 @@ public class CarListingService {
     }
 
     public Mono<CarListing> create(long authorUserId) {
-        return carListingRepository.countByUserIdAndStatuses(authorUserId, mapStatusNamesToString(null))
+        return carListingRepository.countByUserIdAndStatuses(authorUserId)
                 .flatMap(count -> {
                     if (count >= listingsCountPerAuthorLimit) {
                         throw new ApiException(
@@ -42,12 +42,10 @@ public class CarListingService {
                 });
     }
 
-    public Mono<PageDTO<OwnCarListingListItemDTO>> getOwnListings(long userId, ListingStatus[] statuses, int offset, int size) {
-        String[] statusNames = mapStatusNamesToString(statuses);
-
+    public Mono<PageDTO<OwnCarListingListItemDTO>> getOwnListings(long userId, int offset, int size) {
         return Mono.zip(
-                carListingRepository.countByUserIdAndStatuses(userId, statusNames),
-                carListingRepository.findByUserIdAndStatuses(userId, statusNames, offset, size).collectList()
+                carListingRepository.countByUserIdAndStatuses(userId),
+                carListingRepository.findByUserIdAndStatuses(userId, offset, size).collectList()
         ).map(tuple -> new PageDTO<>(tuple.getT2(), tuple.getT1()));
     }
 
