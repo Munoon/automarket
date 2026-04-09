@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { goto } from '$app/navigation';
+  import { goto, beforeNavigate } from '$app/navigation';
   import { parseListingId } from '$lib/utils/listing';
   import { authStore } from '$lib/stores/authStore';
   import { apiClient, ProblemException, type OwnCarListing } from '$lib/apiClient';
@@ -18,6 +18,20 @@
   let formHasErrors = $state(false);
 
   const listingId = $derived(parseListingId(page.params.slug ?? ''));
+
+  beforeNavigate(({ cancel }) => {
+    if (dirty && !confirm($t('edit.unsavedChangesLeave'))) {
+      cancel();
+    }
+  });
+
+  $effect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (dirty) e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  });
 
   $effect(() => {
     if (!$authStore.initialized) {
