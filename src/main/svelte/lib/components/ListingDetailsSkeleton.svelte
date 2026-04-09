@@ -54,7 +54,7 @@
       </div>
 
       <!-- Details grid card -->
-      <div class="info-card flex flex-col gap-0 divide-y divide-gray-100 dark:divide-gray-700">
+      <div class="info-card flex flex-col gap-0 divide-surface">
         <div class="h-5 skeleton-box w-24 mb-4"></div>
         {#each { length: 6 } as _}
           <div class="flex justify-between py-2.5">

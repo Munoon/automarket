@@ -14,8 +14,9 @@
   } from '$lib/utils/listing';
   import { t, language } from '$lib/i18n';
   import { toastStore } from '$lib/stores/toastStore';
+  import { authStore } from '$lib/stores/authStore';
 
-  let { listing }: { listing: PublicCarListing } = $props();
+  let { listing, preview = false }: { listing: PublicCarListing, preview?: boolean } = $props();
 
   // Placeholder images until the API is ready
   const images = $derived([
@@ -26,6 +27,13 @@
 
   let phoneState = $state<'idle' | 'loading' | 'done'>('idle');
   let phoneNumber = $state<string | null>(null);
+
+  $effect(() => {
+    if (preview) {
+      phoneState = 'done';
+      phoneNumber = $authStore.profile?.phoneNumber ?? '';
+    }
+  })
 
   async function showPhone() {
     if (phoneState !== 'idle') return;
@@ -68,15 +76,17 @@
       </h1>
       <div class="flex flex-wrap items-center gap-2 mt-2 text-sm text-muted">
         {#if listing.city}
-          <span class="flex items-center gap-1">
+          <span class="icon-row">
             <MapPinOutline class="w-4 h-4 shrink-0" />
             {$t(cityKey(listing.city))}
           </span>
         {/if}
-        <span class="flex items-center gap-1">
-          <CalendarMonthOutline class="w-4 h-4 shrink-0" />
-          {$t('listing.postedAt')}: {publishedDate}
-        </span>
+        {#if listing.publishedAt > 0}
+          <span class="icon-row">
+            <CalendarMonthOutline class="w-4 h-4 shrink-0" />
+            {$t('listing.postedAt')}: {publishedDate}
+          </span>
+        {/if}
       </div>
     </div>
     <div class="shrink-0 text-right">
@@ -88,10 +98,10 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="grid grid-cols-1 {preview ? '' : 'lg:grid-cols-3'} gap-6">
 
     <!-- Left: Gallery + Description -->
-    <div class="lg:col-span-2 space-y-6">
+    <div class="{preview ? '' : 'lg:col-span-2'} space-y-6">
 
       <!-- Image carousel -->
       <div class="rounded-2xl overflow-hidden surface bg-gray-100 dark:bg-gray-800">
@@ -105,16 +115,16 @@
 
       <!-- Description -->
       <div class="info-card">
-        <h2 class="flex items-center gap-2 text-base font-semibold text-primary mb-3">
-          <InfoCircleOutline class="w-5 h-5 text-blue-500" />
+        <h2 class="card-title mb-3">
+          <InfoCircleOutline class="w-5 h-5 text-accent" />
           {$t('listing.description')}
         </h2>
         {#if listing.description}
-          <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed text-sm">
+          <p class="text-body whitespace-pre-line leading-relaxed text-sm">
             {listing.description}
           </p>
         {:else}
-          <p class="text-gray-400 dark:text-gray-500 italic text-sm">{$t('listing.noDescription')}</p>
+          <p class="text-muted italic text-sm">{$t('listing.noDescription')}</p>
         {/if}
       </div>
     </div>
@@ -124,13 +134,13 @@
 
       <!-- Seller card -->
       <div class="info-card">
-        <h2 class="flex items-center gap-2 text-base font-semibold text-primary mb-4">
-          <UserCircleOutline class="w-5 h-5 text-blue-500" />
+        <h2 class="card-title mb-4">
+          <UserCircleOutline class="w-5 h-5 text-accent" />
           {$t('listing.seller')}
         </h2>
 
         <div class="flex items-center gap-3 mb-4">
-          <span class="font-medium text-gray-800 dark:text-gray-200">
+          <span class="font-medium text-body">
             {listing.authorDisplayName ?? '—'}
           </span>
         </div>
@@ -141,10 +151,7 @@
             {$t('listing.showPhone')}
           </Button>
         {:else if phoneState === 'done'}
-          <a
-            href="tel:{phoneNumber}"
-            class="flex items-center justify-center gap-2 w-full rounded-lg bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-400 font-semibold py-2.5 px-4 text-sm hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
-          >
+          <a href="tel:{phoneNumber}" class="phone-link">
             <PhoneOutline class="w-4 h-4 shrink-0" />
             {phoneNumber}
           </a>
@@ -170,7 +177,7 @@
             </Badge>
         {/if}
         {#if listing.mileage != null}
-          <Badge color="gray" class="flex items-center gap-1 dark:bg-gray-800!">
+          <Badge color="gray" class="icon-row dark:bg-gray-800!">
             <GaugeIcon class="w-3 h-3 shrink-0" />
             {listing.mileage.toLocaleString()} {$t('mileage.km')}
           </Badge>
@@ -178,27 +185,28 @@
       </div>
 
       <!-- Details grid -->
-      <div class="info-card">
-        <h2 class="flex items-center gap-2 text-base font-semibold text-primary mb-4">
-          <CartOutline class="w-5 h-5 text-blue-500" />
-          {$t('listing.details')}
-        </h2>
-        <dl class="space-y-0 divide-y divide-gray-100 dark:divide-gray-700">
-          <DetailRow label={$t('listing.detail.year')}         value={listing.year} />
-          <DetailRow label={$t('listing.detail.mileage')}      value={listing.mileage != null ? `${listing.mileage.toLocaleString()} ${$t('mileage.km')}` : null} />
-          <DetailRow label={$t('listing.detail.fuel')}         value={listing.fuelType != null ? $t(fuelTypeKey(listing.fuelType)) : null} />
-          <DetailRow label={$t('listing.detail.transmission')} value={listing.transmission != null ? $t(transmissionKey(listing.transmission)) : null} />
-          <DetailRow label={$t('listing.detail.drive')}        value={listing.driveType != null ? $t(driveTypeKey(listing.driveType)) : null} />
-          <DetailRow label={$t('listing.detail.body')}         value={listing.bodyType != null ? $t(bodyTypeKey(listing.bodyType)) : null} />
-          <DetailRow label={$t('listing.detail.condition')}    value={listing.condition != null ? $t(conditionKey(listing.condition)) : null} />
-          <DetailRow label={$t('listing.detail.color')}        value={listing.color != null ? $t(colorKey(listing.color)) : null} />
-          <DetailRow label={$t('listing.detail.engine')}       value={listing.engineVolume != null ? `${listing.engineVolume} L` : null} />
-          <DetailRow label={$t('listing.detail.tank')}         value={listing.tankVolume != null ? `${listing.tankVolume} L` : null} />
-          <DetailRow label={$t('listing.detail.owners')}       value={listing.ownersCount} />
-          <DetailRow label={$t('listing.detail.plate')}        value={listing.licensePlate} />
-        </dl>
-      </div>
-
+      {#if listing.year || listing.mileage || listing.fuelType || listing.transmission || listing.driveType || listing.bodyType || listing.condition || listing.color || listing.engineVolume || listing.tankVolume || listing.ownersCount || listing.licensePlate}
+        <div class="info-card">
+          <h2 class="card-title mb-4">
+            <CartOutline class="w-5 h-5 text-accent" />
+            {$t('listing.details')}
+          </h2>
+          <dl class="space-y-0 divide-surface">
+            <DetailRow label={$t('listing.detail.year')} value={listing.year} />
+            <DetailRow label={$t('listing.detail.mileage')} value={listing.mileage != null ? `${listing.mileage.toLocaleString()} ${$t('mileage.km')}` : null} />
+            <DetailRow label={$t('listing.detail.fuel')} value={listing.fuelType != null ? $t(fuelTypeKey(listing.fuelType)) : null} />
+            <DetailRow label={$t('listing.detail.transmission')} value={listing.transmission != null ? $t(transmissionKey(listing.transmission)) : null} />
+            <DetailRow label={$t('listing.detail.drive')} value={listing.driveType != null ? $t(driveTypeKey(listing.driveType)) : null} />
+            <DetailRow label={$t('listing.detail.body')} value={listing.bodyType != null ? $t(bodyTypeKey(listing.bodyType)) : null} />
+            <DetailRow label={$t('listing.detail.condition')} value={listing.condition != null ? $t(conditionKey(listing.condition)) : null} />
+            <DetailRow label={$t('listing.detail.color')} value={listing.color != null ? $t(colorKey(listing.color)) : null} />
+            <DetailRow label={$t('listing.detail.engine')} value={listing.engineVolume != null ? `${listing.engineVolume} L` : null} />
+            <DetailRow label={$t('listing.detail.tank')} value={listing.tankVolume != null ? `${listing.tankVolume} L` : null} />
+            <DetailRow label={$t('listing.detail.owners')} value={listing.ownersCount} />
+            <DetailRow label={$t('listing.detail.plate')} value={listing.licensePlate && listing.licensePlate.length > 0 ? listing.licensePlate : null} />
+          </dl>
+        </div>
+      {/if}
     </div>
   </div>
 </div>

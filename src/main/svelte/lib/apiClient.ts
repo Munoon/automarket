@@ -137,25 +137,25 @@ export interface OwnCarListingListItem {
 }
 
 export interface UpdateOwnListingRequest {
-	title?: string;
-	description?: string;
-	brand?: CarBrand;
-	customBrandName?: string;
-	model?: string;
-	licensePlate?: string;
-	condition?: CarCondition;
-	mileage?: number;
-	price?: number;
-	city?: City;
-	color?: CarColor;
-	transmission?: TransmissionType;
-	fuelType?: FuelType;
-	tankVolume?: number;
-	driveType?: DriveType;
-	bodyType?: BodyType;
-	year?: number;
-	engineVolume?: number;
-	ownersCount?: number;
+	title: string | null;
+	description: string | null;
+	brand: CarBrand | null;
+	customBrandName: string | null;
+	model: string | null;
+	licensePlate: string | null;
+	condition: CarCondition | null;
+	mileage: number | null;
+	price: number | null;
+	city: City | null;
+	color: CarColor | null;
+	transmission: TransmissionType | null;
+	fuelType: FuelType | null;
+	tankVolume: number | null;
+	driveType: DriveType | null;
+	bodyType: BodyType | null;
+	year: number | null;
+	engineVolume: number | null;
+	ownersCount: number | null;
 }
 
 export interface GetOwnListingsRequest {

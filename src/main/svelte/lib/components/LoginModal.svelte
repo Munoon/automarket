@@ -7,6 +7,7 @@
 	import { authStore } from '$lib/stores/authStore';
 	import { pendingAuthAction } from '$lib/composables/useAuthAction';
     import { toastStore } from '$lib/stores/toastStore';
+    import { allowedChars } from '$lib/utils/allowedChars';
 
     const captchaEnabled = browser && !!window.__config?.hcaptchaSitekey;
     const prefersLightScheme = browser && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)')?.matches;
@@ -166,13 +167,6 @@
         }
     }
 
-	function isValidDisplayNameCharacter(char: string): boolean {
-		// Allow any Unicode letter, spaces, and apostrophes
-        if (char === ' ' || char === "'") return true;
-		if (/\p{L}/u.test(char)) return true;
-		return false;
-	}
-
 	async function handleSaveDisplayName(e: Event) {
 		e.preventDefault();
 		error = null;
@@ -189,13 +183,10 @@
 			return;
 		}
 
-		// Allow only alphabetical characters, spaces, and apostrophes
-		for (let i = 0; i < trimmedDisplayName.length; i++) {
-			if (!isValidDisplayNameCharacter(trimmedDisplayName[i])) {
-				error = $t('auth.displayNameInvalidCharacters');
-				return;
-			}
-		}
+		if (!allowedChars(trimmedDisplayName, ['ALPHABETICAL', 'SPACE', 'APOSTROPHE'])) {
+            error = $t('auth.displayNameInvalidCharacters');
+            return;
+        }
 
 		isLoading = true;
 		try {
@@ -401,7 +392,7 @@
 				</div>
 
 				<div class="space-y-2">
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span class="text-sm font-medium text-body">
                         {$t('auth.codeExpiresIn')}
                         <span class="font-semibold">{timeRemaining}s</span>
                     </span>

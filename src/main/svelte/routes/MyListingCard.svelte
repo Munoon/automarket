@@ -1,14 +1,9 @@
 <script lang="ts">
-  import { Card, Badge } from 'flowbite-svelte';
-  import type { OwnCarListingListItem, ListingStatus } from '$lib/apiClient';
-  import { listingSlug, listingStatusKey } from '$lib/utils/listing';
+  import { Card } from 'flowbite-svelte';
+  import type { OwnCarListingListItem } from '$lib/apiClient';
+  import { listingSlug } from '$lib/utils/listing';
   import { t } from '$lib/i18n';
-
-  const STATUS_COLOR: Record<ListingStatus, 'green' | 'gray' | 'yellow'> = {
-    PUBLISHED: 'green',
-    DRAFT:     'gray',
-    ARCHIVED:  'yellow',
-  };
+  import ListingStatusBadge from '$lib/components/ListingStatusBadge.svelte';
 
   let { listing }: { listing: OwnCarListingListItem } = $props();
 </script>
@@ -24,8 +19,6 @@
     {listing.price != null ? listing.price.toLocaleString('uk-UA', { maximumFractionDigits: 0 }) + ' ' + $t('currency.uah') : '—'}
   </p>
   <div class="flex justify-end">
-    <Badge color={STATUS_COLOR[listing.status]} rounded class="text-xs rounded-sm">
-      {$t(listingStatusKey(listing.status))}
-    </Badge>
+    <ListingStatusBadge status={listing.status} />
   </div>
 </Card>
