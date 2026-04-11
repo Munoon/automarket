@@ -44,9 +44,13 @@ public class CarListingService {
 
     public Mono<PageDTO<OwnCarListingListItemDTO>> getOwnListings(long userId, int offset, int size) {
         return Mono.zip(
-                carListingRepository.countByUserIdAndStatuses(userId),
+                getOwnListingsCount(userId),
                 carListingRepository.findByUserIdAndStatuses(userId, offset, size).collectList()
         ).map(tuple -> new PageDTO<>(tuple.getT2(), tuple.getT1()));
+    }
+
+    public Mono<Long> getOwnListingsCount(long userId) {
+        return carListingRepository.countByUserIdAndStatuses(userId);
     }
 
     public Mono<CarListing> getListingByIdOrThrow(long id) {

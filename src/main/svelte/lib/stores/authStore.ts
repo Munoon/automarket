@@ -7,6 +7,7 @@ export interface AuthState {
 	token: string | null;
 	profile: UserProfile | null;
 	limits: Limits | null;
+	ownListingsCount: number | null;
 }
 
 export interface AuthStore {
@@ -15,6 +16,8 @@ export interface AuthStore {
 	clearAuth: () => void;
 	getToken: () => string | null;
 	initialize: (fetchProfile: (options: RequestOptions) => Promise<ProfileResponse>) => Promise<void>;
+	incrementOwnListingsCount: () => void;
+	decrementOwnListingsCount: () => void;
 }
 
 const AUTH_TOKEN_STORAGE_KEY = 'automarket_auth_token';
@@ -24,7 +27,8 @@ function createAuthStore(): AuthStore {
 		initialized: false,
 		token: null,
 		profile: null,
-		limits: null
+		limits: null,
+		ownListingsCount: null
 	};
 
 	const { subscribe, set } = writable<AuthState>(currentState);
@@ -32,7 +36,7 @@ function createAuthStore(): AuthStore {
 	const api = {
 		subscribe,
 		setAuth: (authResponse: AuthResponse) => {
-			const { token, profile, limits } = authResponse;
+			const { token, profile, limits, ownListingsCount } = authResponse;
 			if (typeof localStorage !== 'undefined') {
 				localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
 			}
@@ -40,7 +44,8 @@ function createAuthStore(): AuthStore {
 				initialized: true,
 				token,
 				profile,
-				limits
+				limits,
+				ownListingsCount
 			};
 			set(currentState);
 		},
@@ -52,12 +57,23 @@ function createAuthStore(): AuthStore {
 				initialized: true,
 				token: null,
 				profile: null,
-				limits: null
+				limits: null,
+				ownListingsCount: null
 			};
 			set(currentState);
 		},
 		getToken: (): string | null => {
 			return currentState.token;
+		},
+		incrementOwnListingsCount: () => {
+			if (currentState.ownListingsCount === null) return;
+			currentState = { ...currentState, ownListingsCount: currentState.ownListingsCount + 1 };
+			set(currentState);
+		},
+		decrementOwnListingsCount: () => {
+			if (currentState.ownListingsCount === null) return;
+			currentState = { ...currentState, ownListingsCount: currentState.ownListingsCount - 1 };
+			set(currentState);
 		},
 		initialize: async (fetchProfile: (options: RequestOptions) => Promise<ProfileResponse>) => {
 			if (currentState.initialized) return;
@@ -74,7 +90,8 @@ function createAuthStore(): AuthStore {
 						initialized: true,
 						token: storedToken,
 						profile: profile.user,
-						limits: profile.limits
+						limits: profile.limits,
+						ownListingsCount: profile.ownListingsCount
 					};
 					set(currentState);
 				} catch (error) {
@@ -87,7 +104,8 @@ function createAuthStore(): AuthStore {
 					initialized: true,
 					token: null,
 					profile: null,
-					limits: null
+					limits: null,
+					ownListingsCount: null
 				};
 				set(currentState);
 			}

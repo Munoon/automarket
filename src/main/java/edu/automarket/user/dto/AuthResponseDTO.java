@@ -6,9 +6,10 @@ public record AuthResponseDTO(
         String token,
         long tokenExpiresInSeconds,
         UserDTO profile,
-        LimitsDTO limits
+        LimitsDTO limits,
+        long ownListingsCount
 ) {
-    public AuthResponseDTO(String token, long tokenExpiresInSeconds, User user, LimitsDTO limits) {
-        this(token, tokenExpiresInSeconds, new UserDTO(user), limits);
+    public AuthResponseDTO(String token, long tokenExpiresInSeconds, User user, LimitsDTO limits, long ownListingsCount) {
+        this(token, tokenExpiresInSeconds, new UserDTO(user), limits, ownListingsCount);
     }
 }

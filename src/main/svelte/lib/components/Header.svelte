@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Navbar, NavBrand, Button, Dropdown, DropdownItem } from 'flowbite-svelte';
+	import { Navbar, NavBrand, Button, Dropdown, DropdownItem, Tooltip } from 'flowbite-svelte';
 	import { PlusOutline, UserOutline, ChevronDownOutline, ArrowRightToBracketOutline } from 'flowbite-svelte-icons';
 	import { language, t, type Language } from '$lib/i18n';
 	import { authStore } from '$lib/stores/authStore';
@@ -12,6 +12,13 @@
 	let profileDropdownOpen = $state(false);
 	let langDropdownOpen = $state(false);
 
+	const listingsLimitReached = $derived(
+		$authStore.initialized &&
+		$authStore.limits !== null &&
+		$authStore.ownListingsCount !== null &&
+		$authStore.ownListingsCount >= $authStore.limits.listingsCountLimitPerAuthor
+	);
+
 	function setLanguage(code: Language) {
 		language.set(code);
 		langDropdownOpen = false;
@@ -21,6 +28,7 @@
 		isCreatingListing = true;
 		try {
 			const listing = await apiClient.createOwnListing();
+			authStore.incrementOwnListingsCount();
 			isCreatingListing = false;
 			await goto(`/${listing.id}/edit`);
 		} catch (err) {
@@ -43,10 +51,13 @@
 	</NavBrand>
 
 	<div class="flex items-center gap-3 md:order-2">
-		<Button size="sm" color="blue" onclick={() => withAuth(createListing)} class="px-2! disabled:bg-blue-400 disabled:text-blue-100 disabled:cursor-not-allowed" disabled={isCreatingListing || !$authStore.initialized}>
+		<Button size="sm" color="blue" onclick={() => withAuth(createListing)} class="px-2! disabled:bg-blue-400 disabled:text-blue-100 disabled:cursor-not-allowed" disabled={isCreatingListing || !$authStore.initialized || listingsLimitReached}>
 			<PlusOutline class="me-1 h-5 w-5 stroke-2" />
 			{$t('header.createListing')}
 		</Button>
+		{#if listingsLimitReached}
+			<Tooltip>{$t('header.createListingLimitReached')}</Tooltip>
+		{/if}
 
 		{#if !$authStore.initialized}
 			<div class="animate-pulse skeleton-box h-9 w-25 rounded-lg"></div>

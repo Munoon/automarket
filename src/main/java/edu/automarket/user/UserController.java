@@ -36,6 +36,7 @@ public class UserController {
     private final AuthenticationService authenticationService;
     private final SmsCodeService smsCodeService;
     private final CaptchaService captchaService;
+    private final CarListingService carListingService;
     private final LimitsDTO limits;
 
     public UserController(UserService userService,
@@ -47,6 +48,7 @@ public class UserController {
         this.authenticationService = authenticationService;
         this.smsCodeService = smsCodeService;
         this.captchaService = captchaService;
+        this.carListingService = carListingService;
         this.limits = new LimitsDTO(
                 carListingService.getListingRepublishCooldownMS(),
                 carListingService.getListingsCountPerAuthorLimit()
@@ -76,21 +78,32 @@ public class UserController {
     public Mono<AuthResponseDTO> authenticate(@Valid @RequestBody AuthRequestDTO request) {
         return smsCodeService.validateSmsCode(request.phoneNumber(), request.code())
                 .then(Mono.defer(() -> userService.getUserByPhoneNumberOrCreate(request.phoneNumber())))
-                .map(user -> {
+                .flatMap(user -> {
                     if (!user.active()) {
                         throw new ApiException(HttpStatus.UNAUTHORIZED, "/problems/user-not-active", "User is not active");
                     }
 
-                    String jwtToken = authenticationService.generateToken(user.id());
-                    long tokenExpiresInSeconds = authenticationService.tokenExpirationSeconds();
-                    return new AuthResponseDTO(jwtToken, tokenExpiresInSeconds, user, limits);
+                    return carListingService.getOwnListingsCount(user.id())
+                            .map(ownListingsCount -> {
+                                String jwtToken = authenticationService.generateToken(user.id());
+                                long tokenExpiresInSeconds = authenticationService.tokenExpirationSeconds();
+                                return new AuthResponseDTO(
+                                        jwtToken,
+                                        tokenExpiresInSeconds,
+                                        user,
+                                        limits,
+                                        ownListingsCount
+                                );
+                            });
                 });
     }
 
     @GetMapping("/profile")
     public Mono<ProfileResponseDTO> getProfile(@AuthenticationPrincipal Long userId) {
-        return userService.getUserByIdOrThrow(userId)
-                .map(user -> new ProfileResponseDTO(new UserDTO(user), limits));
+        return Mono.zip(
+                userService.getUserByIdOrThrow(userId),
+                carListingService.getOwnListingsCount(userId)
+        ).map(tuple -> new ProfileResponseDTO(new UserDTO(tuple.getT1()), limits, tuple.getT2()));
     }
 
     @PatchMapping("/display-name")

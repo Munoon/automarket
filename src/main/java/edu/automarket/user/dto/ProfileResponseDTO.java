@@ -2,6 +2,7 @@ package edu.automarket.user.dto;
 
 public record ProfileResponseDTO(
         UserDTO user,
-        LimitsDTO limits
+        LimitsDTO limits,
+        long ownListingsCount
 ) {
 }

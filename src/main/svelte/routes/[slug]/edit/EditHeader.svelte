@@ -184,6 +184,7 @@
     busy = true;
     try {
       await apiClient.deleteOwnListing(listing.id);
+      authStore.decrementOwnListingsCount();
       await goto('/');
     } catch (e) {
       toastStore.addApiError(e);

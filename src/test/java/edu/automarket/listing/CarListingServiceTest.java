@@ -124,6 +124,25 @@ class CarListingServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void getOwnListingsCount() {
+        long userId1 = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long userId2 = userService.getUserByPhoneNumberOrCreate("+380987654321").block().id();
+        carListingService.create(userId1).block();
+        carListingService.create(userId2).block();
+        carListingService.create(userId1).block();
+
+        StepVerifier.create(carListingService.getOwnListingsCount(userId1))
+                .assertNext(count -> assertThat(count).isEqualTo(2))
+                .verifyComplete();
+
+        carListingService.create(userId1).block();
+
+        StepVerifier.create(carListingService.getOwnListingsCount(userId1))
+                .assertNext(count -> assertThat(count).isEqualTo(3))
+                .verifyComplete();
+    }
+
+    @Test
     void deleteRemovesListing() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();

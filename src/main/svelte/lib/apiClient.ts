@@ -30,6 +30,7 @@ export interface Page<T> {
 export interface ProfileResponse {
 	user: UserProfile;
 	limits: Limits;
+	ownListingsCount: number;
 }
 
 export interface UserProfile {
@@ -64,6 +65,7 @@ export interface AuthResponse {
 	tokenExpiresInSeconds: number;
 	profile: UserProfile;
 	limits: Limits;
+	ownListingsCount: number;
 }
 
 export interface UpdateDisplayNameRequest {

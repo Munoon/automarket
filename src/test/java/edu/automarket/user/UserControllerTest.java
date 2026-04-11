@@ -4,6 +4,7 @@ import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.authentication.AuthenticationService;
 import edu.automarket.captcha.CaptchaService;
 import edu.automarket.common.ProblemDTO;
+import edu.automarket.listing.CarListingService;
 import edu.automarket.sms.SmsCodeRepository;
 import edu.automarket.sms.SmsCodeService;
 import edu.automarket.sms.dto.TelegramGatewayAPIRequestDTO;
@@ -49,6 +50,9 @@ class UserControllerTest extends AbstractIntegrationTest {
 
     @Autowired
     private SmsCodeRepository smsCodeRepository;
+
+    @Autowired
+    private CarListingService carListingService;
 
     @Autowired
     private DatabaseClient databaseClient;
@@ -189,6 +193,8 @@ class UserControllerTest extends AbstractIntegrationTest {
                     assertThat(dto.limits()).isNotNull();
                     assertThat(dto.limits().listingRepublishCooldownMS()).isEqualTo(2_000);
                     assertThat(dto.limits().listingsCountLimitPerAuthor()).isEqualTo(30);
+
+                    assertThat(dto.ownListingsCount()).isEqualTo(0);
                 });
     }
 
@@ -196,6 +202,7 @@ class UserControllerTest extends AbstractIntegrationTest {
     void authenticateWithValidCodeReturnsExistingUser() {
         User existing = userService.getUserByPhoneNumberOrCreate("+380123456789").block();
         smsCodeRepository.saveCode("+380123456789", "123456").block();
+        carListingService.create(existing.id()).block();
 
         webTestClient.post().uri("/api/users/auth")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -203,7 +210,10 @@ class UserControllerTest extends AbstractIntegrationTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(AuthResponseDTO.class)
-                .value(dto -> assertThat(dto.profile().id()).isEqualTo(existing.id()));
+                .value(dto -> {
+                    assertThat(dto.profile().id()).isEqualTo(existing.id());
+                    assertThat(dto.ownListingsCount()).isEqualTo(1);
+                });
     }
 
     @Test
@@ -324,6 +334,7 @@ class UserControllerTest extends AbstractIntegrationTest {
     void getProfileWithValidTokenReturnsUserData() {
         User user = userService.getUserByPhoneNumberOrCreate("+380123456789").block();
         String token = authenticationService.generateToken(user.id());
+        carListingService.create(user.id()).block();
 
         webTestClient.get().uri("/api/users/profile")
                 .header("Authorization", "Bearer " + token)
@@ -338,6 +349,8 @@ class UserControllerTest extends AbstractIntegrationTest {
                     assertThat(dto.limits()).isNotNull();
                     assertThat(dto.limits().listingRepublishCooldownMS()).isEqualTo(2_000);
                     assertThat(dto.limits().listingsCountLimitPerAuthor()).isEqualTo(30);
+
+                    assertThat(dto.ownListingsCount()).isEqualTo(1);
                 });
     }
 
