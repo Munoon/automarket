@@ -28,9 +28,9 @@
 		isCreatingListing = true;
 		try {
 			const listing = await apiClient.createOwnListing();
-			authStore.incrementOwnListingsCount();
 			isCreatingListing = false;
 			await goto(`/${listing.id}/edit`);
+			authStore.incrementOwnListingsCount();
 		} catch (err) {
 			isCreatingListing = false;
 			toastStore.addApiError(err);

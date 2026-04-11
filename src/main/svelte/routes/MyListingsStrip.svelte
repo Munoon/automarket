@@ -25,9 +25,12 @@
 
   const hasMore = $derived(listings.length < totalElements && (archivedListings.length === 0 || archivedVisible));
 
+  const authInitialized = $derived($authStore.initialized);
+  const authToken = $derived($authStore.token);
+
   $effect(() => {
     // load own listings only after login AND clear listings on log out
-    if (!$authStore.initialized || !$authStore.token) {
+    if (!authInitialized || !authToken) {
       listings = [];
       totalElements = 0;
       archivedVisible = false;

@@ -18,6 +18,8 @@
   let formHasErrors = $state(false);
 
   const listingId = $derived(parseListingId(page.params.slug ?? ''));
+  const authInitialized = $derived($authStore.initialized);
+  const authToken = $derived($authStore.token);
 
   beforeNavigate(({ cancel }) => {
     if (dirty && !confirm($t('edit.unsavedChangesLeave'))) {
@@ -34,9 +36,9 @@
   });
 
   $effect(() => {
-    if (!$authStore.initialized) {
+    if (!authInitialized) {
       return;
-    } else if (!$authStore.token) {
+    } else if (!authToken) {
       goto('/');
       return;
     }
