@@ -2,6 +2,7 @@
   import { goto } from '$app/navigation';
   import { apiClient, type OwnCarListing, type ListingStatus } from '$lib/apiClient';
   import { toastStore } from '$lib/stores/toastStore';
+  import { authStore } from '$lib/stores/authStore';
   import { t, type TranslationKey } from '$lib/i18n';
   import { Button, Modal, Spinner, Dropdown, DropdownItem, Tooltip } from 'flowbite-svelte';
   import {
@@ -25,8 +26,23 @@
   let busy = $state(false);
   let savedBriefly = $state(false);
   let openTooltip = $state(false);
+  let openCooldownTooltip = $state(false);
   let dropdownOpen = $state(false);
   let showDeleteModal = $state(false);
+
+  let publishCooldownEnd = $derived.by(() => {
+    if (listing.status === 'PUBLISHED') return null;
+    const limits = $authStore.limits;
+    if (!limits || !listing.publishedAt) return null;
+    const end = listing.publishedAt + limits.listingRepublishCooldownMS;
+    return end > Date.now() ? end : null;
+  });
+
+  let cooldownTimeStr = $derived(
+    publishCooldownEnd
+      ? new Date(publishCooldownEnd).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+      : ''
+  );
 
   const REQUIRED_FOR_PUBLISH: { field: keyof OwnCarListing; label: TranslationKey }[] = [
     { field: 'title', label: 'edit.field.title' },
@@ -209,19 +225,29 @@
 
       <!-- Save & Publish split button -->
       <div class="flex">
-        <Button color="green" outline size="sm" onclick={saveAndPublish} disabled={busy}
-          class="gap-1.5 rounded-r-none! border-green-400! text-green-500! hover:bg-green-50! dark:border-green-500! dark:text-green-400! dark:hover:bg-green-950!">
-          {#if busy}
-            <Spinner class="w-4 h-4" />
-            <span>{$t('edit.saving')}</span>
-          {:else if savedBriefly}
-            <CheckOutline class="w-4 h-4" />
-            <span>{$t('edit.saved')}</span>
-          {:else}
-            <UploadOutline class="w-4 h-4" />
-            <span>{$t('edit.saveAndPublish')}</span>
-          {/if}
-        </Button>
+        <div
+          role="presentation"
+          onmouseenter={() => { if (publishCooldownEnd) openCooldownTooltip = true; }}
+          onmouseleave={() => openCooldownTooltip = false}>
+          <Button color="green" outline size="sm" onclick={saveAndPublish} disabled={busy || !!publishCooldownEnd}
+            class="gap-1.5 rounded-r-none! {publishCooldownEnd ? 'border-gray-300! text-gray-400! hover:bg-transparent! cursor-not-allowed! dark:border-gray-600! dark:text-gray-500!' : 'border-green-400! text-green-500! hover:bg-green-50! dark:border-green-500! dark:text-green-400! dark:hover:bg-green-950!'}">
+            {#if busy}
+              <Spinner class="w-4 h-4" />
+              <span>{$t('edit.saving')}</span>
+            {:else if savedBriefly}
+              <CheckOutline class="w-4 h-4" />
+              <span>{$t('edit.saved')}</span>
+            {:else}
+              <UploadOutline class="w-4 h-4" />
+              <span>{$t('edit.saveAndPublish')}</span>
+            {/if}
+          </Button>
+        </div>
+        {#if publishCooldownEnd}
+          <Tooltip bind:isOpen={openCooldownTooltip} placement="bottom">
+            {$t('edit.republishCooldown')} {cooldownTimeStr}
+          </Tooltip>
+        {/if}
         <div class="flex">
           <Button color="green" outline size="sm" disabled={busy}
             class="px-2! rounded-l-none! -ml-px border-green-400! text-green-500! hover:bg-green-50! dark:border-green-500! dark:text-green-400! dark:hover:bg-green-950!">

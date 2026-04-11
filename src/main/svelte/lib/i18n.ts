@@ -227,7 +227,8 @@ const EN_TRANSLATIONS = {
 	'edit.validation.invalidChars': 'Contains invalid characters',
 	'edit.validation.mustBePositive': 'Must be greater than 0',
 	'edit.validation.mustBeNonNegative': 'Must be 0 or greater',
-	'edit.validation.yearRange': 'Must be between 1900 and 2030'
+	'edit.validation.yearRange': 'Must be between 1900 and 2030',
+	'edit.republishCooldown': 'Republish unavailable until'
 };
 
 const UK_TRANSLATIONS: Record<TranslationKey, string> = {
@@ -454,7 +455,8 @@ const UK_TRANSLATIONS: Record<TranslationKey, string> = {
 	'edit.validation.invalidChars': 'Містить недозволені символи',
 	'edit.validation.mustBePositive': 'Повинно бути більше 0',
 	'edit.validation.mustBeNonNegative': 'Повинно бути 0 або більше',
-	'edit.validation.yearRange': 'Повинно бути між 1900 і 2030'
+	'edit.validation.yearRange': 'Повинно бути між 1900 і 2030',
+	'edit.republishCooldown': 'Повторна публікація недоступна до'
 };
 
 export type TranslationKey = keyof typeof EN_TRANSLATIONS;
