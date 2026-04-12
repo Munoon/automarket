@@ -189,6 +189,7 @@ const EN_TRANSLATIONS = {
 	'edit.deleteConfirmMessage': 'This action cannot be undone. The listing will be permanently removed.',
 	'edit.open': 'Open',
 	'edit.open.publishFirst': 'Publish the listing to open it.',
+	'edit.analytics': 'Analytics',
 	'edit.cancel': 'Cancel',
 	'edit.confirmDelete': 'Yes, delete',
 	'edit.preview': 'Preview',
@@ -229,7 +230,16 @@ const EN_TRANSLATIONS = {
 	'edit.validation.mustBePositive': 'Must be greater than 0',
 	'edit.validation.mustBeNonNegative': 'Must be 0 or greater',
 	'edit.validation.yearRange': 'Must be between 1900 and 2030',
-	'edit.republishCooldown': 'Republish unavailable until'
+	'edit.republishCooldown': 'Republish unavailable until',
+
+	'analytics.title': 'Analytics',
+	'analytics.views': 'Views',
+	'analytics.impressions': 'Impressions',
+	'analytics.detailViews': 'Detail Views',
+	'analytics.openRate': 'Open Rate',
+	'analytics.phoneRequests': 'Phone Requests',
+	'analytics.favourites': 'Favourites',
+	'analytics.total': 'Total'
 };
 
 const UK_TRANSLATIONS: Record<TranslationKey, string> = {
@@ -418,6 +428,7 @@ const UK_TRANSLATIONS: Record<TranslationKey, string> = {
 	'edit.deleteConfirmMessage': 'Цю дію не можна скасувати. Оголошення буде видалено назавжди.',
 	'edit.open': 'Відкрити',
 	'edit.open.publishFirst': 'Опублікуйте оголошення, щоб відкрити його.',
+	'edit.analytics': 'Аналітика',
 	'edit.cancel': 'Скасувати',
 	'edit.confirmDelete': 'Так, видалити',
 	'edit.preview': 'Попередній перегляд',
@@ -458,7 +469,16 @@ const UK_TRANSLATIONS: Record<TranslationKey, string> = {
 	'edit.validation.mustBePositive': 'Повинно бути більше 0',
 	'edit.validation.mustBeNonNegative': 'Повинно бути 0 або більше',
 	'edit.validation.yearRange': 'Повинно бути між 1900 і 2030',
-	'edit.republishCooldown': 'Повторна публікація недоступна до'
+	'edit.republishCooldown': 'Повторна публікація недоступна до',
+
+	'analytics.title': 'Аналітика',
+	'analytics.views': 'Перегляди',
+	'analytics.impressions': 'Покази',
+	'analytics.detailViews': 'Детальні перегляди',
+	'analytics.openRate': 'Відкриваність',
+	'analytics.phoneRequests': 'Запити телефону',
+	'analytics.favourites': 'Обрані',
+	'analytics.total': 'Всього'
 };
 
 export type TranslationKey = keyof typeof EN_TRANSLATIONS;

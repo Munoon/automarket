@@ -8,7 +8,7 @@
   import {
     ArrowLeftOutline, TrashBinOutline, ArchiveOutline,
     CheckOutline, UploadOutline, StarOutline, ExclamationCircleOutline,
-    FloppyDiskOutline, ChevronDownOutline, EyeOutline
+    FloppyDiskOutline, ChevronDownOutline, EyeOutline, ChartMixedOutline
   } from 'flowbite-svelte-icons';
   import ListingStatusBadge from '$lib/components/ListingStatusBadge.svelte';
   import { listingSlug } from '$lib/utils/listing';
@@ -271,6 +271,10 @@
             {#if listing.status !== 'PUBLISHED'}
               <Tooltip bind:isOpen={openTooltip} placement="left">{$t('edit.open.publishFirst')}</Tooltip>
             {/if}
+            <DropdownItem onclick={() => goto(`/${listing.id}/analytics`)} class="flex items-center gap-2 dark:text-white">
+              <ChartMixedOutline class="w-4 h-4" />
+              {$t('edit.analytics')}
+            </DropdownItem>
             {#if listing.status === 'ARCHIVED'}
               <DropdownItem onclick={() => updateStatus('DRAFT')} class="flex items-center gap-2 dark:text-white">
                 <ArchiveOutline class="w-4 h-4" />
