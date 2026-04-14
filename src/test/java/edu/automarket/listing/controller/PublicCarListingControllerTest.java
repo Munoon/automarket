@@ -193,6 +193,288 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
                 });
     }
 
+    // --- Search filters ---
+
+    @Test
+    void getPublishedListings_filterByBrand_includesMatchAndExcludesMismatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // brand=TOYOTA
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get().uri("/api/listings/public?brand=TOYOTA")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+
+        webTestClient.get().uri("/api/listings/public?brand=BMW")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+
+        webTestClient.get().uri("/api/listings/public?brand=TOYOTA&brand=BMW")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+    }
+
+    @Test
+    void getPublishedListings_filterByCondition_includesMatchAndExcludesMismatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // condition=NEW
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get().uri("/api/listings/public?condition=NEW")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+
+        webTestClient.get().uri("/api/listings/public?condition=USED")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+
+        webTestClient.get().uri("/api/listings/public?condition=NEW&condition=USED")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+    }
+
+    @Test
+    void getPublishedListings_filterByMileageRange_includesMatchAndExcludesMismatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // mileage=100
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get().uri("/api/listings/public?mileageMin=50&mileageMax=200")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+
+        webTestClient.get().uri("/api/listings/public?mileageMin=150")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+
+        webTestClient.get().uri("/api/listings/public?mileageMax=50")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+    }
+
+    @Test
+    void getPublishedListings_filterByPriceRange_includesMatchAndExcludesMismatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // price=100
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get().uri("/api/listings/public?priceMin=50&priceMax=200")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+
+        webTestClient.get().uri("/api/listings/public?priceMin=200")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+
+        webTestClient.get().uri("/api/listings/public?priceMax=50")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+    }
+
+    @Test
+    void getPublishedListings_filterByCity_includesMatchAndExcludesMismatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // city=KYIV
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get().uri("/api/listings/public?city=KYIV")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+
+        webTestClient.get().uri("/api/listings/public?city=KHARKIV")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+
+        webTestClient.get().uri("/api/listings/public?city=KYIV&city=KHARKIV")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+    }
+
+    @Test
+    void getPublishedListings_filterByColor_includesMatchAndExcludesMismatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // color=WHITE
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get().uri("/api/listings/public?color=WHITE")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+
+        webTestClient.get().uri("/api/listings/public?color=BLACK")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+
+        webTestClient.get().uri("/api/listings/public?color=WHITE&color=BLACK")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+    }
+
+    @Test
+    void getPublishedListings_filterByTransmission_includesMatchAndExcludesMismatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // transmission=AUTOMATIC
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get().uri("/api/listings/public?transmission=AUTOMATIC")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+
+        webTestClient.get().uri("/api/listings/public?transmission=MANUAL")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+
+        webTestClient.get().uri("/api/listings/public?transmission=AUTOMATIC&transmission=MANUAL")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+    }
+
+    @Test
+    void getPublishedListings_filterByFuelType_includesMatchAndExcludesMismatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // fuelType=PETROL
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get().uri("/api/listings/public?fuelType=PETROL")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+
+        webTestClient.get().uri("/api/listings/public?fuelType=ELECTRIC")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+
+        webTestClient.get().uri("/api/listings/public?fuelType=PETROL&fuelType=ELECTRIC")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+    }
+
+    @Test
+    void getPublishedListings_filterByTankVolumeRange_includesMatchAndExcludesMismatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // tankVolume=10.4
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get().uri("/api/listings/public?tankVolumeMin=5.0&tankVolumeMax=15.0")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+
+        webTestClient.get().uri("/api/listings/public?tankVolumeMin=20.0")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+
+        webTestClient.get().uri("/api/listings/public?tankVolumeMax=5.0")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+    }
+
+    @Test
+    void getPublishedListings_filterByDriveType_includesMatchAndExcludesMismatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // driveType=FWD
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get().uri("/api/listings/public?driveType=FWD")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+
+        webTestClient.get().uri("/api/listings/public?driveType=AWD")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+
+        webTestClient.get().uri("/api/listings/public?driveType=FWD&driveType=AWD")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+    }
+
+    @Test
+    void getPublishedListings_filterByBodyType_includesMatchAndExcludesMismatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // bodyType=SEDAN
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get().uri("/api/listings/public?bodyType=SEDAN")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+
+        webTestClient.get().uri("/api/listings/public?bodyType=SUV")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+
+        webTestClient.get().uri("/api/listings/public?bodyType=SEDAN&bodyType=SUV")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+    }
+
+    @Test
+    void getPublishedListings_filterByYearRange_includesMatchAndExcludesMismatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // year=2025
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get().uri("/api/listings/public?yearMin=2020&yearMax=2030")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+
+        webTestClient.get().uri("/api/listings/public?yearMin=2026")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+
+        webTestClient.get().uri("/api/listings/public?yearMax=2020")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+    }
+
+    @Test
+    void getPublishedListings_filterByEngineVolumeRange_includesMatchAndExcludesMismatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // engineVolume=20.0
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get().uri("/api/listings/public?engineVolumeMin=10.0&engineVolumeMax=30.0")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+
+        webTestClient.get().uri("/api/listings/public?engineVolumeMin=25.0")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+
+        webTestClient.get().uri("/api/listings/public?engineVolumeMax=10.0")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+    }
+
+    @Test
+    void getPublishedListings_filterByOwnersCount_includesMatchAndExcludesMismatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // ownersCount=0
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get().uri("/api/listings/public?ownersCount=0")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+
+        webTestClient.get().uri("/api/listings/public?ownersCount=1")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+
+        webTestClient.get().uri("/api/listings/public?ownersCount=0&ownersCount=1")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
+    }
+
     // --- GET /api/listings/public/{id} ---
 
     @Test

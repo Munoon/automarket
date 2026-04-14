@@ -22,6 +22,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Repository
 public class CarListingRepository {
@@ -99,23 +100,11 @@ public class CarListingRepository {
             WHERE author_user_id = :authorUserId
             """;
 
-    //language=postgresql
-    private static final String SELECT_PUBLISHED_QUERY = """
-            SELECT id, title, price, mileage, fuel_type::text, transmission::text, city::text, year
-            FROM car_listings
-            WHERE status = 'PUBLISHED'
-              AND published_at <= :publishedBefore
-            ORDER BY published_at DESC, id DESC
-            LIMIT :size OFFSET :offset
-            """;
+    private static final String SELECT_PUBLISHED_BASE =
+            "SELECT id, title, price, mileage, fuel_type::text, transmission::text, city::text, year FROM car_listings";
 
-    //language=postgresql
-    private static final String COUNT_PUBLISHED_QUERY = """
-            SELECT COUNT(*)
-            FROM car_listings
-            WHERE status = 'PUBLISHED'
-              AND published_at <= :publishedBefore
-            """;
+    private static final String COUNT_PUBLISHED_BASE =
+            "SELECT COUNT(*) FROM car_listings";
 
     //language=postgresql
     private static final String SELECT_AUTHOR_PHONE_BY_PUBLISHED_ID_QUERY = """
@@ -266,8 +255,10 @@ public class CarListingRepository {
     }
 
     public Flux<PublicCarListingItemDTO> findPublished(GetPublishedListingsRequestDTO request) {
-        return client.sql(SELECT_PUBLISHED_QUERY)
-                .bind("publishedBefore", request.getPublishedBefore())
+        String sql = SELECT_PUBLISHED_BASE
+                + buildFilterSql(request)
+                + " ORDER BY published_at DESC, id DESC LIMIT :size OFFSET :offset";
+        return bindFilters(client.sql(sql), request)
                 .bind("size", request.getSize())
                 .bind("offset", request.getOffset())
                 .map(row -> {
@@ -289,10 +280,70 @@ public class CarListingRepository {
     }
 
     public Mono<Long> countPublished(GetPublishedListingsRequestDTO request) {
-        return client.sql(COUNT_PUBLISHED_QUERY)
-                .bind("publishedBefore", request.getPublishedBefore())
+        String sql = COUNT_PUBLISHED_BASE + buildFilterSql(request);
+        return bindFilters(client.sql(sql), request)
                 .map(row -> row.get(0, Long.class))
                 .one();
+    }
+
+    private String buildFilterSql(GetPublishedListingsRequestDTO r) {
+        StringBuilder sb = new StringBuilder(" WHERE status = 'PUBLISHED' AND published_at <= :publishedBefore");
+        if (notEmpty(r.getBrand())) sb.append(" AND brand::text = ANY(:brand)");
+        if (notEmpty(r.getCondition())) sb.append(" AND condition::text = ANY(:condition)");
+        if (r.getMileageMin() != null) sb.append(" AND mileage >= :mileageMin");
+        if (r.getMileageMax() != null) sb.append(" AND mileage <= :mileageMax");
+        if (r.getPriceMin() != null) sb.append(" AND price >= :priceMin");
+        if (r.getPriceMax() != null) sb.append(" AND price <= :priceMax");
+        if (notEmpty(r.getCity())) sb.append(" AND city::text = ANY(:city)");
+        if (notEmpty(r.getColor())) sb.append(" AND color::text = ANY(:color)");
+        if (notEmpty(r.getTransmission())) sb.append(" AND transmission::text = ANY(:transmission)");
+        if (notEmpty(r.getFuelType())) sb.append(" AND fuel_type::text = ANY(:fuelType)");
+        if (r.getTankVolumeMin() != null) sb.append(" AND tank_volume >= :tankVolumeMin");
+        if (r.getTankVolumeMax() != null) sb.append(" AND tank_volume <= :tankVolumeMax");
+        if (notEmpty(r.getDriveType())) sb.append(" AND drive_type::text = ANY(:driveType)");
+        if (notEmpty(r.getBodyType())) sb.append(" AND body_type::text = ANY(:bodyType)");
+        if (r.getYearMin() != null) sb.append(" AND year >= :yearMin");
+        if (r.getYearMax() != null) sb.append(" AND year <= :yearMax");
+        if (r.getEngineVolumeMin() != null) sb.append(" AND engine_volume >= :engineVolumeMin");
+        if (r.getEngineVolumeMax() != null) sb.append(" AND engine_volume <= :engineVolumeMax");
+        if (notEmpty(r.getOwnersCount())) sb.append(" AND owners_count = ANY(:ownersCount)");
+        return sb.toString();
+    }
+
+    private DatabaseClient.GenericExecuteSpec bindFilters(DatabaseClient.GenericExecuteSpec spec, GetPublishedListingsRequestDTO r) {
+        spec = spec.bind("publishedBefore", r.getPublishedBefore());
+        if (notEmpty(r.getBrand())) spec = spec.bind("brand", toStringArray(r.getBrand()));
+        if (notEmpty(r.getCondition())) spec = spec.bind("condition", toStringArray(r.getCondition()));
+        if (r.getMileageMin() != null) spec = spec.bind("mileageMin", r.getMileageMin());
+        if (r.getMileageMax() != null) spec = spec.bind("mileageMax", r.getMileageMax());
+        if (r.getPriceMin() != null) spec = spec.bind("priceMin", r.getPriceMin());
+        if (r.getPriceMax() != null) spec = spec.bind("priceMax", r.getPriceMax());
+        if (notEmpty(r.getCity())) spec = spec.bind("city", toStringArray(r.getCity()));
+        if (notEmpty(r.getColor())) spec = spec.bind("color", toStringArray(r.getColor()));
+        if (notEmpty(r.getTransmission())) spec = spec.bind("transmission", toStringArray(r.getTransmission()));
+        if (notEmpty(r.getFuelType())) spec = spec.bind("fuelType", toStringArray(r.getFuelType()));
+        if (r.getTankVolumeMin() != null) spec = spec.bind("tankVolumeMin", r.getTankVolumeMin());
+        if (r.getTankVolumeMax() != null) spec = spec.bind("tankVolumeMax", r.getTankVolumeMax());
+        if (notEmpty(r.getDriveType())) spec = spec.bind("driveType", toStringArray(r.getDriveType()));
+        if (notEmpty(r.getBodyType())) spec = spec.bind("bodyType", toStringArray(r.getBodyType()));
+        if (r.getYearMin() != null) spec = spec.bind("yearMin", r.getYearMin());
+        if (r.getYearMax() != null) spec = spec.bind("yearMax", r.getYearMax());
+        if (r.getEngineVolumeMin() != null) spec = spec.bind("engineVolumeMin", r.getEngineVolumeMin());
+        if (r.getEngineVolumeMax() != null) spec = spec.bind("engineVolumeMax", r.getEngineVolumeMax());
+        if (notEmpty(r.getOwnersCount())) spec = spec.bind("ownersCount", r.getOwnersCount().toArray(new Integer[0]));
+        return spec;
+    }
+
+    private static boolean notEmpty(List<?> list) {
+        return list != null && !list.isEmpty();
+    }
+
+    private static String[] toStringArray(List<? extends Enum<?>> list) {
+        String[] result = new String[list.size()];
+        for (int i = 0; i < list.size(); i++) {
+            result[i] = list.get(i).name();
+        }
+        return result;
     }
 
     public Mono<AuthorPhoneDTO> findAuthorPhoneByPublishedId(long id) {
