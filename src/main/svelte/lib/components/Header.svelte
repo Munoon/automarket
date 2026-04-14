@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { Navbar, NavBrand, Button, Dropdown, DropdownItem, Tooltip } from 'flowbite-svelte';
-	import { PlusOutline, UserOutline, ChevronDownOutline, ArrowRightToBracketOutline } from 'flowbite-svelte-icons';
+	import { PlusOutline, PenOutline, UserOutline, ChevronDownOutline, ArrowRightToBracketOutline } from 'flowbite-svelte-icons';
 	import { language, t, type Language } from '$lib/i18n';
 	import { authStore } from '$lib/stores/authStore';
 	import { apiClient } from '$lib/apiClient';
 	import { toastStore } from '$lib/stores/toastStore';
 	import { withAuth } from '$lib/composables/useAuthAction';
+	import UpdateDisplayNameModal from './UpdateDisplayNameModal.svelte';
 	import { goto } from '$app/navigation';
 
 	let isCreatingListing = $state(false);
 	let profileDropdownOpen = $state(false);
 	let langDropdownOpen = $state(false);
+	let isUpdatingDisplayName = $state(false);
 
 	const listingsLimitReached = $derived(
 		$authStore.initialized &&
@@ -39,6 +41,11 @@
 
 	function handleSignOut() {
 		authStore.clearAuth();
+		profileDropdownOpen = false;
+	}
+
+	function handleUpdateDisplayName() {
+		isUpdatingDisplayName = true;
 		profileDropdownOpen = false;
 	}
 </script>
@@ -73,6 +80,10 @@
 				<ChevronDownOutline class="h-4 w-4" />
 			</Button>
 			<Dropdown bind:isOpen={profileDropdownOpen} placement="bottom-end">
+				<DropdownItem onclick={handleUpdateDisplayName} class="flex items-center gap-2 text-primary hover:bg-surface-hover">
+					<PenOutline class="h-4 w-4" />
+					{$t('header.updateDisplayName')}
+				</DropdownItem>
 				<DropdownItem onclick={handleSignOut} class="flex items-center gap-2 text-danger hover:bg-surface-hover">
 					<ArrowRightToBracketOutline class="h-4 w-4" />
 					{$t('header.signOut')}
@@ -107,3 +118,5 @@
 		</Dropdown>
 	</div>
 </Navbar>
+
+<UpdateDisplayNameModal bind:isOpen={isUpdatingDisplayName} />

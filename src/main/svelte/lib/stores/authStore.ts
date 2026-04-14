@@ -13,6 +13,7 @@ export interface AuthState {
 export interface AuthStore {
 	subscribe: (run: (value: AuthState) => void) => () => void;
 	setAuth: (authResponse: AuthResponse) => void;
+	updateProfile: (profileUpdates: Partial<UserProfile>) => void;
 	clearAuth: () => void;
 	getToken: () => string | null;
 	initialize: (fetchProfile: (options: RequestOptions) => Promise<ProfileResponse>) => Promise<void>;
@@ -46,6 +47,14 @@ function createAuthStore(): AuthStore {
 				profile,
 				limits,
 				ownListingsCount
+			};
+			set(currentState);
+		},
+		updateProfile: (profileUpdates: Partial<UserProfile>) => {
+			if (!currentState.profile) return;
+			currentState = {
+				...currentState,
+				profile: { ...currentState.profile, ...profileUpdates }
 			};
 			set(currentState);
 		},
