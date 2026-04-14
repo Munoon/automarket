@@ -67,7 +67,6 @@ public record CarListing(
         if (brand == null) throw incomplete("brand");
         if (brand == CarBrand.CUSTOM && customBrandName == null) throw incomplete("customBrandName");
         if (model == null) throw incomplete("model");
-        if (licensePlate == null) throw incomplete("licensePlate");
         if (condition == null) throw incomplete("condition");
         if (mileage == null) throw incomplete("mileage");
         if (price == null) throw incomplete("price");

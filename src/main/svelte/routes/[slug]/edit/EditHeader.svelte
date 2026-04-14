@@ -49,7 +49,6 @@
     { field: 'description', label: 'edit.field.description' },
     { field: 'brand', label: 'edit.field.brand' },
     { field: 'model', label: 'edit.field.model' },
-    { field: 'licensePlate', label: 'edit.field.licensePlate' },
     { field: 'condition', label: 'edit.field.condition' },
     { field: 'mileage', label: 'edit.field.mileage' },
     { field: 'price', label: 'edit.field.price' },
