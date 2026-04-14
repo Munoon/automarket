@@ -20,29 +20,25 @@ import org.springframework.http.HttpStatus;
 
 public record UpdateCarListingRequestDTO(
         @Size(min = 5, max = 200)
-        @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPACE,
-                CharacterType.HYPHEN, CharacterType.APOSTROPHE, CharacterType.UNDERSCORE})
+        @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPECIAL_SYMBOL})
         String title,
 
         @Size(min = 5, max = 5000)
-        @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPACE,
-                CharacterType.HYPHEN, CharacterType.APOSTROPHE, CharacterType.UNDERSCORE})
+        @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPECIAL_SYMBOL})
         String description,
 
         CarBrand brand,
 
         @Size(min = 1, max = 100)
-        @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPACE,
-                CharacterType.HYPHEN, CharacterType.APOSTROPHE})
+        @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPECIAL_SYMBOL})
         String customBrandName,
 
         @Size(min = 1, max = 100)
-        @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPACE,
-                CharacterType.HYPHEN})
+        @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPECIAL_SYMBOL})
         String model,
 
         @Size(min = 1, max = 20)
-        @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.HYPHEN})
+        @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPECIAL_SYMBOL})
         String licensePlate,
 
         CarCondition condition,

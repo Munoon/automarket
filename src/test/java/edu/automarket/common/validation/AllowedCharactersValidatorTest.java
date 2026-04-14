@@ -22,8 +22,7 @@ class AllowedCharactersValidatorTest {
     ) {}
 
     private record AllTypesAllowed(
-            @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPACE,
-                    CharacterType.UNDERSCORE, CharacterType.HYPHEN, CharacterType.APOSTROPHE})
+            @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPECIAL_SYMBOL})
             String value
     ) {}
 
@@ -74,17 +73,28 @@ class AllowedCharactersValidatorTest {
         assertThat(CharacterType.DIGIT.matches('9')).isTrue();
         assertThat(CharacterType.DIGIT.matches('a')).isFalse();
 
-        assertThat(CharacterType.SPACE.matches(' ')).isTrue();
-        assertThat(CharacterType.SPACE.matches('\t')).isFalse();
-
-        assertThat(CharacterType.UNDERSCORE.matches('_')).isTrue();
-        assertThat(CharacterType.UNDERSCORE.matches('-')).isFalse();
-
-        assertThat(CharacterType.HYPHEN.matches('-')).isTrue();
-        assertThat(CharacterType.HYPHEN.matches('_')).isFalse();
-
-        assertThat(CharacterType.APOSTROPHE.matches('\'')).isTrue();
-        assertThat(CharacterType.APOSTROPHE.matches('"')).isFalse();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches(' ')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('_')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('-')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('\'')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('"')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('.')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches(',')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('!')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('?')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('@')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('+')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('(')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches(')')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches(':')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches(';')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('#')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('$')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('%')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('&')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('*')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('/')).isTrue();
+        assertThat(CharacterType.SPECIAL_SYMBOL.matches('`')).isFalse();
     }
 
     private <T> Set<ConstraintViolation<T>> validate(T object) {

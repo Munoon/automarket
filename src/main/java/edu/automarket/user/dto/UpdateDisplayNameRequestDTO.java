@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size;
 public record UpdateDisplayNameRequestDTO(
         @NotBlank
         @Size(max = 100)
-        @AllowedCharacters({ CharacterType.ALPHABETICAL, CharacterType.SPACE, CharacterType.APOSTROPHE})
+        @AllowedCharacters({ CharacterType.ALPHABETICAL, CharacterType.SPECIAL_SYMBOL })
         String displayName
 ) {
 }

@@ -183,7 +183,7 @@
 			return;
 		}
 
-		if (!allowedChars(trimmedDisplayName, ['ALPHABETICAL', 'SPACE', 'APOSTROPHE'])) {
+		if (!allowedChars(trimmedDisplayName, ['ALPHABETICAL', 'SPECIAL_SYMBOL'])) {
             error = $t('auth.displayNameInvalidCharacters');
             return;
         }

@@ -9,21 +9,15 @@ public enum CharacterType {
         @Override
         public boolean matches(char c) { return Character.isDigit(c); }
     },
-    SPACE {
+    SPECIAL_SYMBOL {
         @Override
-        public boolean matches(char c) { return c == ' '; }
-    },
-    UNDERSCORE {
-        @Override
-        public boolean matches(char c) { return c == '_'; }
-    },
-    HYPHEN {
-        @Override
-        public boolean matches(char c) { return c == '-'; }
-    },
-    APOSTROPHE {
-        @Override
-        public boolean matches(char c) { return c == '\''; }
+        public boolean matches(char c) {
+            return c == ' ' || c == '_' || c == '-' || c == '\'' || c == '"'
+                    || c == '.' || c == ',' || c == '!' || c == '?' || c == '@'
+                    || c == '+' || c == '(' || c == ')' || c == ':' || c == ';'
+                    || c == '#' || c == '$' || c == '%' || c == '&' || c == '*'
+                    || c == '/';
+        }
     };
 
     public abstract boolean matches(char c);

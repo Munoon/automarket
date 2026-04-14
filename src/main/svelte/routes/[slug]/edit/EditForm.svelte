@@ -47,11 +47,11 @@
   }
 
   const errors = $derived({
-    title: checkText(listing.title, 5, 200, ['ALPHABETICAL', 'DIGIT', 'SPACE', 'HYPHEN', 'APOSTROPHE', 'UNDERSCORE']),
-    description: checkText(listing.description, 5, 5000, ['ALPHABETICAL', 'DIGIT', 'SPACE', 'HYPHEN', 'APOSTROPHE', 'UNDERSCORE']),
-    customBrandName: listing.brand === 'CUSTOM' ? checkText(listing.customBrandName, 1, 100, ['ALPHABETICAL', 'DIGIT', 'SPACE', 'HYPHEN', 'APOSTROPHE']) : undefined,
-    model: checkText(listing.model, 1, 100, ['ALPHABETICAL', 'DIGIT', 'SPACE', 'HYPHEN']),
-    licensePlate: checkText(listing.licensePlate, 1, 20, ['ALPHABETICAL', 'DIGIT', 'HYPHEN']),
+    title: checkText(listing.title, 5, 200, ['ALPHABETICAL', 'DIGIT', 'SPECIAL_SYMBOL']),
+    description: checkText(listing.description, 5, 5000, ['ALPHABETICAL', 'DIGIT', 'SPECIAL_SYMBOL']),
+    customBrandName: listing.brand === 'CUSTOM' ? checkText(listing.customBrandName, 1, 100, ['ALPHABETICAL', 'DIGIT', 'SPECIAL_SYMBOL']) : undefined,
+    model: checkText(listing.model, 1, 100, ['ALPHABETICAL', 'DIGIT', 'SPECIAL_SYMBOL']),
+    licensePlate: checkText(listing.licensePlate, 1, 20, ['ALPHABETICAL', 'DIGIT', 'SPECIAL_SYMBOL']),
     price: listing.price != null && listing.price < 0 ? $t('edit.validation.mustBeNonNegative') : undefined,
     mileage: listing.mileage != null && listing.mileage < 0 ? $t('edit.validation.mustBeNonNegative') : undefined,
     ownersCount: listing.ownersCount != null && listing.ownersCount < 0 ? $t('edit.validation.mustBeNonNegative') : undefined,
