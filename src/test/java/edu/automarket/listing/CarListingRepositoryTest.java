@@ -401,6 +401,10 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
                 .verifyComplete();
 
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("crim")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
+                .verifyComplete();
+
         StepVerifier.create(carListingRepository.findPublished(queryRequest("Falcon")))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
                 .verifyComplete();

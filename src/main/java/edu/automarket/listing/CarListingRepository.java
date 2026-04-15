@@ -256,7 +256,7 @@ public class CarListingRepository {
 
     public Flux<PublicCarListingItemDTO> findPublished(GetPublishedListingsRequestDTO request) {
         String orderBy = request.hasQuery()
-                ? " ORDER BY ts_rank(search_vector, websearch_to_tsquery('simple', :query)) DESC, published_at DESC, id DESC"
+                ? " ORDER BY ts_rank(search_vector, to_tsquery('simple', (SELECT string_agg(lexeme || ':*', ' & ') FROM unnest(to_tsvector('simple', :query))))) DESC, published_at DESC, id DESC"
                 : " ORDER BY published_at DESC, id DESC";
         String sql = SELECT_PUBLISHED_BASE
                 + buildFilterSql(request)
@@ -311,7 +311,7 @@ public class CarListingRepository {
         if (r.getEngineVolumeMax() != null) sb.append(" AND engine_volume <= :engineVolumeMax");
         if (r.getMinOwnersCount() != null) sb.append(" AND owners_count >= :minOwnersCount");
         if (r.getMaxOwnersCount() != null) sb.append(" AND owners_count <= :maxOwnersCount");
-        if (r.hasQuery()) sb.append(" AND search_vector @@ websearch_to_tsquery('simple', :query)");
+        if (r.hasQuery()) sb.append(" AND search_vector @@ to_tsquery('simple', (SELECT string_agg(lexeme || ':*', ' & ') FROM unnest(to_tsvector('simple', :query))))");
         return sb.toString();
     }
 
