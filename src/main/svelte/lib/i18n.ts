@@ -240,7 +240,17 @@ const EN_TRANSLATIONS = {
 	'analytics.openRate': 'Open Rate',
 	'analytics.phoneRequests': 'Phone Requests',
 	'analytics.favourites': 'Favourites',
-	'analytics.total': 'Total'
+	'analytics.total': 'Total',
+
+	'filters.searchPlaceholder': 'Search...',
+	'filters.filters': 'Filters',
+	'filters.clearAll': 'Clear all',
+	'filters.from': 'From',
+	'filters.to': 'To',
+	'filters.price': 'Price (UAH)',
+	'filters.mileage': 'Mileage (km)',
+	'filters.engineVolume': 'Engine volume (L)',
+	'filters.tankVolume': 'Tank volume (L)'
 };
 
 const UK_TRANSLATIONS: Record<TranslationKey, string> = {
@@ -480,7 +490,17 @@ const UK_TRANSLATIONS: Record<TranslationKey, string> = {
 	'analytics.openRate': 'Відкриваність',
 	'analytics.phoneRequests': 'Запити телефону',
 	'analytics.favourites': 'Обрані',
-	'analytics.total': 'Всього'
+	'analytics.total': 'Всього',
+
+	'filters.searchPlaceholder': 'Пошук...',
+	'filters.filters': 'Фільтри',
+	'filters.clearAll': 'Очистити все',
+	'filters.from': 'Від',
+	'filters.to': 'До',
+	'filters.price': 'Ціна (грн)',
+	'filters.mileage': 'Пробіг (км)',
+	'filters.engineVolume': "Об'єм двигуна (л)",
+	'filters.tankVolume': "Об'єм баку (л)"
 };
 
 export type TranslationKey = keyof typeof EN_TRANSLATIONS;

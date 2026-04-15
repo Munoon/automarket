@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import ListingCardSkeleton from '$lib/components/ListingCardSkeleton.svelte';
   import ListingCard from '$lib/components/ListingCard.svelte';
+  import ListingsFilters, { type Filters } from './ListingsFilters.svelte';
   import { apiClient, type PublicCarListingItem, ProblemException } from '$lib/apiClient';
   import { t } from '$lib/i18n';
 
@@ -14,21 +15,36 @@
   let totalElements = $state(0);
   let publishedBefore = $state<number | null>(null);
   let sentinel = $state<HTMLElement | null>(null);
+  let filters = $state<Filters>({});
 
   const hasMore = $derived(listings.length < totalElements);
 
   async function loadPage() {
     try {
+      if (listings.length === 0) {
+        publishedBefore = Date.now();
+      }
       const result = await apiClient.getPublicListings({
         offset: listings.length,
         size: PAGE_SIZE,
-        publishedBefore: publishedBefore ?? undefined
+        publishedBefore: publishedBefore ?? undefined,
+        ...filters
       });
       listings = [...listings, ...result.content];
       totalElements = result.totalElements;
     } catch (e) {
       error = e instanceof ProblemException ? e.message : 'Failed to load listings.';
     }
+  }
+
+  async function handleFiltersChange(newFilters: Filters) {
+    filters = newFilters;
+    listings = [];
+    totalElements = 0;
+    error = null;
+    loading = true;
+    await loadPage();
+    loading = false;
   }
 
   $effect(() => {
@@ -51,11 +67,12 @@
   });
 
   onMount(async () => {
-    publishedBefore = Date.now();
     await loadPage();
     loading = false;
   });
 </script>
+
+<ListingsFilters onchange={handleFiltersChange} />
 
 {#if loading}
   <div class="flex flex-wrap gap-4 justify-center">

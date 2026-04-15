@@ -217,6 +217,28 @@ export interface GetPublicListingsRequest {
 	publishedBefore?: number;
 	offset?: number;
 	size?: number;
+
+	// filters
+	query?: string;
+	brand?: CarBrand[];
+	condition?: CarCondition[];
+	mileageMin?: number;
+	mileageMax?: number;
+	priceMin?: number;
+	priceMax?: number;
+	city?: City[];
+	color?: CarColor[];
+	transmission?: TransmissionType[];
+	fuelType?: FuelType[];
+	tankVolumeMin?: number;
+	tankVolumeMax?: number;
+	driveType?: DriveType[];
+	bodyType?: BodyType[];
+	yearMin?: number;
+	yearMax?: number;
+	engineVolumeMin?: number;
+	engineVolumeMax?: number;
+	ownersCount?: number[];
 }
 
 export interface AuthorPhone {
