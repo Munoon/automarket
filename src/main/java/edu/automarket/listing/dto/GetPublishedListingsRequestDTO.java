@@ -38,7 +38,8 @@ public final class GetPublishedListingsRequestDTO {
     private Integer yearMax;
     private Double engineVolumeMin;
     private Double engineVolumeMax;
-    private List<Integer> ownersCount;
+    private Integer minOwnersCount;
+    private Integer maxOwnersCount;
 
     public long getPublishedBefore() {
         if (publishedBefore == null) {
@@ -223,11 +224,19 @@ public final class GetPublishedListingsRequestDTO {
         this.engineVolumeMax = engineVolumeMax;
     }
 
-    public List<Integer> getOwnersCount() {
-        return ownersCount;
+    public Integer getMinOwnersCount() {
+        return minOwnersCount;
     }
 
-    public void setOwnersCount(List<Integer> ownersCount) {
-        this.ownersCount = ownersCount;
+    public void setMinOwnersCount(Integer minOwnersCount) {
+        this.minOwnersCount = minOwnersCount;
+    }
+
+    public Integer getMaxOwnersCount() {
+        return maxOwnersCount;
+    }
+
+    public void setMaxOwnersCount(Integer maxOwnersCount) {
+        this.maxOwnersCount = maxOwnersCount;
     }
 }

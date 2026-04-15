@@ -462,15 +462,15 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // ownersCount=0
         carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
-        webTestClient.get().uri("/api/listings/public?ownersCount=0")
+        webTestClient.get().uri("/api/listings/public?minOwnersCount=0")
                 .exchange().expectStatus().isOk()
                 .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
 
-        webTestClient.get().uri("/api/listings/public?ownersCount=1")
+        webTestClient.get().uri("/api/listings/public?minOwnersCount=1")
                 .exchange().expectStatus().isOk()
                 .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
 
-        webTestClient.get().uri("/api/listings/public?ownersCount=0&ownersCount=1")
+        webTestClient.get().uri("/api/listings/public?maxOwnersCount=0")
                 .exchange().expectStatus().isOk()
                 .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
     }

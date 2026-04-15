@@ -309,7 +309,8 @@ public class CarListingRepository {
         if (r.getYearMax() != null) sb.append(" AND year <= :yearMax");
         if (r.getEngineVolumeMin() != null) sb.append(" AND engine_volume >= :engineVolumeMin");
         if (r.getEngineVolumeMax() != null) sb.append(" AND engine_volume <= :engineVolumeMax");
-        if (notEmpty(r.getOwnersCount())) sb.append(" AND owners_count = ANY(:ownersCount)");
+        if (r.getMinOwnersCount() != null) sb.append(" AND owners_count >= :minOwnersCount");
+        if (r.getMaxOwnersCount() != null) sb.append(" AND owners_count <= :maxOwnersCount");
         if (r.hasQuery()) sb.append(" AND search_vector @@ websearch_to_tsquery('simple', :query)");
         return sb.toString();
     }
@@ -334,7 +335,8 @@ public class CarListingRepository {
         if (r.getYearMax() != null) spec = spec.bind("yearMax", r.getYearMax());
         if (r.getEngineVolumeMin() != null) spec = spec.bind("engineVolumeMin", r.getEngineVolumeMin());
         if (r.getEngineVolumeMax() != null) spec = spec.bind("engineVolumeMax", r.getEngineVolumeMax());
-        if (notEmpty(r.getOwnersCount())) spec = spec.bind("ownersCount", r.getOwnersCount().toArray(new Integer[0]));
+        if (r.getMinOwnersCount() != null) spec = spec.bind("minOwnersCount", r.getMinOwnersCount());
+        if (r.getMaxOwnersCount() != null) spec = spec.bind("maxOwnersCount", r.getMaxOwnersCount());
         if (r.hasQuery()) spec = spec.bind("query", r.getQuery());
         return spec;
     }

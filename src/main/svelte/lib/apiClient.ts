@@ -238,7 +238,8 @@ export interface GetPublicListingsRequest {
 	yearMax?: number;
 	engineVolumeMin?: number;
 	engineVolumeMax?: number;
-	ownersCount?: number[];
+	minOwnersCount?: number;
+	maxOwnersCount?: number;
 }
 
 export interface AuthorPhone {

@@ -37,8 +37,6 @@
     'GREEN', 'DARK_GREEN', 'YELLOW', 'ORANGE', 'BROWN', 'BEIGE',
     'PURPLE', 'GOLDEN', 'BURGUNDY'
   ];
-  const OWNERS_COUNTS = [1, 2, 3, 4, 5];
-
   let { onchange }: { onchange: (filters: Filters) => void } = $props();
 
   let expanded = $state(false);
@@ -57,6 +55,8 @@
   let engineVolumeMax = $state('');
   let tankVolumeMin = $state('');
   let tankVolumeMax = $state('');
+  let ownersCountMin = $state('');
+  let ownersCountMax = $state('');
   let selectedBrands = $state<CarBrand[]>([]);
   let selectedCities = $state<City[]>([]);
   let selectedFuelTypes = $state<FuelType[]>([]);
@@ -65,7 +65,6 @@
   let selectedDriveTypes = $state<DriveType[]>([]);
   let selectedBodyTypes = $state<BodyType[]>([]);
   let selectedColors = $state<CarColor[]>([]);
-  let selectedOwnersCounts = $state<number[]>([]);
 
   let queryTimer: ReturnType<typeof setTimeout>;
 
@@ -84,7 +83,7 @@
     (selectedDriveTypes.length > 0 ? 1 : 0) +
     (selectedBodyTypes.length > 0 ? 1 : 0) +
     (selectedColors.length > 0 ? 1 : 0) +
-    (selectedOwnersCounts.length > 0 ? 1 : 0)
+    (ownersCountMin || ownersCountMax ? 1 : 0)
   );
 
   function buildFilters(): Filters {
@@ -108,7 +107,8 @@
       driveType: selectedDriveTypes.length ? [...selectedDriveTypes] : undefined,
       bodyType: selectedBodyTypes.length ? [...selectedBodyTypes] : undefined,
       color: selectedColors.length ? [...selectedColors] : undefined,
-      ownersCount: selectedOwnersCounts.length ? [...selectedOwnersCounts] : undefined,
+      minOwnersCount: ownersCountMin ? Number(ownersCountMin) : undefined,
+      maxOwnersCount: ownersCountMax ? Number(ownersCountMax) : undefined,
     };
   }
 
@@ -137,7 +137,7 @@
     selectedDriveTypes = [];
     selectedBodyTypes = [];
     selectedColors = [];
-    selectedOwnersCounts = [];
+    ownersCountMin = ''; ownersCountMax = '';
     onchange({});
   }
 
@@ -238,6 +238,14 @@
           <Input id="carListingsFilter_tankVolumeMin" type="number" size="sm" placeholder={$t('filters.from')} bind:value={tankVolumeMin} onchange={applyFilters} min="0" />
           <span class="text-muted text-xs shrink-0">—</span>
           <Input id="carListingsFilter_tankVolumeMax" type="number" size="sm" placeholder={$t('filters.to')} bind:value={tankVolumeMax} onchange={applyFilters} min="0" />
+        </div>
+      </div>
+      <div>
+        <label for="carListingsFilter_ownersCountMin" class="text-xs font-medium text-muted mb-1.5 block">{$t('edit.field.ownersCount')}</label>
+        <div class="flex items-center gap-1.5">
+          <Input id="carListingsFilter_ownersCountMin" type="number" size="sm" placeholder={$t('filters.from')} bind:value={ownersCountMin} onchange={applyFilters} min="0" />
+          <span class="text-muted text-xs shrink-0">—</span>
+          <Input id="carListingsFilter_ownersCountMax" type="number" size="sm" placeholder={$t('filters.to')} bind:value={ownersCountMax} onchange={applyFilters} min="0" />
         </div>
       </div>
     </div>
@@ -398,21 +406,6 @@
                     ? 'border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium'
                     : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-body hover:border-gray-400 dark:hover:border-gray-400'}"
               >{$t(`condition.${condition}`)}</button>
-            {/each}
-          </div>
-        </div>
-        <div>
-          <p class="text-xs font-medium text-muted mb-2">{$t('edit.field.ownersCount')}</p>
-          <div class="flex flex-wrap gap-1.5">
-            {#each OWNERS_COUNTS as count}
-              <button
-                type="button"
-                onclick={() => { selectedOwnersCounts = toggleValue(selectedOwnersCounts, count); applyFilters(); }}
-                class="w-9 py-1 text-sm rounded-full border transition-all cursor-pointer select-none focus:outline-none text-center
-                  {selectedOwnersCounts.includes(count)
-                    ? 'border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium'
-                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-body hover:border-gray-400 dark:hover:border-gray-400'}"
-              >{count}</button>
             {/each}
           </div>
         </div>
