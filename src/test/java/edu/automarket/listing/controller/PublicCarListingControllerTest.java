@@ -475,6 +475,76 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
                 .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(1));
     }
 
+    @Test
+    void getPublishedListings_filterByQuery_includesMatchAndExcludesMismatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+
+        CarListing toyotaListing = carListingService.create(userId).block();
+        toyotaListing = carListingService.update(toyotaListing, UPDATE_CAR_LISTING_REQUEST_DTO).block(); // brand=TOYOTA, city=KYIV
+        carListingService.updateStatus(toyotaListing, ListingStatus.PUBLISHED).block();
+        long toyotaListingId = toyotaListing.id();
+
+        CarListing bmwListing = carListingService.create(userId).block();
+        bmwListing = carListingService.update(bmwListing, new UpdateCarListingRequestDTO(
+                "Awesome BMW X5", "Nice car", CarBrand.BMW, null, "X5",
+                "BB3333BB", CarCondition.USED, 50000, 800000L,
+                City.KHARKIV, CarColor.BLACK, TransmissionType.MANUAL,
+                FuelType.DIESEL, 80.0, DriveType.AWD, BodyType.SUV, 2022, 3.0, 1
+        )).block();
+        carListingService.updateStatus(bmwListing, ListingStatus.PUBLISHED).block();
+        long bmwListingId = bmwListing.id();
+
+        // match by brand name (Latin)
+        webTestClient.get().uri("/api/listings/public?query=Toyota")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> {
+                    assertThat(page.totalElements()).isEqualTo(1);
+                    assertThat(page.content().get(0).id()).isEqualTo(toyotaListingId);
+                });
+
+        // match by brand name (Ukrainian)
+        webTestClient.get()
+                .uri(b -> b.path("/api/listings/public").queryParam("query", "Тойота").build())
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> {
+                    assertThat(page.totalElements()).isEqualTo(1);
+                    assertThat(page.content().get(0).id()).isEqualTo(toyotaListingId);
+                });
+
+        // match by city (Ukrainian)
+        webTestClient.get()
+                .uri(b -> b.path("/api/listings/public").queryParam("query", "Харків").build())
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> {
+                    assertThat(page.totalElements()).isEqualTo(1);
+                    assertThat(page.content().get(0).id()).isEqualTo(bmwListingId);
+                });
+
+        // match by title
+        webTestClient.get()
+                .uri(b -> b.path("/api/listings/public").queryParam("query", "awesome").build())
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> {
+                    assertThat(page.totalElements()).isEqualTo(1);
+                    assertThat(page.content().get(0).id()).isEqualTo(bmwListingId);
+                });
+
+        // no match
+        webTestClient.get().uri("/api/listings/public?query=Honda")
+                .exchange().expectStatus().isOk()
+                .expectBody(PAGE_TYPE).value(page -> assertThat(page.totalElements()).isEqualTo(0));
+
+        webTestClient.get().uri("/api/listings/public?query=" + "a".repeat(201))
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/validation-error");
+                    assertThat(problem.title()).isEqualTo("Validation Error");
+                    assertThat(problem.status()).isEqualTo(400);
+                });
+    }
+
     // --- GET /api/listings/public/{id} ---
 
     @Test

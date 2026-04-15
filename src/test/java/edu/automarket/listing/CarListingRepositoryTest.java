@@ -377,6 +377,419 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 .verifyComplete();
     }
 
+    // Full-text search
+
+    private GetPublishedListingsRequestDTO queryRequest(String query) {
+        var req = new GetPublishedListingsRequestDTO();
+        req.setQuery(query);
+        return req;
+    }
+
+    @Test
+    void findPublished_searchByTitle_matchesAndExcludes() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+        CarListing listing = carListingRepository.create(userId, now).block();
+        carListingRepository.update(new CarListing(
+                listing.id(), userId, ListingStatus.PUBLISHED,
+                "Crimson Falcon", null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now, now, now
+        )).block();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Crimson")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Falcon")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Volkswagen")))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_searchByDescription_matchesAndExcludes() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+        CarListing listing = carListingRepository.create(userId, now).block();
+        carListingRepository.update(new CarListing(
+                listing.id(), userId, ListingStatus.PUBLISHED,
+                null, "Excellent condition, one owner, garage kept", null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now, now, now
+        )).block();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("garage")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("rusty")))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_searchByBrand_matchesLatinAndUkrainian() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+        CarListing toyota = carListingRepository.create(userId, now).block();
+        carListingRepository.update(new CarListing(
+                toyota.id(), userId, ListingStatus.PUBLISHED,
+                null, null, CarBrand.TOYOTA, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now, now, now
+        )).block();
+
+        CarListing mercedes = carListingRepository.create(userId, now + 1).block();
+        carListingRepository.update(new CarListing(
+                mercedes.id(), userId, ListingStatus.PUBLISHED,
+                null, null, CarBrand.MERCEDES_BENZ, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now + 1, now + 1, now + 1
+        )).block();
+
+        // Latin match
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Toyota")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(toyota.id()))
+                .verifyComplete();
+
+        // Ukrainian match
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Тойота")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(toyota.id()))
+                .verifyComplete();
+
+        // Ukrainian match for another brand
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Мерседес")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(mercedes.id()))
+                .verifyComplete();
+
+        // No match
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Honda")))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_searchByCustomBrandName_matches() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+        CarListing listing = carListingRepository.create(userId, now).block();
+        carListingRepository.update(new CarListing(
+                listing.id(), userId, ListingStatus.PUBLISHED,
+                null, null, CarBrand.CUSTOM, "Zastava", null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now, now, now
+        )).block();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Zastava")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Toyota")))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_searchByModel_matches() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+        CarListing listing = carListingRepository.create(userId, now).block();
+        carListingRepository.update(new CarListing(
+                listing.id(), userId, ListingStatus.PUBLISHED,
+                null, null, CarBrand.BMW, null, "X5", null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now, now, now
+        )).block();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("X5")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("X3")))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_searchByCondition_matchesUkrainian() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+
+        CarListing newCar = carListingRepository.create(userId, now).block();
+        carListingRepository.update(new CarListing(
+                newCar.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null,
+                CarCondition.NEW, null, null, null, null, null, null, null, null, null, null, null, null,
+                now, now, now
+        )).block();
+
+        CarListing usedCar = carListingRepository.create(userId, now + 1).block();
+        carListingRepository.update(new CarListing(
+                usedCar.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null,
+                CarCondition.USED, null, null, null, null, null, null, null, null, null, null, null, null,
+                now + 1, now + 1, now + 1
+        )).block();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("новий")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(newCar.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("вживаний")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(usedCar.id()))
+                .verifyComplete();
+
+        // "б/у" is another alias for USED
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("б/у")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(usedCar.id()))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_searchByCity_matchesUkrainian() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+
+        CarListing kyivListing = carListingRepository.create(userId, now).block();
+        carListingRepository.update(new CarListing(
+                kyivListing.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null,
+                null, null, null, City.KYIV, null, null, null, null, null, null, null, null, null,
+                now, now, now
+        )).block();
+
+        CarListing kharkivListing = carListingRepository.create(userId, now + 1).block();
+        carListingRepository.update(new CarListing(
+                kharkivListing.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null,
+                null, null, null, City.KHARKIV, null, null, null, null, null, null, null, null, null,
+                now + 1, now + 1, now + 1
+        )).block();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Київ")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(kyivListing.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Харків")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(kharkivListing.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Одеса")))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_searchByColor_matchesUkrainian() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+
+        CarListing whiteCar = carListingRepository.create(userId, now).block();
+        carListingRepository.update(new CarListing(
+                whiteCar.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null,
+                null, null, null, null, CarColor.WHITE, null, null, null, null, null, null, null, null,
+                now, now, now
+        )).block();
+
+        CarListing blackCar = carListingRepository.create(userId, now + 1).block();
+        carListingRepository.update(new CarListing(
+                blackCar.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null,
+                null, null, null, null, CarColor.BLACK, null, null, null, null, null, null, null, null,
+                now + 1, now + 1, now + 1
+        )).block();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("білий")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(whiteCar.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("чорний")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(blackCar.id()))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_searchByTransmission_matchesLatinAndUkrainian() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+
+        CarListing automaticCar = carListingRepository.create(userId, now).block();
+        carListingRepository.update(new CarListing(
+                automaticCar.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null,
+                null, null, null, null, null, TransmissionType.AUTOMATIC, null, null, null, null, null, null, null,
+                now, now, now
+        )).block();
+
+        CarListing manualCar = carListingRepository.create(userId, now + 1).block();
+        carListingRepository.update(new CarListing(
+                manualCar.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null,
+                null, null, null, null, null, TransmissionType.MANUAL, null, null, null, null, null, null, null,
+                now + 1, now + 1, now + 1
+        )).block();
+
+        // Ukrainian
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("автомат")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(automaticCar.id()))
+                .verifyComplete();
+
+        // Latin abbreviation
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("АКПП")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(automaticCar.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("механіка")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(manualCar.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("МКПП")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(manualCar.id()))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_searchByFuelType_matchesUkrainian() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+
+        CarListing petrolCar = carListingRepository.create(userId, now).block();
+        carListingRepository.update(new CarListing(
+                petrolCar.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null,
+                null, null, null, null, null, null, FuelType.PETROL, null, null, null, null, null, null,
+                now, now, now
+        )).block();
+
+        CarListing dieselCar = carListingRepository.create(userId, now + 1).block();
+        carListingRepository.update(new CarListing(
+                dieselCar.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null,
+                null, null, null, null, null, null, FuelType.DIESEL, null, null, null, null, null, null,
+                now + 1, now + 1, now + 1
+        )).block();
+
+        CarListing electricCar = carListingRepository.create(userId, now + 2).block();
+        carListingRepository.update(new CarListing(
+                electricCar.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null,
+                null, null, null, null, null, null, FuelType.ELECTRIC, null, null, null, null, null, null,
+                now + 2, now + 2, now + 2
+        )).block();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("бензин")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(petrolCar.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("дизель")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(dieselCar.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("електромобіль")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(electricCar.id()))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_searchByDriveType_matchesLatinAndUkrainian() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+
+        CarListing fwdCar = carListingRepository.create(userId, now).block();
+        carListingRepository.update(new CarListing(
+                fwdCar.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, DriveType.FWD, null, null, null, null,
+                now, now, now
+        )).block();
+
+        CarListing awdCar = carListingRepository.create(userId, now + 1).block();
+        carListingRepository.update(new CarListing(
+                awdCar.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, DriveType.AWD, null, null, null, null,
+                now + 1, now + 1, now + 1
+        )).block();
+
+        // Ukrainian
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("передній")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(fwdCar.id()))
+                .verifyComplete();
+
+        // Latin abbreviation
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("FWD")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(fwdCar.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("AWD")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(awdCar.id()))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_searchByBodyType_matchesLatinAndUkrainian() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+
+        CarListing sedanCar = carListingRepository.create(userId, now).block();
+        carListingRepository.update(new CarListing(
+                sedanCar.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, BodyType.SEDAN, null, null, null,
+                now, now, now
+        )).block();
+
+        CarListing suvCar = carListingRepository.create(userId, now + 1).block();
+        carListingRepository.update(new CarListing(
+                suvCar.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, BodyType.SUV, null, null, null,
+                now + 1, now + 1, now + 1
+        )).block();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("седан")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(sedanCar.id()))
+                .verifyComplete();
+
+        // Ukrainian and Latin abbreviation both in translation
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("позашляховик")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(suvCar.id()))
+                .verifyComplete();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("SUV")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(suvCar.id()))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_searchRanksTitleMatchHigherThanDescriptionMatch() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+
+        // Published earlier — without ranking would appear second (ORDER BY published_at DESC)
+        CarListing titleMatch = carListingRepository.create(userId, now).block();
+        carListingRepository.update(new CarListing(
+                titleMatch.id(), userId, ListingStatus.PUBLISHED,
+                "Porsche 911", null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now, now, now
+        )).block();
+
+        // Published later — without ranking would appear first (ORDER BY published_at DESC)
+        CarListing descMatch = carListingRepository.create(userId, now + 1).block();
+        carListingRepository.update(new CarListing(
+                descMatch.id(), userId, ListingStatus.PUBLISHED,
+                "Sports car for sale", "This Porsche 911 replica is a great deal", null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now + 1, now + 1, now + 1
+        )).block();
+
+        // With ranking, the title match (weight A) must outrank the description match (weight D)
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Porsche")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(titleMatch.id()))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(descMatch.id()))
+                .verifyComplete();
+    }
+
     @Test
     void updateWithNullFieldsClearsPreviousValues() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();

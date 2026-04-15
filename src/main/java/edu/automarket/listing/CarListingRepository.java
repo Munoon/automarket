@@ -255,9 +255,12 @@ public class CarListingRepository {
     }
 
     public Flux<PublicCarListingItemDTO> findPublished(GetPublishedListingsRequestDTO request) {
+        String orderBy = request.hasQuery()
+                ? " ORDER BY ts_rank(search_vector, websearch_to_tsquery('simple', :query)) DESC, published_at DESC, id DESC"
+                : " ORDER BY published_at DESC, id DESC";
         String sql = SELECT_PUBLISHED_BASE
                 + buildFilterSql(request)
-                + " ORDER BY published_at DESC, id DESC LIMIT :size OFFSET :offset";
+                + orderBy + " LIMIT :size OFFSET :offset";
         return bindFilters(client.sql(sql), request)
                 .bind("size", request.getSize())
                 .bind("offset", request.getOffset())
@@ -307,6 +310,7 @@ public class CarListingRepository {
         if (r.getEngineVolumeMin() != null) sb.append(" AND engine_volume >= :engineVolumeMin");
         if (r.getEngineVolumeMax() != null) sb.append(" AND engine_volume <= :engineVolumeMax");
         if (notEmpty(r.getOwnersCount())) sb.append(" AND owners_count = ANY(:ownersCount)");
+        if (r.hasQuery()) sb.append(" AND search_vector @@ websearch_to_tsquery('simple', :query)");
         return sb.toString();
     }
 
@@ -331,6 +335,7 @@ public class CarListingRepository {
         if (r.getEngineVolumeMin() != null) spec = spec.bind("engineVolumeMin", r.getEngineVolumeMin());
         if (r.getEngineVolumeMax() != null) spec = spec.bind("engineVolumeMax", r.getEngineVolumeMax());
         if (notEmpty(r.getOwnersCount())) spec = spec.bind("ownersCount", r.getOwnersCount().toArray(new Integer[0]));
+        if (r.hasQuery()) spec = spec.bind("query", r.getQuery());
         return spec;
     }
 

@@ -8,6 +8,7 @@ import edu.automarket.listing.model.City;
 import edu.automarket.listing.model.DriveType;
 import edu.automarket.listing.model.FuelType;
 import edu.automarket.listing.model.TransmissionType;
+import org.hibernate.validator.constraints.Length;
 
 import java.util.List;
 
@@ -17,6 +18,8 @@ public final class GetPublishedListingsRequestDTO {
     private int size = 20;
 
     // filters
+    @Length(max = 200)
+    private String query;
     private List<CarBrand> brand;
     private List<CarCondition> condition;
     private Integer mileageMin;
@@ -62,6 +65,18 @@ public final class GetPublishedListingsRequestDTO {
 
     public void setSize(int size) {
         this.size = size;
+    }
+
+    public boolean hasQuery() {
+        return query != null && !query.isBlank();
+    }
+
+    public String getQuery() {
+        return query;
+    }
+
+    public void setQuery(String query) {
+        this.query = query;
     }
 
     public List<CarBrand> getBrand() {

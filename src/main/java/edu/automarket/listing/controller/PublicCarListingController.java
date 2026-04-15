@@ -7,6 +7,7 @@ import edu.automarket.listing.dto.AuthorPhoneDTO;
 import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
 import edu.automarket.listing.dto.PublicCarListingDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,7 +43,7 @@ public class PublicCarListingController {
 
     @GetMapping
     public Mono<PageDTO<PublicCarListingItemDTO>> getPublishedListings(
-            @ModelAttribute GetPublishedListingsRequestDTO request) {
+            @ModelAttribute @Valid GetPublishedListingsRequestDTO request) {
         return carListingService.getPublishedListings(request)
                 .doOnNext(page -> {
                     List<PublicCarListingItemDTO> listings = page.content();
