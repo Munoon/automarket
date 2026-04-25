@@ -10,6 +10,7 @@ public record CarListing(
         ListingStatus status,
         String title,
         String description,
+        String[] imageKeys,
         CarBrand brand,
         String customBrandName,
         String model,
@@ -35,7 +36,7 @@ public record CarListing(
         return new CarListing(
                 id, authorUserId, status,
                 request.title(), request.description(),
-                request.brand(), request.customBrandName(),
+                request.imageKeys(), request.brand(), request.customBrandName(),
                 request.model(), request.licensePlate(),
                 request.condition(), request.mileage(),
                 request.price(), request.city(), request.color(),
@@ -53,7 +54,7 @@ public record CarListing(
         return new CarListing(
                 id, authorUserId,
                 status,
-                title, description, brand, customBrandName, model, licensePlate, condition, mileage, price,
+                title, description, imageKeys, brand, customBrandName, model, licensePlate, condition, mileage, price,
                 city, color, transmission, fuelType, tankVolume, driveType, bodyType, year, engineVolume, ownersCount,
                 createdAt,
                 System.currentTimeMillis(),

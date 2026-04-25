@@ -12,7 +12,7 @@ import edu.automarket.listing.model.TransmissionType;
 
 public class CarListingTestUtils {
     public static final UpdateCarListingRequestDTO UPDATE_CAR_LISTING_REQUEST_DTO = new UpdateCarListingRequestDTO(
-            "My Car Listing", "Some descriprion", CarBrand.TOYOTA,
+            "My Car Listing", "Some descriprion", null, CarBrand.TOYOTA,
             null, "Model", "AA1111AA", CarCondition.NEW,
             100, 100L, City.KYIV, CarColor.WHITE, TransmissionType.AUTOMATIC,
             FuelType.PETROL, 10.4, DriveType.FWD, BodyType.SEDAN, 2025, 20.0, 0

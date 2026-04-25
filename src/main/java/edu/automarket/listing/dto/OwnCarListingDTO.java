@@ -16,6 +16,7 @@ public record OwnCarListingDTO(
         ListingStatus status,
         String title,
         String description,
+        OwnCarListingImageDTO[] images,
         CarBrand brand,
         String customBrandName,
         String model,
@@ -37,12 +38,13 @@ public record OwnCarListingDTO(
         long updatedAt,
         long publishedAt
 ) {
-    public OwnCarListingDTO(CarListing listing) {
+    public OwnCarListingDTO(CarListing listing, OwnCarListingImageDTO[] images) {
         this(
                 listing.id(),
                 listing.status(),
                 listing.title(),
                 listing.description(),
+                images,
                 listing.brand(),
                 listing.customBrandName(),
                 listing.model(),

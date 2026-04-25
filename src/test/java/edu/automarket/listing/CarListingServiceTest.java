@@ -347,7 +347,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
         CarListing updatedListing = carListingService.update(listing, new UpdateCarListingRequestDTO(
-                "Sport Car", "Fast and furious", CarBrand.CUSTOM, "Batmobile", "Dark Knight",
+                "Sport Car", "Fast and furious", null, CarBrand.CUSTOM, "Batmobile", "Dark Knight",
                 "AA2222BB", CarCondition.NEW, 1234, 999999L,
                 City.KYIV, CarColor.RED, TransmissionType.MANUAL, FuelType.ELECTRIC, 25.4,
                 DriveType.FWD, BodyType.SEDAN, 2024, 34.1, 4
@@ -461,7 +461,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         CarListing created = carListingService.create(userId).block();
 
         var request = new UpdateCarListingRequestDTO(
-                "Updated Title", null, CarBrand.TOYOTA, null, "Corolla", null,
+                "Updated Title", null, null, CarBrand.TOYOTA, null, "Corolla", null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null
         );
 
@@ -494,7 +494,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         CarListing published = carListingService.getListingByIdOrThrow(listing.id()).block();
 
         var invalidUpdate = new UpdateCarListingRequestDTO(
-                null, null, CarBrand.TOYOTA, null, null, null,
+                null, null, null, CarBrand.TOYOTA, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null
         );
 

@@ -145,7 +145,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         long publishedAt = System.currentTimeMillis() + 1_000;
         var request = new CarListing(
                 created.id(), userId, ListingStatus.ARCHIVED,
-                "My Car Title", "Great description", CarBrand.TOYOTA, null,
+                "My Car Title", "Great description", null, CarBrand.TOYOTA, null,
                 "Camry", "AA1234BB", CarCondition.USED, 50000, 15000L,
                 City.KYIV, CarColor.WHITE, TransmissionType.AUTOMATIC, FuelType.PETROL,
                 50.0, DriveType.FWD, BodyType.SEDAN, 2020, 2.5, 1,
@@ -212,7 +212,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
         carListingRepository.update(new CarListing(
                 listing.id(), userId, ListingStatus.PUBLISHED,
-                "My Car", "Nice car", CarBrand.TOYOTA, null, "Camry",
+                "My Car", "Nice car", null, CarBrand.TOYOTA, null, "Camry",
                 null, null, 100, 300000L, City.KYIV, null, TransmissionType.MANUAL, FuelType.ELECTRIC, null, null, null, 2025, null, null,
                 listing.createdAt(), System.currentTimeMillis(), System.currentTimeMillis()
         )).block();
@@ -301,7 +301,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         long publishedAt = System.currentTimeMillis();
         carListingRepository.update(new CarListing(
                 listing.id(), userId, ListingStatus.PUBLISHED,
-                "Test Car", "Nice car", CarBrand.TOYOTA, null, "Camry",
+                "Test Car", "Nice car", null, CarBrand.TOYOTA, null, "Camry",
                 "AA1234BB", CarCondition.USED, 50000, 300000L, City.KYIV,
                 CarColor.WHITE, TransmissionType.AUTOMATIC, FuelType.PETROL,
                 50.0, DriveType.FWD, BodyType.SEDAN, 2020, 2.5, 1,
@@ -392,7 +392,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing listing = carListingRepository.create(userId, now).block();
         carListingRepository.update(new CarListing(
                 listing.id(), userId, ListingStatus.PUBLISHED,
-                "Crimson Falcon", null, null, null, null, null,
+                "Crimson Falcon", null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
                 now, now, now
         )).block();
@@ -420,7 +420,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing listing = carListingRepository.create(userId, now).block();
         carListingRepository.update(new CarListing(
                 listing.id(), userId, ListingStatus.PUBLISHED,
-                null, "Excellent condition, one owner, garage kept", null, null, null, null,
+                null, "Excellent condition, one owner, garage kept", null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
                 now, now, now
         )).block();
@@ -440,7 +440,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing toyota = carListingRepository.create(userId, now).block();
         carListingRepository.update(new CarListing(
                 toyota.id(), userId, ListingStatus.PUBLISHED,
-                null, null, CarBrand.TOYOTA, null, null, null,
+                null, null, null, CarBrand.TOYOTA, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
                 now, now, now
         )).block();
@@ -448,7 +448,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing mercedes = carListingRepository.create(userId, now + 1).block();
         carListingRepository.update(new CarListing(
                 mercedes.id(), userId, ListingStatus.PUBLISHED,
-                null, null, CarBrand.MERCEDES_BENZ, null, null, null,
+                null, null, null, CarBrand.MERCEDES_BENZ, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
                 now + 1, now + 1, now + 1
         )).block();
@@ -480,7 +480,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing listing = carListingRepository.create(userId, now).block();
         carListingRepository.update(new CarListing(
                 listing.id(), userId, ListingStatus.PUBLISHED,
-                null, null, CarBrand.CUSTOM, "Zastava", null, null,
+                null, null, null, CarBrand.CUSTOM, "Zastava", null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
                 now, now, now
         )).block();
@@ -500,7 +500,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing listing = carListingRepository.create(userId, now).block();
         carListingRepository.update(new CarListing(
                 listing.id(), userId, ListingStatus.PUBLISHED,
-                null, null, CarBrand.BMW, null, "X5", null,
+                null, null, null, CarBrand.BMW, null, "X5", null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
                 now, now, now
         )).block();
@@ -521,7 +521,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing newCar = carListingRepository.create(userId, now).block();
         carListingRepository.update(new CarListing(
                 newCar.id(), userId, ListingStatus.PUBLISHED,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 CarCondition.NEW, null, null, null, null, null, null, null, null, null, null, null, null,
                 now, now, now
         )).block();
@@ -529,7 +529,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing usedCar = carListingRepository.create(userId, now + 1).block();
         carListingRepository.update(new CarListing(
                 usedCar.id(), userId, ListingStatus.PUBLISHED,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 CarCondition.USED, null, null, null, null, null, null, null, null, null, null, null, null,
                 now + 1, now + 1, now + 1
         )).block();
@@ -556,7 +556,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing kyivListing = carListingRepository.create(userId, now).block();
         carListingRepository.update(new CarListing(
                 kyivListing.id(), userId, ListingStatus.PUBLISHED,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, City.KYIV, null, null, null, null, null, null, null, null, null,
                 now, now, now
         )).block();
@@ -564,7 +564,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing kharkivListing = carListingRepository.create(userId, now + 1).block();
         carListingRepository.update(new CarListing(
                 kharkivListing.id(), userId, ListingStatus.PUBLISHED,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, City.KHARKIV, null, null, null, null, null, null, null, null, null,
                 now + 1, now + 1, now + 1
         )).block();
@@ -589,7 +589,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing whiteCar = carListingRepository.create(userId, now).block();
         carListingRepository.update(new CarListing(
                 whiteCar.id(), userId, ListingStatus.PUBLISHED,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, null, CarColor.WHITE, null, null, null, null, null, null, null, null,
                 now, now, now
         )).block();
@@ -597,7 +597,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing blackCar = carListingRepository.create(userId, now + 1).block();
         carListingRepository.update(new CarListing(
                 blackCar.id(), userId, ListingStatus.PUBLISHED,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, null, CarColor.BLACK, null, null, null, null, null, null, null, null,
                 now + 1, now + 1, now + 1
         )).block();
@@ -619,7 +619,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing automaticCar = carListingRepository.create(userId, now).block();
         carListingRepository.update(new CarListing(
                 automaticCar.id(), userId, ListingStatus.PUBLISHED,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, null, null, TransmissionType.AUTOMATIC, null, null, null, null, null, null, null,
                 now, now, now
         )).block();
@@ -627,7 +627,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing manualCar = carListingRepository.create(userId, now + 1).block();
         carListingRepository.update(new CarListing(
                 manualCar.id(), userId, ListingStatus.PUBLISHED,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, null, null, TransmissionType.MANUAL, null, null, null, null, null, null, null,
                 now + 1, now + 1, now + 1
         )).block();
@@ -659,7 +659,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing petrolCar = carListingRepository.create(userId, now).block();
         carListingRepository.update(new CarListing(
                 petrolCar.id(), userId, ListingStatus.PUBLISHED,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, null, null, null, FuelType.PETROL, null, null, null, null, null, null,
                 now, now, now
         )).block();
@@ -667,7 +667,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing dieselCar = carListingRepository.create(userId, now + 1).block();
         carListingRepository.update(new CarListing(
                 dieselCar.id(), userId, ListingStatus.PUBLISHED,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, null, null, null, FuelType.DIESEL, null, null, null, null, null, null,
                 now + 1, now + 1, now + 1
         )).block();
@@ -675,7 +675,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing electricCar = carListingRepository.create(userId, now + 2).block();
         carListingRepository.update(new CarListing(
                 electricCar.id(), userId, ListingStatus.PUBLISHED,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, null, null, null, FuelType.ELECTRIC, null, null, null, null, null, null,
                 now + 2, now + 2, now + 2
         )).block();
@@ -701,7 +701,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing fwdCar = carListingRepository.create(userId, now).block();
         carListingRepository.update(new CarListing(
                 fwdCar.id(), userId, ListingStatus.PUBLISHED,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, DriveType.FWD, null, null, null, null,
                 now, now, now
         )).block();
@@ -709,7 +709,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing awdCar = carListingRepository.create(userId, now + 1).block();
         carListingRepository.update(new CarListing(
                 awdCar.id(), userId, ListingStatus.PUBLISHED,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, DriveType.AWD, null, null, null, null,
                 now + 1, now + 1, now + 1
         )).block();
@@ -737,7 +737,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing sedanCar = carListingRepository.create(userId, now).block();
         carListingRepository.update(new CarListing(
                 sedanCar.id(), userId, ListingStatus.PUBLISHED,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, BodyType.SEDAN, null, null, null,
                 now, now, now
         )).block();
@@ -745,7 +745,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing suvCar = carListingRepository.create(userId, now + 1).block();
         carListingRepository.update(new CarListing(
                 suvCar.id(), userId, ListingStatus.PUBLISHED,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, BodyType.SUV, null, null, null,
                 now + 1, now + 1, now + 1
         )).block();
@@ -773,7 +773,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing titleMatch = carListingRepository.create(userId, now).block();
         carListingRepository.update(new CarListing(
                 titleMatch.id(), userId, ListingStatus.PUBLISHED,
-                "Porsche 911", null, null, null, null, null,
+                "Porsche 911", null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
                 now, now, now
         )).block();
@@ -782,7 +782,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing descMatch = carListingRepository.create(userId, now + 1).block();
         carListingRepository.update(new CarListing(
                 descMatch.id(), userId, ListingStatus.PUBLISHED,
-                "Sports car for sale", "This Porsche 911 replica is a great deal", null, null, null, null,
+                "Sports car for sale", "This Porsche 911 replica is a great deal", null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
                 now + 1, now + 1, now + 1
         )).block();
@@ -801,14 +801,14 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
         carListingRepository.update(new CarListing(
                 created.id(), userId, ListingStatus.DRAFT,
-                "Title", null, CarBrand.TOYOTA, null, "Camry", null,
+                "Title", null, null, CarBrand.TOYOTA, null, "Camry", null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
                 created.createdAt(), System.currentTimeMillis(), created.publishedAt()
         )).block();
 
         var clearRequest = new CarListing(
                 created.id(), userId, ListingStatus.DRAFT,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
                 created.createdAt(), System.currentTimeMillis(), created.publishedAt()
         );

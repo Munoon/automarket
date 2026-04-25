@@ -41,7 +41,7 @@ public abstract class AbstractIntegrationTest {
     @BeforeEach
     void truncateTables() {
         carListingAnalyticsService.saveListingAnalytics(); // flush stale in-memory counters before listings are gone
-        databaseClient.sql("TRUNCATE TABLE sms_verification_codes, car_listing_analytics, car_listings, users RESTART IDENTITY CASCADE")
+        databaseClient.sql("TRUNCATE TABLE pending_files_uploads, sms_verification_codes, car_listing_analytics, car_listings, users RESTART IDENTITY CASCADE")
                 .fetch()
                 .rowsUpdated()
                 .block();

@@ -14,6 +14,7 @@ public record PublicCarListingDTO(
         String authorDisplayName,
         String title,
         String description,
+        String[] imageUrls,
         CarBrand brand,
         String customBrandName,
         String model,

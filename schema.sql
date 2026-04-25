@@ -210,6 +210,7 @@ CREATE TABLE IF NOT EXISTS car_listings
     status            listing_status NOT NULL DEFAULT 'DRAFT',
     title             VARCHAR(200),
     description       TEXT,
+    image_keys        TEXT[] NOT NULL DEFAULT '{}',
     brand             car_brand,
     custom_brand_name VARCHAR(100),
     model             VARCHAR(100),
@@ -257,4 +258,12 @@ CREATE TABLE IF NOT EXISTS car_listing_analytics
     favourites_count     INT NOT NULL DEFAULT 0,
     ts                   TIMESTAMP NOT NULL,
     PRIMARY KEY (listing_id, ts)
+);
+
+CREATE TABLE IF NOT EXISTS pending_files_uploads
+(
+    key           TEXT NOT NULL,
+    owner_user_id BIGINT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    uploaded_at   BIGINT NOT NULL,
+    PRIMARY KEY (key)
 );

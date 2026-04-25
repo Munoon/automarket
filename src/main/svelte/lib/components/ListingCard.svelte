@@ -11,7 +11,13 @@
   let { listing, preview = false }: { listing: PublicCarListingItem, preview?: boolean } = $props();
 
   const href = $derived(`/${listingSlug(listing.id, listing.title)}`);
-  const images = $derived([{ src: noImageUrl, alt: listing.title ?? 'Car photo' }]);
+  const images = $derived.by(() => {
+    if (!listing.imageUrls || listing.imageUrls.length === 0) {
+      return [{ src: noImageUrl, alt: listing.title ?? 'Car photo' }];
+    }
+
+    return listing.imageUrls.map(url => ({ src: url, alt: listing.title ?? 'Car photo' }));
+  });
 
   function handleClick() {
     if (!preview) {

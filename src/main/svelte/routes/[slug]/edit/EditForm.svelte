@@ -11,6 +11,7 @@
   import { t } from '$lib/i18n';
   import { allowedChars, type CharacterType } from '$lib/utils/allowedChars';
   import { Input, Textarea, Select, Label } from 'flowbite-svelte';
+  import ImageUpload from './ImageUpload.svelte';
 
   let {
     listing = $bindable(),
@@ -87,6 +88,14 @@
 </script>
 
 <div class="space-y-5">
+
+  <!-- Photos -->
+  <section class="info-card space-y-4">
+    <h2 class="text-sm font-semibold text-muted uppercase tracking-wide">
+      {$t('edit.section.images')}
+    </h2>
+    <ImageUpload bind:listing {onchange} />
+  </section>
 
   <!-- Basic Info -->
   <section class="info-card space-y-4">

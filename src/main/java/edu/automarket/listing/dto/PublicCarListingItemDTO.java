@@ -7,6 +7,7 @@ import edu.automarket.listing.model.TransmissionType;
 public record PublicCarListingItemDTO(
         long id,
         String title,
+        String[] imageUrls,
         Long price,
         Integer mileage,
         FuelType fuelType,

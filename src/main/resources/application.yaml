@@ -21,3 +21,11 @@ spring:
 #  captcha:
 #    sitekey:
 #    secret:
+#  s3:
+#    bucketName:
+#    endpointUrl:
+#    cdnEndpointUrl:
+#    accessKeyId:
+#    secretAccessKey:
+#    pathStyleAccessEnabled: false
+#    maxUploadsLimitPerUser: 20

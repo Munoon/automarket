@@ -27,6 +27,9 @@ public record UpdateCarListingRequestDTO(
         @AllowedCharacters({CharacterType.ALPHABETICAL, CharacterType.DIGIT, CharacterType.SPECIAL_SYMBOL})
         String description,
 
+        @Size(max = 10)
+        String @Size(max = 200)[] imageKeys,
+
         CarBrand brand,
 
         @Size(min = 1, max = 100)

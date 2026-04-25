@@ -102,7 +102,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         CarListing listing = carListingService.create(userId).block();
         listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
         CarListing updatedListing = carListingService.update(listing, new UpdateCarListingRequestDTO(
-                "Test Car", "A nice car", CarBrand.TOYOTA, null, "Camry",
+                "Test Car", "A nice car", null, CarBrand.TOYOTA, null, "Camry",
                 "AA2222BB", CarCondition.NEW, 1234, 500000L,
                 City.KYIV, CarColor.RED, TransmissionType.MANUAL, FuelType.ELECTRIC, 25.4,
                 DriveType.FWD, BodyType.SEDAN, 2024, 34.1, 4
@@ -486,7 +486,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
 
         CarListing bmwListing = carListingService.create(userId).block();
         bmwListing = carListingService.update(bmwListing, new UpdateCarListingRequestDTO(
-                "Awesome BMW X5", "Nice car", CarBrand.BMW, null, "X5",
+                "Awesome BMW X5", "Nice car", null, CarBrand.BMW, null, "X5",
                 "BB3333BB", CarCondition.USED, 50000, 800000L,
                 City.KHARKIV, CarColor.BLACK, TransmissionType.MANUAL,
                 FuelType.DIESEL, 80.0, DriveType.AWD, BodyType.SUV, 2022, 3.0, 1
@@ -553,7 +553,7 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         userService.updateDisplayName(userId, "Test User").block();
         CarListing listing = carListingService.create(userId).block();
         CarListing updatedListing = carListingService.update(listing, new UpdateCarListingRequestDTO(
-                "Test Car", "Nice description", CarBrand.TOYOTA, null, "Camry",
+                "Test Car", "Nice description", null, CarBrand.TOYOTA, null, "Camry",
                 "AA2222BB", CarCondition.NEW, 1234, 200000L, City.KHARKIV, CarColor.RED,
                 TransmissionType.MANUAL, FuelType.ELECTRIC, 24.3, DriveType.AWD, BodyType.SEDAN,
                 2024, 34.5, 10

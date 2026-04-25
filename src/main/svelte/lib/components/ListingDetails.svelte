@@ -18,12 +18,13 @@
 
   let { listing, preview = false }: { listing: PublicCarListing, preview?: boolean } = $props();
 
-  // Placeholder images until the API is ready
-  const images = $derived([
-    { src: noImageUrl, alt: listing.title ?? 'Car photo' },
-    { src: noImageUrl, alt: listing.title ?? 'Car photo' },
-    { src: noImageUrl, alt: listing.title ?? 'Car photo' },
-  ]);
+  const images = $derived.by(() => {
+    if (!listing.imageUrls || listing.imageUrls.length === 0) {
+      return [{ src: noImageUrl, alt: listing.title ?? 'Car photo' }];
+    }
+
+    return listing.imageUrls.map(url => ({ src: url, alt: listing.title ?? 'Car photo' }));
+  });
 
   let phoneState = $state<'idle' | 'loading' | 'done'>('idle');
   let phoneNumber = $state<string | null>(null);

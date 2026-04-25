@@ -90,6 +90,7 @@
       listing = await apiClient.updateOwnListing(listing.id, {
         title: listing.title,
         description: listing.description,
+        imageKeys: listing.images?.map(image => image.key) ?? [],
         price: listing.price,
         city: listing.city,
         brand: listing.brand,

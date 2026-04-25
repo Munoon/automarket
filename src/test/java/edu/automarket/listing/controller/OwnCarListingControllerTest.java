@@ -13,17 +13,35 @@ import edu.automarket.listing.dto.OwnCarListingDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.dto.UpdateListingStatusRequestDTO;
+import edu.automarket.listing.model.BodyType;
 import edu.automarket.listing.model.CarBrand;
+import edu.automarket.listing.model.CarColor;
+import edu.automarket.listing.model.CarCondition;
 import edu.automarket.listing.model.CarListing;
+import edu.automarket.listing.model.City;
+import edu.automarket.listing.model.DriveType;
+import edu.automarket.listing.model.FuelType;
 import edu.automarket.listing.model.ListingStatus;
+import edu.automarket.listing.model.TransmissionType;
+import edu.automarket.upload.UploadService;
 import edu.automarket.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -40,6 +58,9 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
 
     @Autowired
     private WebTestClient webTestClient;
+
+    @MockitoBean
+    private UploadService uploadService;
 
     @Autowired
     private UserService userService;
@@ -501,7 +522,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
         CarListing listing = carListingService.create(userId).block();
 
         var request = new UpdateCarListingRequestDTO(
-                "My Car", null, CarBrand.CUSTOM, "Custom brand name", "Camry", null,
+                "My Car", null, null, CarBrand.CUSTOM, "Custom brand name", "Camry", null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null
         );
 
@@ -541,7 +562,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .uri("/api/listings/own/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new UpdateCarListingRequestDTO(
-                        null, null, null, null, null, null,
+                        null, null, null, null, null, null, null,
                         null, null, null, null, null, null, null, null, null, null, null, null, null
                 ))
                 .exchange()
@@ -565,7 +586,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new UpdateCarListingRequestDTO(
-                        null, null, null, null, null, null,
+                        null, null, null, null, null, null, null,
                         null, null, null, null, null, null, null, null, null, null, null, null, null
                 ))
                 .exchange()
@@ -591,7 +612,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .header("Authorization", "Bearer " + token2)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new UpdateCarListingRequestDTO(
-                        null, null, null, null, null, null,
+                        null, null, null, null, null, null, null,
                         null, null, null, null, null, null, null, null, null, null, null, null, null
                 ))
                 .exchange()
@@ -616,7 +637,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new UpdateCarListingRequestDTO(
-                        "A".repeat(201), null, null, null, null, null,
+                        "A".repeat(201), null, null, null, null, null, null,
                         null, null, null, null, null, null, null, null, null, null, null, null, null
                 ))
                 .exchange()
@@ -641,7 +662,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new UpdateCarListingRequestDTO(
-                        null, null, CarBrand.TOYOTA, "My Brand", null, null,
+                        null, null, null, CarBrand.TOYOTA, "My Brand", null, null,
                         null, null, null, null, null, null, null, null, null, null, null, null, null
                 ))
                 .exchange()
@@ -666,7 +687,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                      .header("Authorization", "Bearer " + token)
                      .contentType(MediaType.APPLICATION_JSON)
                      .bodyValue(new UpdateCarListingRequestDTO(
-                             null, null, CarBrand.CUSTOM, null, null, null,
+                             null, null, null, CarBrand.CUSTOM, null, null, null,
                              null, null, null, null, null, null, null, null, null, null, null, null, null
                      ))
                      .exchange()
@@ -693,7 +714,7 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new UpdateCarListingRequestDTO(
-                        null, null, CarBrand.TOYOTA, null, null, null,
+                        null, null, null, CarBrand.TOYOTA, null, null, null,
                         null, null, null, null, null, null, null, null, null, null, null, null, null
                 ))
                 .exchange()
@@ -990,6 +1011,165 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                     assertThat(problem.type()).isEqualTo("/problems/access-denied");
                     assertThat(problem.title()).isEqualTo("Access denied");
                     assertThat(problem.status()).isEqualTo(403);
+                });
+    }
+
+    // --- Image handling in PATCH /api/listings/own/{id} ---
+
+    @Test
+    void updateWithDuplicateImageKeysReturns400() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        var request = new UpdateCarListingRequestDTO(
+                null, null, new String[]{"key1", "key1"}, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        webTestClient.patch()
+                .uri("/api/listings/own/" + listing.id())
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/duplicate-image-keys");
+                    assertThat(problem.status()).isEqualTo(400);
+                });
+    }
+
+    @Test
+    void updateWithInaccessibleImageKeysReturns400() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        when(uploadService.filterUploadsByAccess(anyList(), eq(userId))).thenReturn(Flux.empty());
+
+        var request = new UpdateCarListingRequestDTO(
+                null, null, new String[]{"unknown-key"}, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        webTestClient.patch()
+                .uri("/api/listings/own/" + listing.id())
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/invalid-image-keys");
+                    assertThat(problem.status()).isEqualTo(400);
+                });
+    }
+
+    @Test
+    void updateAddingNewImagesCallsMarkUploadAsUsedAsync() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        when(uploadService.filterUploadsByAccess(anyList(), eq(userId))).thenReturn(Flux.just("new-key"));
+        when(uploadService.markUploadAsUsed(any())).thenReturn(Mono.empty());
+
+        var request = new UpdateCarListingRequestDTO(
+                null, null, new String[]{"new-key"}, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        webTestClient.patch()
+                .uri("/api/listings/own/" + listing.id())
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(uploadService, timeout(1000)).markUploadAsUsed(List.of("new-key"));
+    }
+
+    @Test
+    void updateRemovingImagesCallsDeleteFilesAsync() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        // Set up listing with an existing image (bypasses controller upload access check)
+        carListingService.update(listing, new UpdateCarListingRequestDTO(
+                "Title", null, new String[]{"old-key"}, CarBrand.TOYOTA, null, "Model", null,
+                CarCondition.NEW, 100, 100L, City.KYIV, CarColor.WHITE, TransmissionType.AUTOMATIC,
+                FuelType.PETROL, 10.4, DriveType.FWD, BodyType.SEDAN, 2025, 2.0, 0
+        )).block();
+
+        var request = new UpdateCarListingRequestDTO(
+                null, null, new String[0], null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        webTestClient.patch()
+                .uri("/api/listings/own/" + listing.id())
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(uploadService, timeout(1000)).deleteFiles(List.of("old-key"));
+    }
+
+    @Test
+    void deleteListingRemovesFiles() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        // Set up listing with an existing image (bypasses controller upload access check)
+        carListingService.update(listing, new UpdateCarListingRequestDTO(
+                "Title", null, new String[]{"key-1", "key-2"}, CarBrand.TOYOTA, null, "Model", null,
+                CarCondition.NEW, 100, 100L, City.KYIV, CarColor.WHITE, TransmissionType.AUTOMATIC,
+                FuelType.PETROL, 10.4, DriveType.FWD, BodyType.SEDAN, 2025, 2.0, 0
+        )).block();
+
+        webTestClient.delete()
+                .uri("/api/listings/own/" + listing.id())
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isNoContent();
+
+        verify(uploadService, timeout(1000)).deleteFiles(List.of("key-1", "key-2"));
+    }
+
+    @Test
+    void getByIdReturnsImagesWithCdnUrlsInDto() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        carListingService.update(listing, new UpdateCarListingRequestDTO(
+                "Title", null, new String[]{"img-key"}, CarBrand.TOYOTA, null, "Model", null,
+                CarCondition.NEW, 100, 100L, City.KYIV, CarColor.WHITE, TransmissionType.AUTOMATIC,
+                FuelType.PETROL, 10.4, DriveType.FWD, BodyType.SEDAN, 2025, 2.0, 0
+        )).block();
+
+        when(uploadService.getCdnEndpointUrl("img-key")).thenReturn("http://cdn.test/img-key");
+
+        webTestClient.get()
+                .uri("/api/listings/own/" + listing.id())
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(OwnCarListingDTO.class)
+                .value(dto -> {
+                    assertThat(dto.images()).hasSize(1);
+                    assertThat(dto.images()[0].key()).isEqualTo("img-key");
+                    assertThat(dto.images()[0].url()).isEqualTo("http://cdn.test/img-key");
                 });
     }
 }

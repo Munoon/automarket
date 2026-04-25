@@ -104,10 +104,16 @@ export type City = 'KYIV' | 'KHARKIV' | 'ODESA' | 'DNIPRO' | 'ZAPORIZHZHIA' |
     'RIVNE' | 'ZHYTOMYR' | 'TERNOPIL' | 'LUTSK' | 'UZHHOROD' | 'CHERNIVTSI' |
     'KREMENCHUK' | 'BILA_TSERKVA' | 'MELITOPOL' | 'MUKACHEVO' | 'DROHOBYCH';
 
+export interface OwnCarListingImage {
+	key: string;
+	url: string | null;
+}
+
 export interface OwnCarListing {
 	id: number;
 	status: ListingStatus;
 	title: string | null;
+	images: OwnCarListingImage[] | null;
 	description: string | null;
 	brand: CarBrand | null;
 	customBrandName: string | null;
@@ -141,6 +147,7 @@ export interface OwnCarListingListItem {
 export interface UpdateOwnListingRequest {
 	title: string | null;
 	description: string | null;
+	imageKeys: string[] | null;
 	brand: CarBrand | null;
 	customBrandName: string | null;
 	model: string | null;
@@ -182,6 +189,7 @@ export interface PublicCarListing {
 	authorDisplayName: string | null;
 	title: string | null;
 	description: string | null;
+	imageUrls: string[] | null;
 	brand: CarBrand | null;
 	customBrandName: string | null;
 	model: string | null;
@@ -205,6 +213,7 @@ export interface PublicCarListing {
 export interface PublicCarListingItem {
 	id: number;
 	title: string | null;
+	imageUrls: string[] | null;
 	price: number | null;
 	mileage: number | null;
 	fuelType: FuelType | null;
@@ -244,6 +253,20 @@ export interface GetPublicListingsRequest {
 
 export interface AuthorPhone {
 	phoneNumber: string;
+}
+
+export interface GenerateSignedUrlRequest {
+	listingId: number;
+	contentLength: number;
+	md5: string;
+	contentType: 'image/jpeg' | 'image/png' | 'image/webp';
+}
+
+export interface SignUrlResponse {
+	uploadUrl: string;
+	uploadHeaders: Record<string, string[]> | null;
+	fileKey: string;
+	fileUrl: string | null;
 }
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -344,6 +367,13 @@ export class ApiClient {
 		options: RequestOptions = {}
 	): Promise<Page<PublicCarListingItem>> {
 		return this.send<Page<PublicCarListingItem>>('GET', '/api/listings/public', undefined, body, options);
+	}
+
+	public async generateSignedUrl(
+		body: GenerateSignedUrlRequest,
+		options: RequestOptions = {}
+	): Promise<SignUrlResponse> {
+		return this.sendAuthenticated<SignUrlResponse>('POST', '/api/upload/signUrl', body, undefined, options);
 	}
 
 	private async send<T>(

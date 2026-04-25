@@ -11,6 +11,7 @@
 
   const fullListing = $derived<PublicCarListing>({
     ...listing,
+    imageUrls: listing.images?.map(image => image.url ?? '') ?? null,
     authorDisplayName: $authStore.profile?.displayName ?? null
   });
 </script>
@@ -42,7 +43,7 @@
 
   {#if previewTab === 'card'}
     <div class="flex justify-center py-4">
-      <ListingCard {listing} preview />
+      <ListingCard listing={fullListing} preview />
     </div>
   {:else}
     <div class="rounded-2xl border border-gray-200 dark:border-gray-700">

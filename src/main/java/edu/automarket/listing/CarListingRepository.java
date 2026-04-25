@@ -15,7 +15,7 @@ import edu.automarket.listing.model.DriveType;
 import edu.automarket.listing.model.FuelType;
 import edu.automarket.listing.model.ListingStatus;
 import edu.automarket.listing.model.TransmissionType;
-import io.r2dbc.spi.Readable;
+import edu.automarket.upload.UploadService;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
@@ -51,8 +51,8 @@ public class CarListingRepository {
 
     //language=postgresql
     private static final String SELECT_BY_ID_QUERY = """
-            SELECT id, author_user_id, status::text, title, description, brand::text, custom_brand_name, model,
-                   license_plate, condition::text, mileage, price, city::text, color::text, transmission::text,
+            SELECT id, author_user_id, status::text, title, description, image_keys, brand::text, custom_brand_name,
+                   model, license_plate, condition::text, mileage, price, city::text, color::text, transmission::text,
                    fuel_type::text, tank_volume, drive_type::text, body_type::text, year, engine_volume,
                    owners_count, created_at, updated_at, published_at
             FROM car_listings
@@ -66,6 +66,7 @@ public class CarListingRepository {
                 status            = :status::listing_status,
                 title             = :title,
                 description       = :description,
+                image_keys        = :imageKeys,
                 brand             = :brand::car_brand,
                 custom_brand_name = :customBrandName,
                 model             = :model,
@@ -101,7 +102,7 @@ public class CarListingRepository {
             """;
 
     private static final String SELECT_PUBLISHED_BASE =
-            "SELECT id, title, price, mileage, fuel_type::text, transmission::text, city::text, year FROM car_listings";
+            "SELECT id, title, image_keys, price, mileage, fuel_type::text, transmission::text, city::text, year FROM car_listings";
 
     private static final String COUNT_PUBLISHED_BASE =
             "SELECT COUNT(*) FROM car_listings";
@@ -117,7 +118,7 @@ public class CarListingRepository {
 
     //language=postgresql
     private static final String SELECT_PUBLISHED_BY_ID_QUERY = """
-            SELECT cl.id, u.display_name, cl.title, cl.description, cl.brand::text, cl.custom_brand_name,
+            SELECT cl.id, u.display_name, cl.title, cl.description, cl.image_keys, cl.brand::text, cl.custom_brand_name,
                    cl.model, cl.license_plate, cl.condition::text, cl.mileage, cl.price, cl.city::text,
                    cl.color::text, cl.transmission::text, cl.fuel_type::text, cl.tank_volume,
                    cl.drive_type::text, cl.body_type::text, cl.year, cl.engine_volume,
@@ -129,9 +130,11 @@ public class CarListingRepository {
             """;
 
     private final DatabaseClient client;
+    private final UploadService uploadService;
 
-    public CarListingRepository(DatabaseClient client) {
+    public CarListingRepository(DatabaseClient client, UploadService uploadService) {
         this.client = client;
+        this.uploadService = uploadService;
     }
 
     public Mono<CarListing> create(long authorUserId, long createdAt) {
@@ -143,7 +146,7 @@ public class CarListingRepository {
                         row.get(0, Long.class),
                         authorUserId,
                         ListingStatus.DRAFT,
-                        null, null, null, null, null, null, null,
+                        null, null, null, null, null, null, null, null,
                         null, null, null, null, null, null, null,
                         null, null, null, null, null,
                         createdAt, createdAt, 0
@@ -175,7 +178,47 @@ public class CarListingRepository {
     public Mono<CarListing> findById(long id) {
         return client.sql(SELECT_BY_ID_QUERY)
                 .bind("id", id)
-                .map(this::mapRow)
+                .map(row -> {
+                    String brandStr = row.get(6, String.class);
+                    String conditionStr = row.get(10, String.class);
+                    String cityStr = row.get(13, String.class);
+                    String colorStr = row.get(14, String.class);
+                    String transmissionStr = row.get(15, String.class);
+                    String fuelTypeStr = row.get(16, String.class);
+                    BigDecimal tankVol = row.get(17, BigDecimal.class);
+                    String driveTypeStr = row.get(18, String.class);
+                    String bodyTypeStr = row.get(19, String.class);
+                    BigDecimal engVol = row.get(21, BigDecimal.class);
+
+                    return new CarListing(
+                            row.get(0, Long.class),
+                            row.get(1, Long.class),
+                            ListingStatus.valueOf(row.get(2, String.class)),
+                            row.get(3, String.class),
+                            row.get(4, String.class),
+                            row.get(5, String[].class),
+                            brandStr != null ? CarBrand.valueOf(brandStr) : null,
+                            row.get(7, String.class),
+                            row.get(8, String.class),
+                            row.get(9, String.class),
+                            conditionStr != null ? CarCondition.valueOf(conditionStr) : null,
+                            row.get(11, Integer.class),
+                            row.get(12, Long.class),
+                            cityStr != null ? City.valueOf(cityStr) : null,
+                            colorStr != null ? CarColor.valueOf(colorStr) : null,
+                            transmissionStr != null ? TransmissionType.valueOf(transmissionStr) : null,
+                            fuelTypeStr != null ? FuelType.valueOf(fuelTypeStr) : null,
+                            tankVol != null ? tankVol.doubleValue() : null,
+                            driveTypeStr != null ? DriveType.valueOf(driveTypeStr) : null,
+                            bodyTypeStr != null ? BodyType.valueOf(bodyTypeStr) : null,
+                            row.get(20, Integer.class),
+                            engVol != null ? engVol.doubleValue() : null,
+                            row.get(22, Integer.class),
+                            row.get(23, Long.class),
+                            row.get(24, Long.class),
+                            row.get(25, Long.class)
+                    );
+                })
                 .one();
     }
 
@@ -199,6 +242,7 @@ public class CarListingRepository {
         spec = carListing.description() != null
                 ? spec.bind("description", carListing.description())
                 : spec.bindNull("description", String.class);
+        spec = spec.bind("imageKeys", carListing.imageKeys() != null ? carListing.imageKeys() : new String[0]);
         spec = carListing.brand() != null
                 ? spec.bind("brand", carListing.brand().name())
                 : spec.bindNull("brand", String.class);
@@ -265,18 +309,19 @@ public class CarListingRepository {
                 .bind("size", request.getSize())
                 .bind("offset", request.getOffset())
                 .map(row -> {
-                    String fuelTypeStr = row.get(4, String.class);
-                    String transmissionTypeStr = row.get(5, String.class);
-                    String cityStr = row.get(6, String.class);
+                    String fuelTypeStr = row.get(5, String.class);
+                    String transmissionTypeStr = row.get(6, String.class);
+                    String cityStr = row.get(7, String.class);
                     return new PublicCarListingItemDTO(
                             row.get(0, Long.class),
                             row.get(1, String.class),
-                            row.get(2, Long.class),
-                            row.get(3, Integer.class),
+                            uploadService.getCdnEndpointUrl(row.get(2, String[].class)),
+                            row.get(3, Long.class),
+                            row.get(4, Integer.class),
                             fuelTypeStr != null ? FuelType.valueOf(fuelTypeStr) : null,
                             transmissionTypeStr != null ? TransmissionType.valueOf(transmissionTypeStr) : null,
                             cityStr != null ? City.valueOf(cityStr) : null,
-                            row.get(7, Integer.class)
+                            row.get(8, Integer.class)
                     );
                 })
                 .all();
@@ -364,28 +409,29 @@ public class CarListingRepository {
         return client.sql(SELECT_PUBLISHED_BY_ID_QUERY)
                 .bind("id", id)
                 .map(row -> {
-                    String brandStr = row.get(4, String.class);
-                    String conditionStr = row.get(8, String.class);
-                    String cityStr = row.get(11, String.class);
-                    String colorStr = row.get(12, String.class);
-                    String transmissionStr = row.get(13, String.class);
-                    String fuelTypeStr = row.get(14, String.class);
-                    BigDecimal tankVol = row.get(15, BigDecimal.class);
-                    String driveTypeStr = row.get(16, String.class);
-                    String bodyTypeStr = row.get(17, String.class);
-                    BigDecimal engVol = row.get(19, BigDecimal.class);
+                    String brandStr = row.get(5, String.class);
+                    String conditionStr = row.get(9, String.class);
+                    String cityStr = row.get(12, String.class);
+                    String colorStr = row.get(13, String.class);
+                    String transmissionStr = row.get(14, String.class);
+                    String fuelTypeStr = row.get(15, String.class);
+                    BigDecimal tankVol = row.get(16, BigDecimal.class);
+                    String driveTypeStr = row.get(17, String.class);
+                    String bodyTypeStr = row.get(18, String.class);
+                    BigDecimal engVol = row.get(20, BigDecimal.class);
                     return new PublicCarListingDTO(
                             row.get(0, Long.class),
                             row.get(1, String.class),
                             row.get(2, String.class),
                             row.get(3, String.class),
+                            uploadService.getCdnEndpointUrl(row.get(4, String[].class)),
                             brandStr != null ? CarBrand.valueOf(brandStr) : null,
-                            row.get(5, String.class),
                             row.get(6, String.class),
                             row.get(7, String.class),
+                            row.get(8, String.class),
                             conditionStr != null ? CarCondition.valueOf(conditionStr) : null,
-                            row.get(9, Integer.class),
-                            row.get(10, Long.class),
+                            row.get(10, Integer.class),
+                            row.get(11, Long.class),
                             cityStr != null ? City.valueOf(cityStr) : null,
                             colorStr != null ? CarColor.valueOf(colorStr) : null,
                             transmissionStr != null ? TransmissionType.valueOf(transmissionStr) : null,
@@ -393,53 +439,13 @@ public class CarListingRepository {
                             tankVol != null ? tankVol.doubleValue() : null,
                             driveTypeStr != null ? DriveType.valueOf(driveTypeStr) : null,
                             bodyTypeStr != null ? BodyType.valueOf(bodyTypeStr) : null,
-                            row.get(18, Integer.class),
+                            row.get(19, Integer.class),
                             engVol != null ? engVol.doubleValue() : null,
-                            row.get(20, Integer.class),
-                            row.get(21, Long.class)
+                            row.get(21, Integer.class),
+                            row.get(22, Long.class)
                     );
                 })
                 .one();
     }
 
-    private CarListing mapRow(Readable row) {
-        String brandStr = row.get(5, String.class);
-        String conditionStr = row.get(9, String.class);
-        String cityStr = row.get(12, String.class);
-        String colorStr = row.get(13, String.class);
-        String transmissionStr = row.get(14, String.class);
-        String fuelTypeStr = row.get(15, String.class);
-        BigDecimal tankVol = row.get(16, BigDecimal.class);
-        String driveTypeStr = row.get(17, String.class);
-        String bodyTypeStr = row.get(18, String.class);
-        BigDecimal engVol = row.get(20, BigDecimal.class);
-
-        return new CarListing(
-                row.get(0, Long.class),
-                row.get(1, Long.class),
-                ListingStatus.valueOf(row.get(2, String.class)),
-                row.get(3, String.class),
-                row.get(4, String.class),
-                brandStr != null ? CarBrand.valueOf(brandStr) : null,
-                row.get(6, String.class),
-                row.get(7, String.class),
-                row.get(8, String.class),
-                conditionStr != null ? CarCondition.valueOf(conditionStr) : null,
-                row.get(10, Integer.class),
-                row.get(11, Long.class),
-                cityStr != null ? City.valueOf(cityStr) : null,
-                colorStr != null ? CarColor.valueOf(colorStr) : null,
-                transmissionStr != null ? TransmissionType.valueOf(transmissionStr) : null,
-                fuelTypeStr != null ? FuelType.valueOf(fuelTypeStr) : null,
-                tankVol != null ? tankVol.doubleValue() : null,
-                driveTypeStr != null ? DriveType.valueOf(driveTypeStr) : null,
-                bodyTypeStr != null ? BodyType.valueOf(bodyTypeStr) : null,
-                row.get(19, Integer.class),
-                engVol != null ? engVol.doubleValue() : null,
-                row.get(21, Integer.class),
-                row.get(22, Long.class),
-                row.get(23, Long.class),
-                row.get(24, Long.class)
-        );
-    }
 }
