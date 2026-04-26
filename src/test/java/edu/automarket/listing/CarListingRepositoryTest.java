@@ -45,7 +45,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void findByUserIdAndStatuses() {
+    void findByUserId() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         long now = System.currentTimeMillis();
         CarListing draft = carListingRepository.create(userId, now).block();
@@ -55,7 +55,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         carListingRepository.update(published.withStatus(ListingStatus.PUBLISHED, publishedAt)).block();
         carListingRepository.update(archived.withStatus(ListingStatus.ARCHIVED, publishedAt)).block();
 
-        StepVerifier.create(carListingRepository.findByUserIdAndStatuses(userId, 0, 20))
+        StepVerifier.create(carListingRepository.findByUserId(userId, 0, 20))
                 .assertNext(listing -> assertThat(listing.id()).isEqualTo(draft.id()))
                 .assertNext(listing -> assertThat(listing.id()).isEqualTo(published.id()))
                 .assertNext(listing -> assertThat(listing.id()).isEqualTo(archived.id()))
@@ -63,31 +63,31 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void findByUserIdAndStatusesDoesNotReturnOtherUsersListings() {
+    void findByUserIdDoesNotReturnOtherUsersListings() {
         long userId1 = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         long userId2 = userService.getUserByPhoneNumberOrCreate("+380123456780").block().id();
         carListingRepository.create(userId1, System.currentTimeMillis()).block();
         CarListing secondUserListing = carListingRepository.create(userId2, System.currentTimeMillis()).block();
 
-        StepVerifier.create(carListingRepository.findByUserIdAndStatuses(userId2, 0, 20))
+        StepVerifier.create(carListingRepository.findByUserId(userId2, 0, 20))
                     .assertNext(listing -> assertThat(listing.id()).isEqualTo(secondUserListing.id()))
                     .verifyComplete();
     }
 
     @Test
-    void findByUserIdAndStatusesPaginatesCorrectly() {
+    void findByUserIdPaginatesCorrectly() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         long now = System.currentTimeMillis();
         CarListing listing1 = carListingRepository.create(userId, now).block();
         CarListing listing2 = carListingRepository.create(userId, now + 1).block();
         CarListing listing3 = carListingRepository.create(userId, now + 2).block();
 
-        StepVerifier.create(carListingRepository.findByUserIdAndStatuses(userId, 0, 2))
+        StepVerifier.create(carListingRepository.findByUserId(userId, 0, 2))
                     .assertNext(listing -> assertThat(listing.id()).isEqualTo(listing3.id()))
                     .assertNext(listing -> assertThat(listing.id()).isEqualTo(listing2.id()))
                     .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findByUserIdAndStatuses(userId, 2, 2))
+        StepVerifier.create(carListingRepository.findByUserId(userId, 2, 2))
                     .assertNext(listing -> assertThat(listing.id()).isEqualTo(listing1.id()))
                     .verifyComplete();
     }
@@ -143,13 +143,14 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
         long updatedAt = System.currentTimeMillis();
         long publishedAt = System.currentTimeMillis() + 1_000;
+        long promotedUntil = System.currentTimeMillis() + 2_000;
         var request = new CarListing(
                 created.id(), userId, ListingStatus.ARCHIVED,
                 "My Car Title", "Great description", null, CarBrand.TOYOTA, null,
                 "Camry", "AA1234BB", CarCondition.USED, 50000, 15000L,
                 City.KYIV, CarColor.WHITE, TransmissionType.AUTOMATIC, FuelType.PETROL,
                 50.0, DriveType.FWD, BodyType.SEDAN, 2020, 2.5, 1,
-                created.createdAt(), updatedAt, publishedAt
+                created.createdAt(), updatedAt, publishedAt, promotedUntil
         );
 
         carListingRepository.update(request).block();
@@ -178,6 +179,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                     assertThat(listing.ownersCount()).isEqualTo(1);
                     assertThat(listing.updatedAt()).isEqualTo(updatedAt);
                     assertThat(listing.publishedAt()).isEqualTo(publishedAt);
+                    assertThat(listing.promotedUntil()).isEqualTo(promotedUntil);
                 })
                 .verifyComplete();
     }
@@ -214,7 +216,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 listing.id(), userId, ListingStatus.PUBLISHED,
                 "My Car", "Nice car", null, CarBrand.TOYOTA, null, "Camry",
                 null, null, 100, 300000L, City.KYIV, null, TransmissionType.MANUAL, FuelType.ELECTRIC, null, null, null, 2025, null, null,
-                listing.createdAt(), System.currentTimeMillis(), System.currentTimeMillis()
+                listing.createdAt(), System.currentTimeMillis(), System.currentTimeMillis(), 0
         )).block();
 
         StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO()))
@@ -305,7 +307,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 "AA1234BB", CarCondition.USED, 50000, 300000L, City.KYIV,
                 CarColor.WHITE, TransmissionType.AUTOMATIC, FuelType.PETROL,
                 50.0, DriveType.FWD, BodyType.SEDAN, 2020, 2.5, 1,
-                listing.createdAt(), System.currentTimeMillis(), publishedAt
+                listing.createdAt(), System.currentTimeMillis(), publishedAt, 0
         )).block();
 
         StepVerifier.create(carListingRepository.findPublishedById(listing.id()))
@@ -352,6 +354,44 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void findPublishedByIdReturnsCorrectIsPromotedStatus() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+
+        CarListing listing1 = carListingRepository.create(userId, now).block();
+        CarListing listing2 = carListingRepository.create(userId, now + 1).block();
+        CarListing listing3 = carListingRepository.create(userId, now + 1).block();
+        carListingRepository.update(listing1.withStatus(ListingStatus.PUBLISHED, now)).block();
+        carListingRepository.update(listing2.withStatus(ListingStatus.PUBLISHED, now)).block();
+        carListingRepository.update(listing3.withStatus(ListingStatus.PUBLISHED, now)).block();
+
+        // Promote listing1: set promotedUntil to a future timestamp
+        long promotedUntil = now + 7L * 24 * 60 * 60 * 1000;
+        carListingRepository.update(new CarListing(
+                listing1.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now, now, now, promotedUntil
+        )).block();
+        carListingRepository.update(new CarListing(
+                listing2.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now, now, now, now - 1_000
+        )).block();
+
+        StepVerifier.create(carListingRepository.findPublishedById(listing1.id()))
+                .assertNext(dto -> assertThat(dto.isPromoted()).isTrue())
+                .verifyComplete();
+        StepVerifier.create(carListingRepository.findPublishedById(listing2.id()))
+                .assertNext(dto -> assertThat(dto.isPromoted()).isFalse())
+                .verifyComplete();
+        StepVerifier.create(carListingRepository.findPublishedById(listing3.id()))
+                .assertNext(dto -> assertThat(dto.isPromoted()).isFalse())
+                .verifyComplete();
+    }
+
+    @Test
     void findAuthorPhoneByPublishedIdReturnsPhoneNumber() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
@@ -394,7 +434,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 listing.id(), userId, ListingStatus.PUBLISHED,
                 "Crimson Falcon", null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
-                now, now, now
+                now, now, now, 0
         )).block();
 
         StepVerifier.create(carListingRepository.findPublished(queryRequest("Crimson")))
@@ -422,7 +462,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 listing.id(), userId, ListingStatus.PUBLISHED,
                 null, "Excellent condition, one owner, garage kept", null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
-                now, now, now
+                now, now, now, 0
         )).block();
 
         StepVerifier.create(carListingRepository.findPublished(queryRequest("garage")))
@@ -442,7 +482,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 toyota.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, CarBrand.TOYOTA, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
-                now, now, now
+                now, now, now, 0
         )).block();
 
         CarListing mercedes = carListingRepository.create(userId, now + 1).block();
@@ -450,7 +490,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 mercedes.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, CarBrand.MERCEDES_BENZ, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
-                now + 1, now + 1, now + 1
+                now + 1, now + 1, now + 1, 0
         )).block();
 
         // Latin match
@@ -482,7 +522,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 listing.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, CarBrand.CUSTOM, "Zastava", null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
-                now, now, now
+                now, now, now, 0
         )).block();
 
         StepVerifier.create(carListingRepository.findPublished(queryRequest("Zastava")))
@@ -502,7 +542,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 listing.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, CarBrand.BMW, null, "X5", null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
-                now, now, now
+                now, now, now, 0
         )).block();
 
         StepVerifier.create(carListingRepository.findPublished(queryRequest("X5")))
@@ -523,7 +563,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 newCar.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, null, null, null, null,
                 CarCondition.NEW, null, null, null, null, null, null, null, null, null, null, null, null,
-                now, now, now
+                now, now, now, 0
         )).block();
 
         CarListing usedCar = carListingRepository.create(userId, now + 1).block();
@@ -531,7 +571,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 usedCar.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, null, null, null, null,
                 CarCondition.USED, null, null, null, null, null, null, null, null, null, null, null, null,
-                now + 1, now + 1, now + 1
+                now + 1, now + 1, now + 1, 0
         )).block();
 
         StepVerifier.create(carListingRepository.findPublished(queryRequest("новий")))
@@ -558,7 +598,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 kyivListing.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, null, null, null, null,
                 null, null, null, City.KYIV, null, null, null, null, null, null, null, null, null,
-                now, now, now
+                now, now, now, 0
         )).block();
 
         CarListing kharkivListing = carListingRepository.create(userId, now + 1).block();
@@ -566,7 +606,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 kharkivListing.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, null, null, null, null,
                 null, null, null, City.KHARKIV, null, null, null, null, null, null, null, null, null,
-                now + 1, now + 1, now + 1
+                now + 1, now + 1, now + 1, 0
         )).block();
 
         StepVerifier.create(carListingRepository.findPublished(queryRequest("Київ")))
@@ -591,7 +631,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 whiteCar.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, null, null, null, null,
                 null, null, null, null, CarColor.WHITE, null, null, null, null, null, null, null, null,
-                now, now, now
+                now, now, now, 0
         )).block();
 
         CarListing blackCar = carListingRepository.create(userId, now + 1).block();
@@ -599,7 +639,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 blackCar.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, null, null, null, null,
                 null, null, null, null, CarColor.BLACK, null, null, null, null, null, null, null, null,
-                now + 1, now + 1, now + 1
+                now + 1, now + 1, now + 1, 0
         )).block();
 
         StepVerifier.create(carListingRepository.findPublished(queryRequest("білий")))
@@ -621,7 +661,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 automaticCar.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, null, null, null, null,
                 null, null, null, null, null, TransmissionType.AUTOMATIC, null, null, null, null, null, null, null,
-                now, now, now
+                now, now, now, 0
         )).block();
 
         CarListing manualCar = carListingRepository.create(userId, now + 1).block();
@@ -629,7 +669,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 manualCar.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, null, null, null, null,
                 null, null, null, null, null, TransmissionType.MANUAL, null, null, null, null, null, null, null,
-                now + 1, now + 1, now + 1
+                now + 1, now + 1, now + 1, 0
         )).block();
 
         // Ukrainian
@@ -661,7 +701,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 petrolCar.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, null, null, null, null,
                 null, null, null, null, null, null, FuelType.PETROL, null, null, null, null, null, null,
-                now, now, now
+                now, now, now, 0
         )).block();
 
         CarListing dieselCar = carListingRepository.create(userId, now + 1).block();
@@ -669,7 +709,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 dieselCar.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, null, null, null, null,
                 null, null, null, null, null, null, FuelType.DIESEL, null, null, null, null, null, null,
-                now + 1, now + 1, now + 1
+                now + 1, now + 1, now + 1, 0
         )).block();
 
         CarListing electricCar = carListingRepository.create(userId, now + 2).block();
@@ -677,7 +717,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 electricCar.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, null, null, null, null,
                 null, null, null, null, null, null, FuelType.ELECTRIC, null, null, null, null, null, null,
-                now + 2, now + 2, now + 2
+                now + 2, now + 2, now + 2, 0
         )).block();
 
         StepVerifier.create(carListingRepository.findPublished(queryRequest("бензин")))
@@ -703,7 +743,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 fwdCar.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, DriveType.FWD, null, null, null, null,
-                now, now, now
+                now, now, now, 0
         )).block();
 
         CarListing awdCar = carListingRepository.create(userId, now + 1).block();
@@ -711,7 +751,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 awdCar.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, DriveType.AWD, null, null, null, null,
-                now + 1, now + 1, now + 1
+                now + 1, now + 1, now + 1, 0
         )).block();
 
         // Ukrainian
@@ -739,7 +779,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 sedanCar.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, BodyType.SEDAN, null, null, null,
-                now, now, now
+                now, now, now, 0
         )).block();
 
         CarListing suvCar = carListingRepository.create(userId, now + 1).block();
@@ -747,7 +787,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 suvCar.id(), userId, ListingStatus.PUBLISHED,
                 null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, BodyType.SUV, null, null, null,
-                now + 1, now + 1, now + 1
+                now + 1, now + 1, now + 1, 0
         )).block();
 
         StepVerifier.create(carListingRepository.findPublished(queryRequest("седан")))
@@ -775,7 +815,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 titleMatch.id(), userId, ListingStatus.PUBLISHED,
                 "Porsche 911", null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
-                now, now, now
+                now, now, now, 0
         )).block();
 
         // Published later — without ranking would appear first (ORDER BY published_at DESC)
@@ -784,13 +824,152 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 descMatch.id(), userId, ListingStatus.PUBLISHED,
                 "Sports car for sale", "This Porsche 911 replica is a great deal", null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
-                now + 1, now + 1, now + 1
+                now + 1, now + 1, now + 1, 0
         )).block();
 
         // With ranking, the title match (weight A) must outrank the description match (weight D)
         StepVerifier.create(carListingRepository.findPublished(queryRequest("Porsche")))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(titleMatch.id()))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(descMatch.id()))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_promotedListingsReturnedFirst() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+
+        // listing1 published first, listing2 published later — without promotion, listing2 would come first
+        CarListing listing1 = carListingRepository.create(userId, now).block();
+        CarListing listing2 = carListingRepository.create(userId, now + 1).block();
+        carListingRepository.update(listing1.withStatus(ListingStatus.PUBLISHED, now)).block();
+        carListingRepository.update(listing2.withStatus(ListingStatus.PUBLISHED, now + 1)).block();
+
+        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO()))
+                .assertNext(dto -> {
+                    assertThat(dto.id()).isEqualTo(listing2.id());
+                    assertThat(dto.isPromoted()).isFalse();
+                })
+                .assertNext(dto -> {
+                    assertThat(dto.id()).isEqualTo(listing1.id());
+                    assertThat(dto.isPromoted()).isFalse();
+                })
+                .verifyComplete();
+
+        // Promote listing1: set promotedUntil to a future timestamp
+        long promotedUntil = now + 7L * 24 * 60 * 60 * 1000;
+        carListingRepository.update(new CarListing(
+                listing1.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now, now, now, promotedUntil
+        )).block();
+
+        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO()))
+                .assertNext(dto -> {
+                    assertThat(dto.id()).isEqualTo(listing1.id());
+                    assertThat(dto.isPromoted()).isTrue();
+                })
+                .assertNext(dto -> {
+                    assertThat(dto.id()).isEqualTo(listing2.id());
+                    assertThat(dto.isPromoted()).isFalse();
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_expiredPromotionNotBoosted() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+
+        CarListing listing1 = carListingRepository.create(userId, now).block();
+        CarListing listing2 = carListingRepository.create(userId, now + 1).block();
+        carListingRepository.update(listing1.withStatus(ListingStatus.PUBLISHED, now)).block();
+        carListingRepository.update(listing2.withStatus(ListingStatus.PUBLISHED, now + 1)).block();
+
+        // Promote listing1 with an already-expired timestamp
+        long expiredPromotedUntil = now - 1_000;
+        carListingRepository.update(new CarListing(
+                listing1.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now, now, now, expiredPromotedUntil
+        )).block();
+
+        // listing2 published later, so it still comes first (no boost for expired promotion)
+        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO()))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing2.id()))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing1.id()))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_promotedListingsReturnedFirstInSearchResults() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+
+        // listing1 published first (would rank second by published_at), listing2 published later
+        CarListing listing1 = carListingRepository.create(userId, now).block();
+        CarListing listing2 = carListingRepository.create(userId, now + 1).block();
+        carListingRepository.update(new CarListing(
+                listing1.id(), userId, ListingStatus.PUBLISHED,
+                "Toyota Camry", null, null, CarBrand.TOYOTA, null, "Camry", null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now, now, now, now + 7L * 24 * 60 * 60 * 1000
+        )).block();
+        carListingRepository.update(new CarListing(
+                listing2.id(), userId, ListingStatus.PUBLISHED,
+                "Toyota Corolla", null, null, CarBrand.TOYOTA, null, "Corolla", null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now + 1, now + 1, now + 1, 0
+        )).block();
+
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Toyota")))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing1.id()))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing2.id()))
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_returnsCorrectPromotionStatus() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+
+        // listing1 published first, listing2 published later — without promotion, listing2 would come first
+        CarListing listing1 = carListingRepository.create(userId, now).block();
+        CarListing listing2 = carListingRepository.create(userId, now + 1).block();
+        CarListing listing3 = carListingRepository.create(userId, now + 2).block();
+        carListingRepository.update(listing1.withStatus(ListingStatus.PUBLISHED, now)).block();
+        carListingRepository.update(listing2.withStatus(ListingStatus.PUBLISHED, now + 1)).block();
+        carListingRepository.update(listing3.withStatus(ListingStatus.PUBLISHED, now + 2)).block();
+
+        long promotedUntil = now + 7L * 24 * 60 * 60 * 1000;
+        carListingRepository.update(new CarListing(
+                listing1.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now, now, now, promotedUntil
+        )).block();
+        carListingRepository.update(new CarListing(
+                listing2.id(), userId, ListingStatus.PUBLISHED,
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                now, now, now, now - 1_000
+        )).block();
+
+        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO()))
+                .assertNext(dto -> {
+                    assertThat(dto.id()).isEqualTo(listing1.id());
+                    assertThat(dto.isPromoted()).isTrue();
+                })
+                .assertNext(dto -> {
+                    assertThat(dto.id()).isEqualTo(listing3.id());
+                    assertThat(dto.isPromoted()).isFalse();
+                })
+                .assertNext(dto -> {
+                    assertThat(dto.id()).isEqualTo(listing2.id());
+                    assertThat(dto.isPromoted()).isFalse();
+                })
                 .verifyComplete();
     }
 
@@ -803,14 +982,14 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 created.id(), userId, ListingStatus.DRAFT,
                 "Title", null, null, CarBrand.TOYOTA, null, "Camry", null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
-                created.createdAt(), System.currentTimeMillis(), created.publishedAt()
+                created.createdAt(), System.currentTimeMillis(), created.publishedAt(), 0
         )).block();
 
         var clearRequest = new CarListing(
                 created.id(), userId, ListingStatus.DRAFT,
                 null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
-                created.createdAt(), System.currentTimeMillis(), created.publishedAt()
+                created.createdAt(), System.currentTimeMillis(), created.publishedAt(), 0
         );
         carListingRepository.update(clearRequest).block();
         StepVerifier.create(carListingRepository.findById(created.id()))

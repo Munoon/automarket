@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Card, Badge, Carousel, Controls } from 'flowbite-svelte';
-  import { MapPinOutline } from 'flowbite-svelte-icons';
+  import { Card, Badge, Carousel, Controls, Tooltip } from 'flowbite-svelte';
+  import { MapPinOutline, StarOutline } from 'flowbite-svelte-icons';
   import GaugeIcon from '$lib/components/icons/GaugeIcon.svelte';
   import noImageUrl from '$lib/assets/listing_no_image.svg?url';
   import type { PublicCarListingItem } from '$lib/apiClient';
@@ -27,7 +27,7 @@
 </script>
 
 <Card class="w-72 p-0 overflow-hidden flex flex-col cursor-pointer hover:border-blue-500 transition-colors" onclick={handleClick}>
-  <div class="h-48 shrink-0 overflow-hidden">
+  <div class="h-48 shrink-0 overflow-hidden relative">
     <Carousel {images} classes={{ slide: 'object-cover w-full h-48' }} class="h-48!">
       {#if images.length > 1}
         <div role="presentation" onclick={(e) => e.stopPropagation()}>
@@ -35,6 +35,12 @@
         </div>
       {/if}
     </Carousel>
+    {#if listing.isPromoted}
+      <div class="absolute top-2 right-2 z-50">
+        <StarOutline id="promoted-icon-{listing.id}" class="w-5 h-5 text-yellow-400 fill-yellow-400 drop-shadow" />
+        <Tooltip triggeredBy="#promoted-icon-{listing.id}">{$t('listing.promoted')}</Tooltip>
+      </div>
+    {/if}
   </div>
 
   <div class="p-4 flex flex-col gap-2 flex-1">

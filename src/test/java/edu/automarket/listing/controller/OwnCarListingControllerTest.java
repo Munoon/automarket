@@ -9,6 +9,8 @@ import edu.automarket.common.ApiException;
 import edu.automarket.common.PageDTO;
 import edu.automarket.common.ProblemDTO;
 import edu.automarket.listing.CarListingService;
+import edu.automarket.listing.dto.CarListingPromotionPeriod;
+import edu.automarket.listing.dto.PromoteCarListingRequestDTO;
 import edu.automarket.listing.dto.OwnCarListingDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
@@ -1011,6 +1013,138 @@ class OwnCarListingControllerTest extends AbstractIntegrationTest {
                     assertThat(problem.type()).isEqualTo("/problems/access-denied");
                     assertThat(problem.title()).isEqualTo("Access denied");
                     assertThat(problem.status()).isEqualTo(403);
+                });
+    }
+
+    // --- POST /api/listings/own/{id}/promote ---
+
+    @Test
+    void promoteWithValidTokenReturns200AndSetsPromotedUntil() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+        long now = System.currentTimeMillis();
+
+        webTestClient.post()
+                .uri("/api/listings/own/" + listing.id() + "/promote")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new PromoteCarListingRequestDTO(CarListingPromotionPeriod.ONE_WEEK))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(OwnCarListingDTO.class)
+                .value(dto -> {
+                    assertThat(dto.id()).isEqualTo(listing.id());
+                    assertThat(dto.promotedUntil()).isCloseTo(now + CarListingPromotionPeriod.ONE_WEEK.ms, offset(1_000L));
+                });
+
+        StepVerifier.create(carListingService.getListingByIdOrThrow(listing.id()))
+                .assertNext(persisted -> assertThat(persisted.promotedUntil()).isCloseTo(now + CarListingPromotionPeriod.ONE_WEEK.ms, offset(1_000L)))
+                .verifyComplete();
+    }
+
+    @Test
+    void promoteWithoutTokenReturns401() {
+        webTestClient.post()
+                .uri("/api/listings/own/1/promote")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new PromoteCarListingRequestDTO(CarListingPromotionPeriod.ONE_WEEK))
+                .exchange()
+                .expectStatus().isUnauthorized()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/unauthorized");
+                    assertThat(problem.title()).isEqualTo("Unauthorized");
+                    assertThat(problem.status()).isEqualTo(401);
+                });
+    }
+
+    @Test
+    void promoteNonExistentListingReturns404() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+
+        webTestClient.post()
+                .uri("/api/listings/own/9999/promote")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new PromoteCarListingRequestDTO(CarListingPromotionPeriod.ONE_WEEK))
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-not-found");
+                    assertThat(problem.title()).isEqualTo("Listing not found");
+                    assertThat(problem.status()).isEqualTo(404);
+                });
+    }
+
+    @Test
+    void promoteOtherUsersListingReturns403() {
+        long userId1 = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long userId2 = userService.getUserByPhoneNumberOrCreate("+380123456780").block().id();
+        String token2 = authenticationService.generateToken(userId2);
+        CarListing listing = carListingService.create(userId1).block();
+
+        webTestClient.post()
+                .uri("/api/listings/own/" + listing.id() + "/promote")
+                .header("Authorization", "Bearer " + token2)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new PromoteCarListingRequestDTO(CarListingPromotionPeriod.ONE_WEEK))
+                .exchange()
+                .expectStatus().isForbidden()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/access-denied");
+                    assertThat(problem.title()).isEqualTo("Access denied");
+                    assertThat(problem.status()).isEqualTo(403);
+                });
+    }
+
+    @Test
+    void promoteAlreadyPromotedListingReturns400() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+        carListingService.promoteCarListing(listing, CarListingPromotionPeriod.ONE_WEEK).block();
+
+        webTestClient.post()
+                .uri("/api/listings/own/" + listing.id() + "/promote")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new PromoteCarListingRequestDTO(CarListingPromotionPeriod.ONE_MONTH))
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-already-promoted");
+                    assertThat(problem.title()).isEqualTo("Listing is already promoted");
+                    assertThat(problem.status()).isEqualTo(400);
+                });
+    }
+
+    @Test
+    void promoteWithNullPeriodReturns400() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        webTestClient.post()
+                .uri("/api/listings/own/" + listing.id() + "/promote")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Map.of())
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/validation-error");
+                    assertThat(problem.status()).isEqualTo(400);
                 });
     }
 

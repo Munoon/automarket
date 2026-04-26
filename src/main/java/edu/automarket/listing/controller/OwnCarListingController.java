@@ -6,6 +6,7 @@ import edu.automarket.common.ApiException;
 import edu.automarket.common.ArrayUtils;
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.CarListingService;
+import edu.automarket.listing.dto.PromoteCarListingRequestDTO;
 import edu.automarket.listing.dto.OwnCarListingDTO;
 import edu.automarket.listing.dto.OwnCarListingImageDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
@@ -200,6 +201,23 @@ public class OwnCarListingController {
         }
 
         return carListingService.update(listing, request);
+    }
+
+    @PostMapping("/{id}/promote")
+    public Mono<OwnCarListingDTO> promote(
+            @AuthenticationPrincipal long userId,
+            @PathVariable long id,
+            @Valid @RequestBody PromoteCarListingRequestDTO request
+    ) {
+        return carListingService.getListingByIdOrThrow(id)
+                .flatMap(listing -> {
+                    if (listing.authorUserId() != userId) {
+                        throw new ApiException(HttpStatus.FORBIDDEN, "/problems/access-denied", "Access denied");
+                    }
+
+                    return carListingService.promoteCarListing(listing, request.period())
+                            .map(this::toDTO);
+                });
     }
 
     @DeleteMapping("/{id}")

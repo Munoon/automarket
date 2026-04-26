@@ -34,7 +34,7 @@ public class CarListingRepository {
             """;
 
     //language=postgresql
-    private static final String SELECT_BY_USER_ID_AND_STATUSES_QUERY = """
+    private static final String SELECT_BY_USER_ID = """
             SELECT id, status::text, title, price
             FROM car_listings
             WHERE author_user_id = :authorUserId
@@ -54,7 +54,7 @@ public class CarListingRepository {
             SELECT id, author_user_id, status::text, title, description, image_keys, brand::text, custom_brand_name,
                    model, license_plate, condition::text, mileage, price, city::text, color::text, transmission::text,
                    fuel_type::text, tank_volume, drive_type::text, body_type::text, year, engine_volume,
-                   owners_count, created_at, updated_at, published_at
+                   owners_count, created_at, updated_at, published_at, promoted_until
             FROM car_listings
             WHERE id = :id
             """;
@@ -85,7 +85,8 @@ public class CarListingRepository {
                 engine_volume     = :engineVolume,
                 owners_count      = :ownersCount,
                 updated_at        = :updatedAt,
-                published_at      = :publishedAt
+                published_at      = :publishedAt,
+                promoted_until    = :promotedUntil
             WHERE id = :id
             """;
 
@@ -101,9 +102,15 @@ public class CarListingRepository {
             WHERE author_user_id = :authorUserId
             """;
 
-    private static final String SELECT_PUBLISHED_BASE =
-            "SELECT id, title, image_keys, price, mileage, fuel_type::text, transmission::text, city::text, year FROM car_listings";
+    //language=postgresql
+    private static final String SELECT_PUBLISHED_BASE = """
+        SELECT
+            id, title, image_keys, price, mileage, fuel_type::text, transmission::text, city::text, year,
+            promoted_until > EXTRACT(EPOCH FROM NOW())::bigint * 1000
+        FROM car_listings
+        """;
 
+    //language=postgresql
     private static final String COUNT_PUBLISHED_BASE =
             "SELECT COUNT(*) FROM car_listings";
 
@@ -122,7 +129,7 @@ public class CarListingRepository {
                    cl.model, cl.license_plate, cl.condition::text, cl.mileage, cl.price, cl.city::text,
                    cl.color::text, cl.transmission::text, cl.fuel_type::text, cl.tank_volume,
                    cl.drive_type::text, cl.body_type::text, cl.year, cl.engine_volume,
-                   cl.owners_count, cl.published_at
+                   cl.owners_count, cl.published_at, cl.promoted_until > EXTRACT(EPOCH FROM NOW())::bigint * 1000
             FROM car_listings cl
             JOIN users u ON cl.author_user_id = u.id
             WHERE cl.id = :id
@@ -149,13 +156,13 @@ public class CarListingRepository {
                         null, null, null, null, null, null, null, null,
                         null, null, null, null, null, null, null,
                         null, null, null, null, null,
-                        createdAt, createdAt, 0
+                        createdAt, createdAt, 0, 0
                 ))
                 .one();
     }
 
-    public Flux<OwnCarListingListItemDTO> findByUserIdAndStatuses(long authorUserId, int offset, int size) {
-        return client.sql(SELECT_BY_USER_ID_AND_STATUSES_QUERY)
+    public Flux<OwnCarListingListItemDTO> findByUserId(long authorUserId, int offset, int size) {
+        return client.sql(SELECT_BY_USER_ID)
                 .bind("authorUserId", authorUserId)
                 .bind("offset", offset)
                 .bind("size", size)
@@ -216,7 +223,8 @@ public class CarListingRepository {
                             row.get(22, Integer.class),
                             row.get(23, Long.class),
                             row.get(24, Long.class),
-                            row.get(25, Long.class)
+                            row.get(25, Long.class),
+                            row.get(26, Long.class)
                     );
                 })
                 .one();
@@ -234,7 +242,8 @@ public class CarListingRepository {
                 .bind("authorUserId", carListing.authorUserId())
                 .bind("status", carListing.status().name())
                 .bind("updatedAt", carListing.updatedAt())
-                .bind("publishedAt", carListing.publishedAt());
+                .bind("publishedAt", carListing.publishedAt())
+                .bind("promotedUntil", carListing.promotedUntil());
 
         spec = carListing.title() != null
                 ? spec.bind("title", carListing.title())
@@ -299,13 +308,15 @@ public class CarListingRepository {
     }
 
     public Flux<PublicCarListingItemDTO> findPublished(GetPublishedListingsRequestDTO request) {
-        String orderBy = request.hasQuery()
-                ? " ORDER BY ts_rank(search_vector, to_tsquery('simple', (SELECT string_agg(lexeme || ':*', ' & ') FROM unnest(to_tsvector('simple', :query))))) DESC, published_at DESC, id DESC"
-                : " ORDER BY published_at DESC, id DESC";
-        String sql = SELECT_PUBLISHED_BASE
-                + buildFilterSql(request)
-                + orderBy + " LIMIT :size OFFSET :offset";
-        return bindFilters(client.sql(sql), request)
+        StringBuilder sql = new StringBuilder(SELECT_PUBLISHED_BASE);
+        buildFilterSql(request, sql);
+        sql.append(" ORDER BY (promoted_until > EXTRACT(EPOCH FROM NOW())::bigint * 1000) DESC, ");
+        if (request.hasQuery()) {
+            sql.append("ts_rank(search_vector, to_tsquery('simple', (SELECT string_agg(lexeme || ':*', ' & ') FROM unnest(to_tsvector('simple', :query))))) DESC, ");
+        }
+        sql.append("published_at DESC, id DESC LIMIT :size OFFSET :offset");
+
+        return bindFilters(client.sql(sql.toString()), request)
                 .bind("size", request.getSize())
                 .bind("offset", request.getOffset())
                 .map(row -> {
@@ -321,21 +332,23 @@ public class CarListingRepository {
                             fuelTypeStr != null ? FuelType.valueOf(fuelTypeStr) : null,
                             transmissionTypeStr != null ? TransmissionType.valueOf(transmissionTypeStr) : null,
                             cityStr != null ? City.valueOf(cityStr) : null,
-                            row.get(8, Integer.class)
+                            row.get(8, Integer.class),
+                            row.get(9, Boolean.class)
                     );
                 })
                 .all();
     }
 
     public Mono<Long> countPublished(GetPublishedListingsRequestDTO request) {
-        String sql = COUNT_PUBLISHED_BASE + buildFilterSql(request);
-        return bindFilters(client.sql(sql), request)
+        StringBuilder sql = new StringBuilder(COUNT_PUBLISHED_BASE);
+        buildFilterSql(request, sql);
+        return bindFilters(client.sql(sql.toString()), request)
                 .map(row -> row.get(0, Long.class))
                 .one();
     }
 
-    private String buildFilterSql(GetPublishedListingsRequestDTO r) {
-        StringBuilder sb = new StringBuilder(" WHERE status = 'PUBLISHED' AND published_at <= :publishedBefore");
+    private void buildFilterSql(GetPublishedListingsRequestDTO r, StringBuilder sb) {
+        sb.append(" WHERE status = 'PUBLISHED' AND published_at <= :publishedBefore");
         if (notEmpty(r.getBrand())) sb.append(" AND brand::text = ANY(:brand)");
         if (notEmpty(r.getCondition())) sb.append(" AND condition::text = ANY(:condition)");
         if (r.getMileageMin() != null) sb.append(" AND mileage >= :mileageMin");
@@ -357,7 +370,6 @@ public class CarListingRepository {
         if (r.getMinOwnersCount() != null) sb.append(" AND owners_count >= :minOwnersCount");
         if (r.getMaxOwnersCount() != null) sb.append(" AND owners_count <= :maxOwnersCount");
         if (r.hasQuery()) sb.append(" AND search_vector @@ to_tsquery('simple', (SELECT string_agg(lexeme || ':*', ' & ') FROM unnest(to_tsvector('simple', :query))))");
-        return sb.toString();
     }
 
     private DatabaseClient.GenericExecuteSpec bindFilters(DatabaseClient.GenericExecuteSpec spec, GetPublishedListingsRequestDTO r) {
@@ -442,7 +454,8 @@ public class CarListingRepository {
                             row.get(19, Integer.class),
                             engVol != null ? engVol.doubleValue() : null,
                             row.get(21, Integer.class),
-                            row.get(22, Long.class)
+                            row.get(22, Long.class),
+                            row.get(23, Boolean.class)
                     );
                 })
                 .one();

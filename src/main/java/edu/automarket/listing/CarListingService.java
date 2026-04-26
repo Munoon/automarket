@@ -3,6 +3,7 @@ package edu.automarket.listing;
 import edu.automarket.common.ApiException;
 import edu.automarket.common.PageDTO;
 import edu.automarket.listing.dto.AuthorPhoneDTO;
+import edu.automarket.listing.dto.CarListingPromotionPeriod;
 import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.PublicCarListingDTO;
@@ -45,7 +46,7 @@ public class CarListingService {
     public Mono<PageDTO<OwnCarListingListItemDTO>> getOwnListings(long userId, int offset, int size) {
         return Mono.zip(
                 getOwnListingsCount(userId),
-                carListingRepository.findByUserIdAndStatuses(userId, offset, size).collectList()
+                carListingRepository.findByUserId(userId, offset, size).collectList()
         ).map(tuple -> new PageDTO<>(tuple.getT2(), tuple.getT1()));
     }
 
@@ -105,21 +106,15 @@ public class CarListingService {
         ).map(tuple -> new PageDTO<>(tuple.getT2(), tuple.getT1()));
     }
 
-    private static String[] mapStatusNamesToString(ListingStatus[] statuses) {
-        if (statuses == null || statuses.length == 0) {
-            ListingStatus[] allStatuses = ListingStatus.values();
-            String[] statusNames = new String[allStatuses.length];
-            for (int i = 0; i < allStatuses.length; i++) {
-                statusNames[i] = allStatuses[i].name();
-            }
-            return statusNames;
-        } else {
-            String[] statusNames = new String[statuses.length];
-            for (int i = 0; i < statuses.length; i++) {
-                statusNames[i] = statuses[i].name();
-            }
-            return statusNames;
+    public Mono<CarListing> promoteCarListing(CarListing carListing, CarListingPromotionPeriod period) {
+        if (carListing.promotedUntil() > 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "/problems/listing-already-promoted",
+                    "Listing is already promoted");
         }
+
+        CarListing updatedCarListing = carListing.withPromotedUntil(System.currentTimeMillis() + period.ms);
+        return carListingRepository.update(updatedCarListing).thenReturn(updatedCarListing);
     }
 
     public long getListingRepublishCooldownMS() {

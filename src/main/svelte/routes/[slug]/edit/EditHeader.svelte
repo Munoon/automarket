@@ -3,7 +3,7 @@
   import { apiClient, type OwnCarListing, type ListingStatus } from '$lib/apiClient';
   import { toastStore } from '$lib/stores/toastStore';
   import { authStore } from '$lib/stores/authStore';
-  import { t, type TranslationKey } from '$lib/i18n';
+  import { t, language, type TranslationKey } from '$lib/i18n';
   import { Button, Modal, Spinner, Dropdown, DropdownItem, Tooltip } from 'flowbite-svelte';
   import {
     ArrowLeftOutline, TrashBinOutline, ArchiveOutline,
@@ -11,6 +11,7 @@
     FloppyDiskOutline, ChevronDownOutline, EyeOutline, ChartMixedOutline
   } from 'flowbite-svelte-icons';
   import ListingStatusBadge from '$lib/components/ListingStatusBadge.svelte';
+  import PromoteDrawer from './PromoteDrawer.svelte';
   import { listingSlug } from '$lib/utils/listing';
 
   let {
@@ -29,6 +30,7 @@
   let openCooldownTooltip = $state(false);
   let dropdownOpen = $state(false);
   let showDeleteModal = $state(false);
+  let showPromoteDrawer = $state(false);
 
   let publishCooldownEnd = $derived.by(() => {
     if (listing.status === 'PUBLISHED') return null;
@@ -219,10 +221,17 @@
     <!-- Right: action buttons -->
     <div class="flex items-center gap-2 shrink-0">
       <!-- Promote button -->
-      <Button color="light" size="sm" disabled class="hidden lg:flex gap-1.5 group">
-        <StarOutline class="w-4 h-4 group-hover:text-yellow-400 group-hover:fill-yellow-400" />
-        <span>{$t('edit.promote')}</span>
-      </Button>
+      {#if listing.promotedUntil > Date.now()}
+        <Button color="light" size="sm" disabled class="hidden lg:flex gap-1.5 group">
+          <StarOutline class="w-4 h-4 text-yellow-400 fill-yellow-400" />
+          <span>{$t('edit.promotedUntil')} {new Date(listing.promotedUntil).toLocaleDateString($language, { month: 'long', day: 'numeric' })}</span>
+        </Button>
+      {:else}
+        <Button color="light" size="sm" onclick={() => showPromoteDrawer = true} class="hidden lg:flex gap-1.5 group">
+          <StarOutline class="w-4 h-4 group-hover:text-yellow-400 group-hover:fill-yellow-400" />
+          <span>{$t('edit.promote')}</span>
+        </Button>
+      {/if}
 
       <!-- Save & Publish split button -->
       <div class="flex">
@@ -296,6 +305,8 @@
     </div>
   </div>
 </div>
+
+<PromoteDrawer bind:listing bind:open={showPromoteDrawer} />
 
 <!-- Delete confirmation modal -->
 <Modal bind:open={showDeleteModal} placement="center" size="sm" class="text-center m-auto">

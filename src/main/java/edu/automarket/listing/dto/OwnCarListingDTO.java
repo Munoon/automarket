@@ -36,7 +36,8 @@ public record OwnCarListingDTO(
         Integer ownersCount,
         long createdAt,
         long updatedAt,
-        long publishedAt
+        long publishedAt,
+        long promotedUntil
 ) {
     public OwnCarListingDTO(CarListing listing, OwnCarListingImageDTO[] images) {
         this(
@@ -64,7 +65,8 @@ public record OwnCarListingDTO(
                 listing.ownersCount(),
                 listing.createdAt(),
                 listing.updatedAt(),
-                listing.publishedAt()
+                listing.publishedAt(),
+                listing.promotedUntil()
         );
     }
 }

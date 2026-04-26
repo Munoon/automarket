@@ -30,7 +30,8 @@ public record CarListing(
         Integer ownersCount,
         long createdAt,
         long updatedAt,
-        long publishedAt
+        long publishedAt,
+        long promotedUntil
 ) {
     public CarListing update(UpdateCarListingRequestDTO request) {
         return new CarListing(
@@ -46,7 +47,8 @@ public record CarListing(
                 request.ownersCount(),
                 createdAt,
                 System.currentTimeMillis(),
-                publishedAt
+                publishedAt,
+                promotedUntil
         );
     }
 
@@ -58,7 +60,20 @@ public record CarListing(
                 city, color, transmission, fuelType, tankVolume, driveType, bodyType, year, engineVolume, ownersCount,
                 createdAt,
                 System.currentTimeMillis(),
-                publishedAt
+                publishedAt,
+                promotedUntil
+        );
+    }
+
+    public CarListing withPromotedUntil(long promotedUntil) {
+        return new CarListing(
+                id, authorUserId, status,
+                title, description, imageKeys, brand, customBrandName, model, licensePlate, condition, mileage, price,
+                city, color, transmission, fuelType, tankVolume, driveType, bodyType, year, engineVolume, ownersCount,
+                createdAt,
+                System.currentTimeMillis(),
+                publishedAt,
+                promotedUntil
         );
     }
 

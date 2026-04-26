@@ -2,6 +2,7 @@ package edu.automarket.listing;
 
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.common.ApiException;
+import edu.automarket.listing.dto.CarListingPromotionPeriod;
 import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
@@ -482,6 +483,32 @@ class CarListingServiceTest extends AbstractIntegrationTest {
                     assertThat(listing.model()).isEqualTo("Corolla");
                 })
                 .verifyComplete();
+    }
+
+    @Test
+    void promoteCarListingSetsPromotedUntil() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        long now = System.currentTimeMillis();
+
+        StepVerifier.create(carListingService.promoteCarListing(listing, CarListingPromotionPeriod.ONE_WEEK))
+                .assertNext(promoted -> assertThat(promoted.promotedUntil()).isCloseTo(now + CarListingPromotionPeriod.ONE_WEEK.ms, offset(1_000L)))
+                .verifyComplete();
+
+        StepVerifier.create(carListingService.getListingByIdOrThrow(listing.id()))
+                .assertNext(persisted -> assertThat(persisted.promotedUntil()).isCloseTo(now + CarListingPromotionPeriod.ONE_WEEK.ms, offset(1_000L)))
+                .verifyComplete();
+    }
+
+    @Test
+    void promoteCarListingThrowsWhenAlreadyPromoted() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        CarListing promoted = carListingService.promoteCarListing(listing, CarListingPromotionPeriod.ONE_WEEK).block();
+
+        assertThatThrownBy(() -> carListingService.promoteCarListing(promoted, CarListingPromotionPeriod.ONE_MONTH).block())
+                .isInstanceOf(ApiException.class)
+                .hasMessage("Listing is already promoted");
     }
 
     @Test

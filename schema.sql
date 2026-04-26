@@ -231,6 +231,7 @@ CREATE TABLE IF NOT EXISTS car_listings
     created_at        BIGINT NOT NULL,
     updated_at        BIGINT NOT NULL,
     published_at      BIGINT NOT NULL DEFAULT 0,
+    promoted_until    BIGINT NOT NULL DEFAULT 0,
     search_vector     tsvector GENERATED ALWAYS AS (
         setweight(to_tsvector('simple', coalesce(title, '')), 'A') ||
         setweight(to_tsvector('simple', coalesce(fts_car_brand(brand), '')), 'B') ||

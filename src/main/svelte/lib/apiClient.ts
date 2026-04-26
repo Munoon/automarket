@@ -135,6 +135,7 @@ export interface OwnCarListing {
 	createdAt: number;
 	updatedAt: number;
 	publishedAt: number;
+	promotedUntil: number;
 }
 
 export interface OwnCarListingListItem {
@@ -208,6 +209,7 @@ export interface PublicCarListing {
 	engineVolume: number | null;
 	ownersCount: number | null;
 	publishedAt: number;
+	isPromoted: boolean;
 }
 
 export interface PublicCarListingItem {
@@ -220,6 +222,7 @@ export interface PublicCarListingItem {
 	transmission: TransmissionType | null;
 	city: City | null;
 	year: number | null;
+	isPromoted: boolean;
 }
 
 export interface GetPublicListingsRequest {
@@ -267,6 +270,10 @@ export interface SignUrlResponse {
 	uploadHeaders: Record<string, string[]> | null;
 	fileKey: string;
 	fileUrl: string | null;
+}
+
+export interface PromoteCarListingRequest {
+	period: 'ONE_WEEK' | 'TWO_WEEKS' | 'ONE_MONTH';
 }
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -348,6 +355,14 @@ export class ApiClient {
 		options: RequestOptions = {}
 	): Promise<OwnCarListing> {
 		return this.sendAuthenticated<OwnCarListing>('PATCH', `/api/listings/own/${listingId}`, body, undefined, options);
+	}
+
+	public async promoteOwnListing(
+		listingId: number,
+		body: PromoteCarListingRequest,
+		options: RequestOptions = {}
+	): Promise<OwnCarListing> {
+		return this.sendAuthenticated<OwnCarListing>('POST', `/api/listings/own/${listingId}/promote`, body, undefined, options);
 	}
 
 	public async deleteOwnListing(listingId: number, options: RequestOptions = {}): Promise<void> {

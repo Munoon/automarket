@@ -12,7 +12,8 @@
   const fullListing = $derived<PublicCarListing>({
     ...listing,
     imageUrls: listing.images?.map(image => image.url ?? '') ?? null,
-    authorDisplayName: $authStore.profile?.displayName ?? null
+    authorDisplayName: $authStore.profile?.displayName ?? null,
+    isPromoted: listing.promotedUntil > Date.now()
   });
 </script>
 

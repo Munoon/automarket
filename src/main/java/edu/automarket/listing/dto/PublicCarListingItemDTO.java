@@ -13,6 +13,7 @@ public record PublicCarListingItemDTO(
         FuelType fuelType,
         TransmissionType transmission,
         City city,
-        Integer year
+        Integer year,
+        boolean isPromoted
 ) {
 }

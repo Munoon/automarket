@@ -2,7 +2,7 @@
   import { Badge, Button, Carousel, Controls, CarouselIndicators } from 'flowbite-svelte';
   import {
     MapPinOutline, CalendarMonthOutline, UserCircleOutline,
-    PhoneOutline, CartOutline, InfoCircleOutline
+    PhoneOutline, CartOutline, InfoCircleOutline, StarOutline
   } from 'flowbite-svelte-icons';
   import GaugeIcon from '$lib/components/icons/GaugeIcon.svelte';
   import DetailRow from '$lib/components/DetailRow.svelte';
@@ -86,6 +86,12 @@
           <span class="icon-row">
             <CalendarMonthOutline class="w-4 h-4 shrink-0" />
             {$t('listing.postedAt')}: {publishedDate}
+          </span>
+        {/if}
+        {#if listing.isPromoted}
+          <span class="icon-row text-yellow-500 font-medium">
+            <StarOutline class="w-4 h-4 shrink-0 fill-yellow-400 text-yellow-400" />
+            {$t('listing.promoted')}
           </span>
         {/if}
       </div>
