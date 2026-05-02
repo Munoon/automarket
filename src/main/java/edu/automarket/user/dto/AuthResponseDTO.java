@@ -7,9 +7,15 @@ public record AuthResponseDTO(
         long tokenExpiresInSeconds,
         UserDTO profile,
         LimitsDTO limits,
-        long ownListingsCount
+        long ownListingsCount,
+        int favouritesCount
 ) {
-    public AuthResponseDTO(String token, long tokenExpiresInSeconds, User user, LimitsDTO limits, long ownListingsCount) {
-        this(token, tokenExpiresInSeconds, new UserDTO(user), limits, ownListingsCount);
+    public AuthResponseDTO(String token,
+                           long tokenExpiresInSeconds,
+                           User user,
+                           LimitsDTO limits,
+                           long ownListingsCount,
+                           int favouritesCount) {
+        this(token, tokenExpiresInSeconds, new UserDTO(user), limits, ownListingsCount, favouritesCount);
     }
 }

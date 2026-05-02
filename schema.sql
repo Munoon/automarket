@@ -268,3 +268,11 @@ CREATE TABLE IF NOT EXISTS pending_files_uploads
     uploaded_at   BIGINT NOT NULL,
     PRIMARY KEY (key)
 );
+
+CREATE TABLE IF NOT EXISTS favourites
+(
+    user_id    BIGINT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    listing_id BIGINT NOT NULL REFERENCES car_listings (id) ON DELETE CASCADE,
+    created_at BIGINT NOT NULL,
+    PRIMARY KEY (user_id, listing_id)
+);

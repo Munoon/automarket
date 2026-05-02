@@ -103,33 +103,25 @@ public class CarListingRepository {
             """;
 
     //language=postgresql
-    private static final String SELECT_PUBLISHED_BASE = """
-        SELECT
-            id, title, image_keys, price, mileage, fuel_type::text, transmission::text, city::text, year,
-            promoted_until > EXTRACT(EPOCH FROM NOW())::bigint * 1000
-        FROM car_listings
-        """;
-
-    //language=postgresql
     private static final String COUNT_PUBLISHED_BASE =
             "SELECT COUNT(*) FROM car_listings";
 
     //language=postgresql
-    private static final String SELECT_AUTHOR_PHONE_BY_PUBLISHED_ID_QUERY = """
-            SELECT u.phone_number
-            FROM car_listings cl
-            JOIN users u ON cl.author_user_id = u.id
-            WHERE cl.id = :id
-              AND cl.status = 'PUBLISHED'
+    private static final String SELECT_FAVOURITE_LISTINGS = """
+            SELECT
+                cl.id, cl.title, cl.image_keys, cl.price, cl.mileage,
+                cl.fuel_type::text, cl.transmission::text, cl.city::text, cl.year,
+                cl.promoted_until > EXTRACT(EPOCH FROM NOW())::bigint * 1000
+            FROM favourites f
+            LEFT JOIN car_listings cl ON f.listing_id = cl.id
+            WHERE f.user_id = :userId AND cl.status = 'PUBLISHED'
+            ORDER BY f.created_at DESC
+            LIMIT :size OFFSET :offset
             """;
 
     //language=postgresql
-    private static final String SELECT_PUBLISHED_BY_ID_QUERY = """
-            SELECT cl.id, u.display_name, cl.title, cl.description, cl.image_keys, cl.brand::text, cl.custom_brand_name,
-                   cl.model, cl.license_plate, cl.condition::text, cl.mileage, cl.price, cl.city::text,
-                   cl.color::text, cl.transmission::text, cl.fuel_type::text, cl.tank_volume,
-                   cl.drive_type::text, cl.body_type::text, cl.year, cl.engine_volume,
-                   cl.owners_count, cl.published_at, cl.promoted_until > EXTRACT(EPOCH FROM NOW())::bigint * 1000
+    private static final String SELECT_AUTHOR_PHONE_BY_PUBLISHED_ID_QUERY = """
+            SELECT u.phone_number
             FROM car_listings cl
             JOIN users u ON cl.author_user_id = u.id
             WHERE cl.id = :id
@@ -307,8 +299,29 @@ public class CarListingRepository {
         return spec.fetch().rowsUpdated().then();
     }
 
-    public Flux<PublicCarListingItemDTO> findPublished(GetPublishedListingsRequestDTO request) {
-        StringBuilder sql = new StringBuilder(SELECT_PUBLISHED_BASE);
+    public Flux<PublicCarListingItemDTO> findPublished(GetPublishedListingsRequestDTO request, Long userId) {
+        boolean withFavourite = userId != null;
+        StringBuilder sql = new StringBuilder();
+        if (withFavourite) {
+            sql.append("""
+                    WITH user_favourites AS (
+                        SELECT listing_id FROM favourites WHERE user_id = :userId
+                    )
+                    """);
+        }
+        sql.append("""
+                SELECT
+                    id, title, image_keys, price, mileage, fuel_type::text, transmission::text, city::text, year,
+                    promoted_until > EXTRACT(EPOCH FROM NOW())::bigint * 1000
+                """);
+        if (withFavourite) {
+            sql.append(", uf.listing_id IS NOT NULL ");
+        }
+        sql.append(" FROM car_listings");
+        if (withFavourite) {
+            sql.append(" LEFT JOIN user_favourites uf ON uf.listing_id = id");
+        }
+
         buildFilterSql(request, sql);
         sql.append(" ORDER BY (promoted_until > EXTRACT(EPOCH FROM NOW())::bigint * 1000) DESC, ");
         if (request.hasQuery()) {
@@ -316,27 +329,31 @@ public class CarListingRepository {
         }
         sql.append("published_at DESC, id DESC LIMIT :size OFFSET :offset");
 
-        return bindFilters(client.sql(sql.toString()), request)
+        var spec = bindFilters(client.sql(sql.toString()), request)
                 .bind("size", request.getSize())
-                .bind("offset", request.getOffset())
-                .map(row -> {
-                    String fuelTypeStr = row.get(5, String.class);
-                    String transmissionTypeStr = row.get(6, String.class);
-                    String cityStr = row.get(7, String.class);
-                    return new PublicCarListingItemDTO(
-                            row.get(0, Long.class),
-                            row.get(1, String.class),
-                            uploadService.getCdnEndpointUrl(row.get(2, String[].class)),
-                            row.get(3, Long.class),
-                            row.get(4, Integer.class),
-                            fuelTypeStr != null ? FuelType.valueOf(fuelTypeStr) : null,
-                            transmissionTypeStr != null ? TransmissionType.valueOf(transmissionTypeStr) : null,
-                            cityStr != null ? City.valueOf(cityStr) : null,
-                            row.get(8, Integer.class),
-                            row.get(9, Boolean.class)
-                    );
-                })
-                .all();
+                .bind("offset", request.getOffset());
+        if (withFavourite) {
+            spec = spec.bind("userId", userId);
+        }
+
+        return spec.map(row -> {
+            String fuelTypeStr = row.get(5, String.class);
+            String transmissionTypeStr = row.get(6, String.class);
+            String cityStr = row.get(7, String.class);
+            return new PublicCarListingItemDTO(
+                    row.get(0, Long.class),
+                    row.get(1, String.class),
+                    uploadService.getCdnEndpointUrl(row.get(2, String[].class)),
+                    row.get(3, Long.class),
+                    row.get(4, Integer.class),
+                    fuelTypeStr != null ? FuelType.valueOf(fuelTypeStr) : null,
+                    transmissionTypeStr != null ? TransmissionType.valueOf(transmissionTypeStr) : null,
+                    cityStr != null ? City.valueOf(cityStr) : null,
+                    row.get(8, Integer.class),
+                    row.get(9, Boolean.class),
+                    withFavourite && row.get(10, Boolean.class)
+            );
+        }).all();
     }
 
     public Mono<Long> countPublished(GetPublishedListingsRequestDTO request) {
@@ -410,6 +427,32 @@ public class CarListingRepository {
         return result;
     }
 
+    public Flux<PublicCarListingItemDTO> findFavouritesByUserId(long userId, int offset, int size) {
+        return client.sql(SELECT_FAVOURITE_LISTINGS)
+                .bind("userId", userId)
+                .bind("offset", offset)
+                .bind("size", size)
+                .map(row -> {
+                    String fuelTypeStr = row.get(5, String.class);
+                    String transmissionTypeStr = row.get(6, String.class);
+                    String cityStr = row.get(7, String.class);
+                    return new PublicCarListingItemDTO(
+                            row.get(0, Long.class),
+                            row.get(1, String.class),
+                            uploadService.getCdnEndpointUrl(row.get(2, String[].class)),
+                            row.get(3, Long.class),
+                            row.get(4, Integer.class),
+                            fuelTypeStr != null ? FuelType.valueOf(fuelTypeStr) : null,
+                            transmissionTypeStr != null ? TransmissionType.valueOf(transmissionTypeStr) : null,
+                            cityStr != null ? City.valueOf(cityStr) : null,
+                            row.get(8, Integer.class),
+                            row.get(9, Boolean.class),
+                            true
+                    );
+                })
+                .all();
+    }
+
     public Mono<AuthorPhoneDTO> findAuthorPhoneByPublishedId(long id) {
         return client.sql(SELECT_AUTHOR_PHONE_BY_PUBLISHED_ID_QUERY)
                 .bind("id", id)
@@ -417,48 +460,69 @@ public class CarListingRepository {
                 .one();
     }
 
-    public Mono<PublicCarListingDTO> findPublishedById(long id) {
-        return client.sql(SELECT_PUBLISHED_BY_ID_QUERY)
-                .bind("id", id)
-                .map(row -> {
-                    String brandStr = row.get(5, String.class);
-                    String conditionStr = row.get(9, String.class);
-                    String cityStr = row.get(12, String.class);
-                    String colorStr = row.get(13, String.class);
-                    String transmissionStr = row.get(14, String.class);
-                    String fuelTypeStr = row.get(15, String.class);
-                    BigDecimal tankVol = row.get(16, BigDecimal.class);
-                    String driveTypeStr = row.get(17, String.class);
-                    String bodyTypeStr = row.get(18, String.class);
-                    BigDecimal engVol = row.get(20, BigDecimal.class);
-                    return new PublicCarListingDTO(
-                            row.get(0, Long.class),
-                            row.get(1, String.class),
-                            row.get(2, String.class),
-                            row.get(3, String.class),
-                            uploadService.getCdnEndpointUrl(row.get(4, String[].class)),
-                            brandStr != null ? CarBrand.valueOf(brandStr) : null,
-                            row.get(6, String.class),
-                            row.get(7, String.class),
-                            row.get(8, String.class),
-                            conditionStr != null ? CarCondition.valueOf(conditionStr) : null,
-                            row.get(10, Integer.class),
-                            row.get(11, Long.class),
-                            cityStr != null ? City.valueOf(cityStr) : null,
-                            colorStr != null ? CarColor.valueOf(colorStr) : null,
-                            transmissionStr != null ? TransmissionType.valueOf(transmissionStr) : null,
-                            fuelTypeStr != null ? FuelType.valueOf(fuelTypeStr) : null,
-                            tankVol != null ? tankVol.doubleValue() : null,
-                            driveTypeStr != null ? DriveType.valueOf(driveTypeStr) : null,
-                            bodyTypeStr != null ? BodyType.valueOf(bodyTypeStr) : null,
-                            row.get(19, Integer.class),
-                            engVol != null ? engVol.doubleValue() : null,
-                            row.get(21, Integer.class),
-                            row.get(22, Long.class),
-                            row.get(23, Boolean.class)
-                    );
-                })
-                .one();
-    }
+    public Mono<PublicCarListingDTO> findPublishedById(long id, Long userId) {
+        boolean withFavourites = userId != null;
 
+        //language=postgresql
+        StringBuilder sql = new StringBuilder("""
+                SELECT cl.id, u.display_name, cl.title, cl.description, cl.image_keys, cl.brand::text, cl.custom_brand_name,
+                   cl.model, cl.license_plate, cl.condition::text, cl.mileage, cl.price, cl.city::text,
+                   cl.color::text, cl.transmission::text, cl.fuel_type::text, cl.tank_volume,
+                   cl.drive_type::text, cl.body_type::text, cl.year, cl.engine_volume,
+                   cl.owners_count, cl.published_at, cl.promoted_until > EXTRACT(EPOCH FROM NOW())::bigint * 1000
+                """);
+        if (withFavourites) {
+            sql.append(", f.listing_id IS NOT NULL ");
+        }
+        sql.append("FROM car_listings cl JOIN users u ON cl.author_user_id = u.id ");
+        if (withFavourites) {
+            sql.append("LEFT JOIN favourites f ON f.listing_id = cl.id AND f.user_id = :userId ");
+        }
+        sql.append("WHERE cl.id = :id AND cl.status = 'PUBLISHED'");
+
+        var spec = client.sql(sql.toString())
+                .bind("id", id);
+        if (withFavourites) {
+            spec = spec.bind("userId", userId);
+        }
+        return spec.map(row -> {
+            String brandStr = row.get(5, String.class);
+            String conditionStr = row.get(9, String.class);
+            String cityStr = row.get(12, String.class);
+            String colorStr = row.get(13, String.class);
+            String transmissionStr = row.get(14, String.class);
+            String fuelTypeStr = row.get(15, String.class);
+            BigDecimal tankVol = row.get(16, BigDecimal.class);
+            String driveTypeStr = row.get(17, String.class);
+            String bodyTypeStr = row.get(18, String.class);
+            BigDecimal engVol = row.get(20, BigDecimal.class);
+            return new PublicCarListingDTO(
+                    row.get(0, Long.class),
+                    row.get(1, String.class),
+                    row.get(2, String.class),
+                    row.get(3, String.class),
+                    uploadService.getCdnEndpointUrl(row.get(4, String[].class)),
+                    brandStr != null ? CarBrand.valueOf(brandStr) : null,
+                    row.get(6, String.class),
+                    row.get(7, String.class),
+                    row.get(8, String.class),
+                    conditionStr != null ? CarCondition.valueOf(conditionStr) : null,
+                    row.get(10, Integer.class),
+                    row.get(11, Long.class),
+                    cityStr != null ? City.valueOf(cityStr) : null,
+                    colorStr != null ? CarColor.valueOf(colorStr) : null,
+                    transmissionStr != null ? TransmissionType.valueOf(transmissionStr) : null,
+                    fuelTypeStr != null ? FuelType.valueOf(fuelTypeStr) : null,
+                    tankVol != null ? tankVol.doubleValue() : null,
+                    driveTypeStr != null ? DriveType.valueOf(driveTypeStr) : null,
+                    bodyTypeStr != null ? BodyType.valueOf(bodyTypeStr) : null,
+                    row.get(19, Integer.class),
+                    engVol != null ? engVol.doubleValue() : null,
+                    row.get(21, Integer.class),
+                    row.get(22, Long.class),
+                    row.get(23, Boolean.class),
+                    withFavourites && row.get(24, Boolean.class)
+            );
+        }).one();
+    }
 }

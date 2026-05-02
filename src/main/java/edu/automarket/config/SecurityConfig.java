@@ -46,6 +46,7 @@ public class SecurityConfig {
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/api/users/send-verification-code", "/api/users/auth").permitAll()
                         .pathMatchers("/api/listings/public/**").permitAll()
+                        .pathMatchers("/api/listings/public/*/favourites").authenticated()
                         .pathMatchers("/api/**").authenticated()
                         .anyExchange().permitAll()
                 )

@@ -3,6 +3,7 @@ package edu.automarket.user;
 import edu.automarket.authentication.AuthenticationService;
 import edu.automarket.captcha.CaptchaService;
 import edu.automarket.common.ApiException;
+import edu.automarket.favourites.FavouritesService;
 import edu.automarket.listing.CarListingService;
 import edu.automarket.sms.SmsCodeService;
 import edu.automarket.user.dto.AuthRequestDTO;
@@ -37,21 +38,25 @@ public class UserController {
     private final SmsCodeService smsCodeService;
     private final CaptchaService captchaService;
     private final CarListingService carListingService;
+    private final FavouritesService favouritesService;
     private final LimitsDTO limits;
 
     public UserController(UserService userService,
                           AuthenticationService authenticationService,
                           SmsCodeService smsCodeService,
                           CaptchaService captchaService,
-                          CarListingService carListingService) {
+                          CarListingService carListingService,
+                          FavouritesService favouritesService) {
         this.userService = userService;
         this.authenticationService = authenticationService;
         this.smsCodeService = smsCodeService;
         this.captchaService = captchaService;
         this.carListingService = carListingService;
+        this.favouritesService = favouritesService;
         this.limits = new LimitsDTO(
                 carListingService.getListingRepublishCooldownMS(),
-                carListingService.getListingsCountPerAuthorLimit()
+                carListingService.getListingsCountPerAuthorLimit(),
+                favouritesService.favouritesLimitPerUser()
         );
     }
 
@@ -83,18 +88,24 @@ public class UserController {
                         throw new ApiException(HttpStatus.UNAUTHORIZED, "/problems/user-not-active", "User is not active");
                     }
 
-                    return carListingService.getOwnListingsCount(user.id())
-                            .map(ownListingsCount -> {
-                                String jwtToken = authenticationService.generateToken(user.id());
-                                long tokenExpiresInSeconds = authenticationService.tokenExpirationSeconds();
-                                return new AuthResponseDTO(
-                                        jwtToken,
-                                        tokenExpiresInSeconds,
-                                        user,
-                                        limits,
-                                        ownListingsCount
-                                );
-                            });
+                    return Mono.zip(
+                            carListingService.getOwnListingsCount(user.id()),
+                            favouritesService.countFavouritesByUser(user.id())
+                    ).map(tuple -> {
+                        long ownListingsCount = tuple.getT1();
+                        int favouritesCount = tuple.getT2();
+
+                        String jwtToken = authenticationService.generateToken(user.id());
+                        long tokenExpiresInSeconds = authenticationService.tokenExpirationSeconds();
+                        return new AuthResponseDTO(
+                                jwtToken,
+                                tokenExpiresInSeconds,
+                                user,
+                                limits,
+                                ownListingsCount,
+                                favouritesCount
+                        );
+                    });
                 });
     }
 
@@ -102,8 +113,14 @@ public class UserController {
     public Mono<ProfileResponseDTO> getProfile(@AuthenticationPrincipal Long userId) {
         return Mono.zip(
                 userService.getUserByIdOrThrow(userId),
-                carListingService.getOwnListingsCount(userId)
-        ).map(tuple -> new ProfileResponseDTO(new UserDTO(tuple.getT1()), limits, tuple.getT2()));
+                carListingService.getOwnListingsCount(userId),
+                favouritesService.countFavouritesByUser(userId)
+        ).map(tuple -> new ProfileResponseDTO(
+                new UserDTO(tuple.getT1()),
+                limits,
+                tuple.getT2(),
+                tuple.getT3()
+        ));
     }
 
     @PatchMapping("/display-name")

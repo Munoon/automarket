@@ -14,6 +14,7 @@ import edu.automarket.listing.model.ListingStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -89,8 +90,8 @@ public class CarListingService {
         return carListingRepository.update(updatedListing).thenReturn(updatedListing);
     }
 
-    public Mono<PublicCarListingDTO> getPublishedListingByIdOrThrow(long id) {
-        return carListingRepository.findPublishedById(id)
+    public Mono<PublicCarListingDTO> getPublishedListingByIdOrThrow(long id, Long userId) {
+        return carListingRepository.findPublishedById(id, userId)
                 .switchIfEmpty(Mono.error(new ApiException(HttpStatus.NOT_FOUND, "/problems/listing-not-found", "Listing not found")));
     }
 
@@ -99,11 +100,16 @@ public class CarListingService {
                 .switchIfEmpty(Mono.error(new ApiException(HttpStatus.NOT_FOUND, "/problems/listing-not-found", "Listing not found")));
     }
 
-    public Mono<PageDTO<PublicCarListingItemDTO>> getPublishedListings(GetPublishedListingsRequestDTO request) {
+    public Mono<PageDTO<PublicCarListingItemDTO>> getPublishedListings(GetPublishedListingsRequestDTO request,
+                                                                       Long userId) {
         return Mono.zip(
                 carListingRepository.countPublished(request),
-                carListingRepository.findPublished(request).collectList()
+                carListingRepository.findPublished(request, userId).collectList()
         ).map(tuple -> new PageDTO<>(tuple.getT2(), tuple.getT1()));
+    }
+
+    public Flux<PublicCarListingItemDTO> getFavouritesListings(long userId, int offset, int size) {
+        return carListingRepository.findFavouritesByUserId(userId, offset, size);
     }
 
     public Mono<CarListing> promoteCarListing(CarListing carListing, CarListingPromotionPeriod period) {

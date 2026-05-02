@@ -14,6 +14,7 @@ public record PublicCarListingItemDTO(
         TransmissionType transmission,
         City city,
         Integer year,
-        boolean isPromoted
+        boolean isPromoted,
+        boolean isFavourite
 ) {
 }

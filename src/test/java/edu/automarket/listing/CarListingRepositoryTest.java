@@ -191,7 +191,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         CarListing published = carListingRepository.create(userId, System.currentTimeMillis() + 1).block();
         carListingRepository.update(published.withStatus(ListingStatus.PUBLISHED, System.currentTimeMillis())).block();
 
-        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO()))
+        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO(), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(published.id()))
                 .verifyComplete();
     }
@@ -204,7 +204,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
         GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
         request.setPublishedBefore(System.currentTimeMillis() - 1_000);
-        StepVerifier.create(carListingRepository.findPublished(request))
+        StepVerifier.create(carListingRepository.findPublished(request, null))
                 .verifyComplete();
     }
 
@@ -219,7 +219,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 listing.createdAt(), System.currentTimeMillis(), System.currentTimeMillis(), 0
         )).block();
 
-        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO()))
+        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO(), null))
                 .assertNext(dto -> {
                     assertThat(dto.id()).isEqualTo(listing.id());
                     assertThat(dto.title()).isEqualTo("My Car");
@@ -247,7 +247,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
         request.setOffset(0);
         request.setSize(2);
-        StepVerifier.create(carListingRepository.findPublished(request))
+        StepVerifier.create(carListingRepository.findPublished(request, null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing2.id()))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing3.id()))
                 .verifyComplete();
@@ -255,7 +255,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         request = new GetPublishedListingsRequestDTO();
         request.setOffset(2);
         request.setSize(2);
-        StepVerifier.create(carListingRepository.findPublished(request))
+        StepVerifier.create(carListingRepository.findPublished(request, null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing1.id()))
                 .verifyComplete();
     }
@@ -310,7 +310,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 listing.createdAt(), System.currentTimeMillis(), publishedAt, 0
         )).block();
 
-        StepVerifier.create(carListingRepository.findPublishedById(listing.id()))
+        StepVerifier.create(carListingRepository.findPublishedById(listing.id(), null))
                 .assertNext(dto -> {
                     assertThat(dto.id()).isEqualTo(listing.id());
                     assertThat(dto.authorDisplayName()).isEqualTo("Test User");
@@ -343,13 +343,13 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
 
-        StepVerifier.create(carListingRepository.findPublishedById(listing.id()))
+        StepVerifier.create(carListingRepository.findPublishedById(listing.id(), null))
                 .verifyComplete();
     }
 
     @Test
     void findPublishedByIdReturnsEmptyForNonExistentId() {
-        StepVerifier.create(carListingRepository.findPublishedById(9999))
+        StepVerifier.create(carListingRepository.findPublishedById(9999, null))
                 .verifyComplete();
     }
 
@@ -380,13 +380,13 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 now, now, now, now - 1_000
         )).block();
 
-        StepVerifier.create(carListingRepository.findPublishedById(listing1.id()))
+        StepVerifier.create(carListingRepository.findPublishedById(listing1.id(), null))
                 .assertNext(dto -> assertThat(dto.isPromoted()).isTrue())
                 .verifyComplete();
-        StepVerifier.create(carListingRepository.findPublishedById(listing2.id()))
+        StepVerifier.create(carListingRepository.findPublishedById(listing2.id(), null))
                 .assertNext(dto -> assertThat(dto.isPromoted()).isFalse())
                 .verifyComplete();
-        StepVerifier.create(carListingRepository.findPublishedById(listing3.id()))
+        StepVerifier.create(carListingRepository.findPublishedById(listing3.id(), null))
                 .assertNext(dto -> assertThat(dto.isPromoted()).isFalse())
                 .verifyComplete();
     }
@@ -437,19 +437,19 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 now, now, now, 0
         )).block();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("Crimson")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Crimson"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("crim")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("crim"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("Falcon")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Falcon"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("Volkswagen")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Volkswagen"), null))
                 .verifyComplete();
     }
 
@@ -465,11 +465,11 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 now, now, now, 0
         )).block();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("garage")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("garage"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("rusty")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("rusty"), null))
                 .verifyComplete();
     }
 
@@ -494,22 +494,22 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         )).block();
 
         // Latin match
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("Toyota")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Toyota"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(toyota.id()))
                 .verifyComplete();
 
         // Ukrainian match
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("Тойота")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Тойота"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(toyota.id()))
                 .verifyComplete();
 
         // Ukrainian match for another brand
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("Мерседес")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Мерседес"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(mercedes.id()))
                 .verifyComplete();
 
         // No match
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("Honda")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Honda"), null))
                 .verifyComplete();
     }
 
@@ -525,11 +525,11 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 now, now, now, 0
         )).block();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("Zastava")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Zastava"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("Toyota")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Toyota"), null))
                 .verifyComplete();
     }
 
@@ -545,11 +545,11 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 now, now, now, 0
         )).block();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("X5")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("X5"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("X3")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("X3"), null))
                 .verifyComplete();
     }
 
@@ -574,16 +574,16 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 now + 1, now + 1, now + 1, 0
         )).block();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("новий")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("новий"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(newCar.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("вживаний")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("вживаний"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(usedCar.id()))
                 .verifyComplete();
 
         // "б/у" is another alias for USED
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("б/у")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("б/у"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(usedCar.id()))
                 .verifyComplete();
     }
@@ -609,15 +609,15 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 now + 1, now + 1, now + 1, 0
         )).block();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("Київ")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Київ"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(kyivListing.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("Харків")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Харків"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(kharkivListing.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("Одеса")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Одеса"), null))
                 .verifyComplete();
     }
 
@@ -642,11 +642,11 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 now + 1, now + 1, now + 1, 0
         )).block();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("білий")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("білий"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(whiteCar.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("чорний")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("чорний"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(blackCar.id()))
                 .verifyComplete();
     }
@@ -673,20 +673,20 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         )).block();
 
         // Ukrainian
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("автомат")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("автомат"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(automaticCar.id()))
                 .verifyComplete();
 
         // Latin abbreviation
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("АКПП")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("АКПП"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(automaticCar.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("механіка")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("механіка"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(manualCar.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("МКПП")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("МКПП"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(manualCar.id()))
                 .verifyComplete();
     }
@@ -720,15 +720,15 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 now + 2, now + 2, now + 2, 0
         )).block();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("бензин")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("бензин"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(petrolCar.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("дизель")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("дизель"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(dieselCar.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("електромобіль")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("електромобіль"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(electricCar.id()))
                 .verifyComplete();
     }
@@ -755,16 +755,16 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         )).block();
 
         // Ukrainian
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("передній")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("передній"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(fwdCar.id()))
                 .verifyComplete();
 
         // Latin abbreviation
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("FWD")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("FWD"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(fwdCar.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("AWD")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("AWD"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(awdCar.id()))
                 .verifyComplete();
     }
@@ -790,16 +790,16 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 now + 1, now + 1, now + 1, 0
         )).block();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("седан")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("седан"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(sedanCar.id()))
                 .verifyComplete();
 
         // Ukrainian and Latin abbreviation both in translation
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("позашляховик")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("позашляховик"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(suvCar.id()))
                 .verifyComplete();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("SUV")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("SUV"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(suvCar.id()))
                 .verifyComplete();
     }
@@ -828,7 +828,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         )).block();
 
         // With ranking, the title match (weight A) must outrank the description match (weight D)
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("Porsche")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Porsche"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(titleMatch.id()))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(descMatch.id()))
                 .verifyComplete();
@@ -845,7 +845,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         carListingRepository.update(listing1.withStatus(ListingStatus.PUBLISHED, now)).block();
         carListingRepository.update(listing2.withStatus(ListingStatus.PUBLISHED, now + 1)).block();
 
-        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO()))
+        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO(), null))
                 .assertNext(dto -> {
                     assertThat(dto.id()).isEqualTo(listing2.id());
                     assertThat(dto.isPromoted()).isFalse();
@@ -865,7 +865,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 now, now, now, promotedUntil
         )).block();
 
-        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO()))
+        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO(), null))
                 .assertNext(dto -> {
                     assertThat(dto.id()).isEqualTo(listing1.id());
                     assertThat(dto.isPromoted()).isTrue();
@@ -897,7 +897,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
         )).block();
 
         // listing2 published later, so it still comes first (no boost for expired promotion)
-        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO()))
+        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO(), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing2.id()))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing1.id()))
                 .verifyComplete();
@@ -924,7 +924,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 now + 1, now + 1, now + 1, 0
         )).block();
 
-        StepVerifier.create(carListingRepository.findPublished(queryRequest("Toyota")))
+        StepVerifier.create(carListingRepository.findPublished(queryRequest("Toyota"), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing1.id()))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing2.id()))
                 .verifyComplete();
@@ -957,7 +957,7 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                 now, now, now, now - 1_000
         )).block();
 
-        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO()))
+        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO(), null))
                 .assertNext(dto -> {
                     assertThat(dto.id()).isEqualTo(listing1.id());
                     assertThat(dto.isPromoted()).isTrue();

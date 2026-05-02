@@ -33,5 +33,6 @@ public record PublicCarListingDTO(
         Double engineVolume,
         Integer ownersCount,
         long publishedAt,
-        boolean isPromoted
+        boolean isPromoted,
+        boolean isFavourite
 ) {}

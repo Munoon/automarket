@@ -4,7 +4,6 @@ import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.common.ApiException;
 import edu.automarket.listing.dto.CarListingPromotionPeriod;
 import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
-import edu.automarket.listing.dto.OwnCarListingListItemDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
 import edu.automarket.listing.dto.UpdateCarListingRequestDTO;
 import edu.automarket.listing.model.BodyType;
@@ -265,7 +264,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
         long listingId = listing.id();
 
-        StepVerifier.create(carListingService.getPublishedListingByIdOrThrow(listing.id()))
+        StepVerifier.create(carListingService.getPublishedListingByIdOrThrow(listing.id(), null))
                 .assertNext(dto -> assertThat(dto.id()).isEqualTo(listingId))
                 .verifyComplete();
     }
@@ -275,7 +274,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
 
-        StepVerifier.create(carListingService.getPublishedListingByIdOrThrow(listing.id()))
+        StepVerifier.create(carListingService.getPublishedListingByIdOrThrow(listing.id(), null))
                 .expectErrorMatches(e -> e instanceof ApiException ex
                         && ex.getStatus() == HttpStatus.NOT_FOUND)
                 .verify();
@@ -283,7 +282,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void getPublishedListingByIdOrThrowThrowsNotFoundForNonExistentId() {
-        StepVerifier.create(carListingService.getPublishedListingByIdOrThrow(9999))
+        StepVerifier.create(carListingService.getPublishedListingByIdOrThrow(9999, null))
                 .expectErrorMatches(e -> e instanceof ApiException ex
                         && ex.getStatus() == HttpStatus.NOT_FOUND)
                 .verify();
@@ -317,7 +316,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
         long publishedListingId = published.id();
 
-        StepVerifier.create(carListingService.getPublishedListings(new GetPublishedListingsRequestDTO()))
+        StepVerifier.create(carListingService.getPublishedListings(new GetPublishedListingsRequestDTO(), null))
                     .assertNext(page -> {
                     assertThat(page.totalElements()).isEqualTo(1);
                     assertThat(page.content()).hasSize(1);
@@ -335,7 +334,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
         GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
         request.setPublishedBefore(System.currentTimeMillis() - 1_000);
-        StepVerifier.create(carListingService.getPublishedListings(request))
+        StepVerifier.create(carListingService.getPublishedListings(request, null))
                     .assertNext(page -> {
                         assertThat(page.totalElements()).isEqualTo(0);
                         assertThat(page.content()).isEmpty();
@@ -355,7 +354,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         )).block();
         carListingService.updateStatus(updatedListing, ListingStatus.PUBLISHED).block();
 
-        StepVerifier.create(carListingService.getPublishedListings(new GetPublishedListingsRequestDTO()))
+        StepVerifier.create(carListingService.getPublishedListings(new GetPublishedListingsRequestDTO(), null))
                 .assertNext(page -> {
                     assertThat(page.totalElements()).isEqualTo(1);
                     PublicCarListingItemDTO dto = page.content().get(0);
@@ -376,7 +375,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         carListingService.create(userId).block();
 
-        StepVerifier.create(carListingService.getPublishedListings(new GetPublishedListingsRequestDTO()))
+        StepVerifier.create(carListingService.getPublishedListings(new GetPublishedListingsRequestDTO(), null))
                 .assertNext(page -> {
                     assertThat(page.totalElements()).isEqualTo(0);
                     assertThat(page.content()).isEmpty();
@@ -404,7 +403,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         GetPublishedListingsRequestDTO request = new GetPublishedListingsRequestDTO();
         request.setOffset(0);
         request.setSize(2);
-        StepVerifier.create(carListingService.getPublishedListings(request))
+        StepVerifier.create(carListingService.getPublishedListings(request, null))
                     .assertNext(page -> {
                         assertThat(page.totalElements()).isEqualTo(3);
                         assertThat(page.content()).hasSize(2);
@@ -416,7 +415,7 @@ class CarListingServiceTest extends AbstractIntegrationTest {
         request = new GetPublishedListingsRequestDTO();
         request.setOffset(2);
         request.setSize(2);
-        StepVerifier.create(carListingService.getPublishedListings(request))
+        StepVerifier.create(carListingService.getPublishedListings(request, null))
                 .assertNext(page -> {
                     assertThat(page.totalElements()).isEqualTo(3);
                     assertThat(page.content()).hasSize(1);
