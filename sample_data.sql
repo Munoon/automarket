@@ -1,5 +1,5 @@
 INSERT INTO users (id, phone_number, display_name, created_at, is_active) VALUES
-    (1, '+380123456789', 'John Doe', NOW(), TRUE);
+    (1, '+380123456789', 'John Doe', 1738800000000, TRUE);
 
 INSERT INTO car_listings
     (author_user_id, status, title, description, brand, custom_brand_name, model, condition, mileage, price,
@@ -56,3 +56,55 @@ VALUES
     (1, 'PUBLISHED', 'Honda Civic 1.5T MT 2020', 'Спортивний хетчбек. Hands Free доступ. Повна комплектація Sport.', 'HONDA', NULL, 'Civic', 'USED', 58000, 510000, 'CHERKASY', 'BLUE', 'MANUAL', 'PETROL', 46.0, 'FWD', 'SEDAN', 2020, 1.5, 1, 1738600000000, 1738600000000, 1738600000000),
     (1, 'PUBLISHED', 'Nissan Leaf 40kWh AT 2022', 'Бюджетний електромобіль. 270 км запасу. ProPilot асистент.', 'NISSAN', NULL, 'Leaf', 'USED', 22000, 720000, 'KYIV', 'WHITE', 'AUTOMATIC', 'ELECTRIC', NULL, 'FWD', 'HATCHBACK', 2022, NULL, 1, 1743000000000, 1743000000000, 1743000000000),
     (1, 'PUBLISHED', 'Ford Explorer 3.0 AT 2021', 'Великий 7-місний SUV. ST-Line. Panoramic roof. Adaptive cruise.', 'FORD', NULL, 'Explorer', 'USED', 36000, 1450000, 'BILA_TSERKVA', 'GRAY', 'AUTOMATIC', 'PETROL', 71.0, 'FOUR_WD', 'SUV', 2021, 3.0, 1, 1741900000000, 1741900000000, 1741900000000);
+
+-- image_keys updates
+UPDATE car_listings SET image_keys = '{"listings/1/c20ab993-96cb-4e03-be9a-1d388da893dd.jpeg","listings/1/dc8a954f-9883-4ffa-b1c6-52581599c66c.jpeg","listings/1/ff9d7959-162b-4dc3-b878-25d9b605e0b4.jpeg"}' WHERE title = 'Toyota Camry 2.5 AT 2020';
+UPDATE car_listings SET image_keys = '{"listings/2/37063e82-2377-497d-9856-a0397615e577.jpeg","listings/2/d2ae12dc-8a99-4849-b3f3-115efccd068b.jpeg","listings/2/d4a3d531-9c3b-4de0-89f3-e39611e9ad7f.jpeg"}' WHERE title = 'BMW 320i AT 2019';
+UPDATE car_listings SET image_keys = '{"listings/3/1d2b9300-662b-436e-9efe-886121cf0c78.jpeg","listings/3/2301b608-6631-4ded-91f5-dd9b3a62b627.jpeg","listings/3/b425d6ce-99be-4e04-9a94-2c9bb0fe75e9.jpeg"}' WHERE title = 'Volkswagen Golf 1.4 MT 2018';
+UPDATE car_listings SET image_keys = '{"listings/4/024e4847-92ef-4f31-abf4-f6bcac0ae9d1.jpeg","listings/4/da42d215-ce4a-459d-96f2-f949d95dde6d.jpeg","listings/4/f3660e39-c683-474c-b3d3-68e00dccb539.jpeg"}' WHERE title = 'Mercedes-Benz E220d AT 2021';
+UPDATE car_listings SET image_keys = '{"listings/5/20df7a1c-d0ae-42a7-96d2-aa65ae57198f.jpeg","listings/5/2f4df1df-8c84-4e72-96fa-66a0d22b758c.jpeg","listings/5/db720158-5762-41c8-9ec4-f0e2cc855c18.jpeg"}' WHERE title = 'Audi A4 2.0 TFSI AT 2020';
+UPDATE car_listings SET image_keys = '{}' WHERE title = 'Skoda Octavia 2.0 TDI MT 2019';
+UPDATE car_listings SET image_keys = '{"listings/7/5678283b-1ee0-4bdf-a77a-6807b8fece4a.jpeg","listings/7/64a612f0-fe37-462b-947f-fcb08f846461.jpeg","listings/7/e1943899-7cc1-4e59-b0fe-08592fe9df9d.jpeg"}' WHERE title = 'Hyundai Tucson 2.0 AT 2022';
+UPDATE car_listings SET image_keys = '{"listings/8/733d86bb-44dd-44bb-a2bf-3c45db3b5d8a.jpeg","listings/8/8d74e667-9d70-46ec-be28-5ac6be25029a.jpeg","listings/8/ee26812a-f655-48bf-9087-f73c117e9582.jpeg"}' WHERE title = 'KIA Sportage 2.0 AT 2021';
+UPDATE car_listings SET image_keys = '{"listings/9/5e4469c8-fac0-47c1-a1a8-ef06b04c48fc.jpeg","listings/9/f7005574-7813-4e98-9e53-b4f33109c236.jpeg"}' WHERE title = 'Ford Focus 1.6 MT 2017';
+UPDATE car_listings SET image_keys = '{"listings/10/5e6946ed-e443-4108-be4d-cec706a7744d.jpeg"}' WHERE title = 'Renault Megane 1.5 dCi MT 2018';
+UPDATE car_listings SET image_keys = '{"listings/11/58bb8b21-4139-40b6-9318-fb3520d119a3.jpeg","listings/11/7fac4810-4335-4781-9312-ca96da310123.jpeg","listings/11/991495eb-17e0-4491-b83d-2e5870b508fc.jpeg"}' WHERE title = 'Toyota RAV4 Hybrid AWD 2023';
+UPDATE car_listings SET image_keys = '{"listings/12/0a06ed34-ca4d-4a7c-8db2-7f9705773a7e.jpeg","listings/12/75e253d9-d5a5-488e-ad8f-f53b809fbac8.jpeg"}' WHERE title = 'Nissan Qashqai 1.3 AT 2020';
+UPDATE car_listings SET image_keys = '{"listings/13/9a6019b8-4190-4a08-8fd4-d2ee0a7aaa8d.jpeg","listings/13/b0c7b696-fce5-4ae3-ae84-7897d9627fb3.jpeg","listings/13/ce714367-1380-4717-b330-7721a9e1464e.jpeg"}' WHERE title = 'Mazda CX-5 2.0 AT 2021';
+UPDATE car_listings SET image_keys = '{"listings/14/4f594235-b136-475a-b673-8ce9b90450cf.jpeg","listings/14/a7bcc4f7-723b-4e36-ab8f-831524f59a6c.jpeg"}' WHERE title = 'Honda CR-V 1.5T AT 2019';
+UPDATE car_listings SET image_keys = '{"listings/15/00567748-8867-4d4f-af2c-e4b4c8b0c6fc.jpeg","listings/15/08553e22-c51a-4270-b5b1-08fe1d148558.jpeg"}' WHERE title = 'Volkswagen Passat 2.0 TDI AT 2018';
+UPDATE car_listings SET image_keys = '{"listings/16/0f09aa70-b924-4c80-9670-1fac3918853f.jpeg","listings/16/c3a4c0d7-ba35-4218-8234-3a2898a3e244.jpeg","listings/16/cad7bd1d-2066-4e13-bf00-5f8fec0a68b2.jpeg"}' WHERE title = 'BMW X5 3.0d AT 2020';
+UPDATE car_listings SET image_keys = '{"listings/17/a55b14da-3e46-4dbd-8525-c3ea66c0afb8.jpeg","listings/17/b75f957a-e4c7-4f38-a183-b490732d1011.jpeg","listings/17/ff6666be-a71f-46d9-b44b-f10dd098b9ae.jpeg"}' WHERE title = 'Mercedes-Benz GLC 300 AT 2021';
+UPDATE car_listings SET image_keys = '{"listings/18/07c743fe-9638-494b-bf88-b9265d82d31c.jpeg","listings/18/45b3fd08-f1dc-4cb5-953a-798c797d2de2.jpeg","listings/18/e69c6e52-e4eb-48d2-8773-e699352cfadf.jpeg"}' WHERE title = 'Audi Q5 2.0 TFSI AT 2019';
+UPDATE car_listings SET image_keys = '{"listings/19/3f7ddde6-577e-44c0-a018-0894e4e3885e.jpeg","listings/19/889480d2-0ab7-4fa6-86fb-3c0507068edf.jpeg","listings/19/b3ea21e6-c528-40dd-877e-05aa95515813.jpeg"}' WHERE title = 'Porsche Cayenne 3.0 AT 2022';
+UPDATE car_listings SET image_keys = '{"listings/20/6e09cfb7-d1a4-4ba2-a182-01b1a5e9f0c0.jpeg","listings/20/9c9a60b0-81cd-49c9-b10e-1bc003ecb40a.jpeg"}' WHERE title = 'Land Rover Discovery 3.0 AT 2020';
+UPDATE car_listings SET image_keys = '{"listings/21/19691cc1-a3bc-4ed0-8b3f-4dd128233729.jpeg"}' WHERE title = 'Jeep Grand Cherokee 3.6 AT 2019';
+UPDATE car_listings SET image_keys = '{}' WHERE title = 'Chevrolet Equinox 1.5T AT 2020';
+UPDATE car_listings SET image_keys = '{"listings/23/015e7d81-a4d7-45b8-850d-97cc094ad3f2.jpeg","listings/23/4c007c5b-2d96-4f51-a688-99e0ec04cc96.jpeg","listings/23/ee1a6ea8-e207-4fce-a61e-a20e0eeadacc.jpeg"}' WHERE title = 'Hyundai Elantra 1.6 AT 2022';
+UPDATE car_listings SET image_keys = '{"listings/24/7b27d6bb-f812-4308-acc4-d136ffced477.jpeg","listings/24/a2da4cc9-c483-43bf-983b-eac0cbdbc34f.jpeg"}' WHERE title = 'KIA Ceed 1.4 MT 2020';
+UPDATE car_listings SET image_keys = '{"listings/25/196b2e88-01c4-4f6a-b159-c2916d807683.jpeg","listings/25/59f8b93d-2afa-4026-8a6e-824b2a5b2e7e.jpeg","listings/25/90b15dc2-a095-46f7-b646-77880e9cc200.jpeg"}' WHERE title = 'Volvo XC60 T8 Recharge 2021';
+UPDATE car_listings SET image_keys = '{"listings/26/8d86c1a1-43be-40c5-8d9c-a5217a9ce09d.jpeg","listings/26/f707c3cf-91a3-480c-8529-a257761891ff.jpeg"}' WHERE title = 'Skoda Kodiaq 2.0 TDI AT 2020';
+UPDATE car_listings SET image_keys = '{"listings/27/0914813f-a845-46d9-81b7-42bd1a8935e2.jpeg","listings/27/a5dff6c2-29a0-438b-a4ab-c05d2f153055.jpeg","listings/27/b8b72c9e-3924-4ed2-b16d-2e35cdb5964e.jpeg"}' WHERE title = 'Toyota Corolla 1.8 Hybrid AT 2024';
+UPDATE car_listings SET image_keys = '{"listings/28/06d0c085-98df-4bd6-baa7-bc64e0234cb4.jpeg","listings/28/d4c7ad51-5ddc-4ef6-8aaf-5b89ea36a60f.jpeg"}' WHERE title = 'Lada Vesta 1.6 MT 2021';
+UPDATE car_listings SET image_keys = '{"listings/29/0a9cb071-de87-403a-b3bb-961ba1b721a4.jpeg","listings/29/e8362103-5168-4d20-a9d2-f1c05e4cc912.jpeg","listings/29/f9e228c2-4d0d-45dc-b6f8-c7ae9b592efd.jpeg"}' WHERE title = 'Ford Mustang GT 5.0 AT 2020';
+UPDATE car_listings SET image_keys = '{"listings/30/0cde6034-6a0b-4e02-9bb2-596bb946a7e0.jpeg","listings/30/b6af4d50-6585-4ba7-acde-7faa24458493.jpeg"}' WHERE title = 'Mitsubishi Outlander 2.4 AT 2019';
+UPDATE car_listings SET image_keys = '{"listings/31/081529ca-eb4b-4fb0-8931-92cb657f9776.jpeg","listings/31/2bf67ea4-5692-4b0f-911f-78185c4293e5.jpeg"}' WHERE title = 'Subaru Forester 2.5 AT 2021';
+UPDATE car_listings SET image_keys = '{"listings/32/06f2de08-c559-41c9-8689-df04c5ac9186.jpeg","listings/32/3cb532d8-4aec-49b5-92bf-9439678b107c.jpeg"}' WHERE title = 'Suzuki Vitara 1.6 MT 2020';
+UPDATE car_listings SET image_keys = '{"listings/33/3ab26d28-aeb8-41c9-9561-bef7d3641202.jpeg","listings/33/65ca40a0-c95c-4bd6-8b17-ae66ba4a0111.jpeg","listings/33/8425c6b8-46ef-4b34-b098-c22ca4e18b8a.jpeg"}' WHERE title = 'Lexus RX 450h AT 2022';
+UPDATE car_listings SET image_keys = '{"listings/34/2c404905-7fbc-4b28-9c16-53877d662165.jpeg","listings/34/3011b16b-5763-4122-86fd-e6d2cd601fde.jpeg"}' WHERE title = 'Alfa Romeo Giulia 2.0T AT 2019';
+UPDATE car_listings SET image_keys = '{"listings/35/0facfc11-da54-4874-a3fa-34e1c73df810.jpeg","listings/35/f788ef0a-b93a-4930-83b6-f624d6084308.jpeg"}' WHERE title = 'Fiat 500 1.2 MT 2020';
+UPDATE car_listings SET image_keys = '{"listings/36/6b24854d-e828-482e-88d3-46cfef1b5e87.jpeg","listings/36/d4cc815a-beaa-46ec-921a-3899b8e140a2.jpeg"}' WHERE title = 'Dacia Duster 1.5 dCi MT 2021';
+UPDATE car_listings SET image_keys = '{}' WHERE title = 'SEAT Leon 1.5 TSI MT 2019';
+UPDATE car_listings SET image_keys = '{"listings/38/09cab991-c7ed-4244-92b7-f51694b95945.jpeg","listings/38/5fcf5596-013d-4cec-81f6-35f9ef75453d.jpeg"}' WHERE title = 'Peugeot 3008 1.5 BlueHDi AT 2020';
+UPDATE car_listings SET image_keys = '{"listings/39/c89384e0-7751-4b7e-86b6-f9759ef71707.jpeg"}' WHERE title = 'Citroen C5 Aircross 1.6T AT 2021';
+UPDATE car_listings SET image_keys = '{}' WHERE title = 'Opel Astra 1.6 CDTI MT 2018';
+UPDATE car_listings SET image_keys = '{"listings/41/29a58522-7e4b-44ee-818c-e7d902ccc38e.jpeg","listings/41/33208b5a-a53e-4e40-a154-420798bdab9b.jpeg","listings/41/ea350995-56d4-41b8-94f1-de735bca5abe.jpeg"}' WHERE title = 'Tesla Model 3 Long Range 2023';
+UPDATE car_listings SET image_keys = '{}' WHERE title = 'Volkswagen Tiguan 1.4 TSI AT 2021';
+UPDATE car_listings SET image_keys = '{}' WHERE title = 'BMW 530d AT 2022';
+UPDATE car_listings SET image_keys = '{}' WHERE title = 'Toyota Land Cruiser 200 4.5D AT 2020';
+UPDATE car_listings SET image_keys = '{}' WHERE title = 'Hyundai Santa Fe 2.2D AT 2022';
+UPDATE car_listings SET image_keys = '{}' WHERE title = 'KIA Stinger 3.3T AT 2021';
+UPDATE car_listings SET image_keys = '{}' WHERE title = 'Mazda 6 2.5 AT 2019';
+UPDATE car_listings SET image_keys = '{}' WHERE title = 'Honda Civic 1.5T MT 2020';
+UPDATE car_listings SET image_keys = '{}' WHERE title = 'Nissan Leaf 40kWh AT 2022';
+UPDATE car_listings SET image_keys = '{}' WHERE title = 'Ford Explorer 3.0 AT 2021';
