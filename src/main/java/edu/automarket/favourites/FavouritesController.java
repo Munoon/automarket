@@ -1,5 +1,6 @@
 package edu.automarket.favourites;
 
+import edu.automarket.analytics.CarListingAnalyticsService;
 import edu.automarket.favourites.dto.FavouriteRequestDTO;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,15 +14,20 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/api/favourites")
 public class FavouritesController {
     private final FavouritesService favouritesService;
+    private final CarListingAnalyticsService carListingAnalyticsService;
 
-    public FavouritesController(FavouritesService favouritesService) {
+    public FavouritesController(FavouritesService favouritesService,
+                                CarListingAnalyticsService carListingAnalyticsService) {
         this.favouritesService = favouritesService;
+        this.carListingAnalyticsService = carListingAnalyticsService;
     }
 
     @PostMapping
     public Mono<Void> addFavourite(@AuthenticationPrincipal long userId,
                                    @RequestBody FavouriteRequestDTO request) {
-        return favouritesService.addFavourite(userId, request.listingId());
+        long listingId = request.listingId();
+        return favouritesService.addFavourite(userId, listingId)
+                .doOnSuccess(_ -> carListingAnalyticsService.recordListingAddedToFavourity(listingId));
     }
 
     @DeleteMapping

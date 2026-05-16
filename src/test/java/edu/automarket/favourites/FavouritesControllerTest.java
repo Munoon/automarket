@@ -1,6 +1,8 @@
 package edu.automarket.favourites;
 
 import edu.automarket.AbstractIntegrationTest;
+import edu.automarket.analytics.AggregatedListingsAnalyticsDTO;
+import edu.automarket.analytics.CarListingAnalyticsService;
 import edu.automarket.authentication.AuthenticationService;
 import edu.automarket.common.ProblemDTO;
 import edu.automarket.favourites.dto.FavouriteRequestDTO;
@@ -37,6 +39,9 @@ class FavouritesControllerTest extends AbstractIntegrationTest {
 
     @Autowired
     private FavouritesService favouritesService;
+
+    @Autowired
+    private CarListingAnalyticsService analyticsService;
 
     // --- POST /api/favourites ---
 
@@ -100,6 +105,27 @@ class FavouritesControllerTest extends AbstractIntegrationTest {
                     assertThat(problem.type()).isEqualTo("/problems/favourites-limit-reached");
                     assertThat(problem.status()).isEqualTo(403);
                 });
+    }
+
+    @Test
+    void addFavouritesRecordsToAnalytics() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
+
+        webTestClient.post()
+                .uri("/api/favourites")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new FavouriteRequestDTO(listing.id()))
+                .exchange()
+                .expectStatus().isOk();
+
+        analyticsService.saveListingAnalytics();
+
+        AggregatedListingsAnalyticsDTO dto = AggregatedListingsAnalyticsDTO.compute(analyticsService, listing.id());
+        assertThat(dto).isNotNull();
+        assertThat(dto.favouritesCount()).isEqualTo(1);
     }
 
     // --- DELETE /api/favourites ---
