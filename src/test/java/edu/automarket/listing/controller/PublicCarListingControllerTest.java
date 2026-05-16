@@ -3,8 +3,11 @@ package edu.automarket.listing.controller;
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.analytics.AggregatedListingsAnalyticsDTO;
 import edu.automarket.analytics.CarListingAnalyticsService;
+import edu.automarket.authentication.AuthenticationService;
 import edu.automarket.common.PageDTO;
 import edu.automarket.common.ProblemDTO;
+import edu.automarket.favourites.FavouritesRepository;
+import edu.automarket.favourites.FavouritesService;
 import edu.automarket.listing.CarListingService;
 import edu.automarket.listing.dto.AuthorPhoneDTO;
 import edu.automarket.listing.dto.OwnCarListingListItemDTO;
@@ -39,10 +42,16 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
     private UserService userService;
 
     @Autowired
+    private AuthenticationService authenticationService;
+
+    @Autowired
     private CarListingService carListingService;
 
     @Autowired
     private CarListingAnalyticsService analyticsService;
+
+    @Autowired
+    private FavouritesService favouritesService;
 
     private static final ParameterizedTypeReference<PageDTO<PublicCarListingItemDTO>> PAGE_TYPE =
             new ParameterizedTypeReference<>() {};
@@ -783,5 +792,175 @@ class PublicCarListingControllerTest extends AbstractIntegrationTest {
         AggregatedListingsAnalyticsDTO dto = AggregatedListingsAnalyticsDTO.compute(analyticsService, listing.id());
         assertThat(dto).isNotNull();
         assertThat(dto.phoneRequestsCount()).isEqualTo(0);
+    }
+
+    // --- isFavourite field ---
+
+    @Test
+    void getById_withAuth_returnsIsFavouriteFalseWhenNotFavourited() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        webTestClient.get()
+                .uri("/api/listings/public/" + listing.id())
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(PublicCarListingDTO.class)
+                .value(dto -> assertThat(dto.isFavourite()).isFalse());
+    }
+
+    @Test
+    void getById_withAuth_returnsIsFavouriteTrueWhenFavourited() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        favouritesService.addFavourite(userId, listing.id()).block();
+
+        webTestClient.get()
+                .uri("/api/listings/public/" + listing.id())
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(PublicCarListingDTO.class)
+                .value(dto -> assertThat(dto.isFavourite()).isTrue());
+    }
+
+    @Test
+    void getPublishedListings_withAuth_returnsIsFavouriteFieldForEachListing() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+
+        CarListing favListing = carListingService.create(userId).block();
+        favListing = carListingService.update(favListing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        carListingService.updateStatus(favListing, ListingStatus.PUBLISHED).block();
+        long favListingId = favListing.id();
+
+        CarListing notFavListing = carListingService.create(userId).block();
+        notFavListing = carListingService.update(notFavListing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        carListingService.updateStatus(notFavListing, ListingStatus.PUBLISHED).block();
+        long notFavListingId = notFavListing.id();
+
+        favouritesService.addFavourite(userId, favListingId).block();
+
+        webTestClient.get()
+                .uri("/api/listings/public")
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(PAGE_TYPE)
+                .value(page -> {
+                    assertThat(page.content()).hasSize(2);
+
+                    PublicCarListingItemDTO listing = page.content().get(0);
+                    assertThat(listing.id()).isEqualTo(notFavListingId);
+                    assertThat(listing.isFavourite()).isFalse();
+
+                    listing = page.content().get(1);
+                    assertThat(listing.id()).isEqualTo(favListingId);
+                    assertThat(listing.isFavourite()).isTrue();
+                });
+    }
+
+    // --- GET /api/listings/public/favourites ---
+
+    @Test
+    void getFavouritesListings_returnsFavouritedPublishedListings() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+        long listingId = listing.id();
+
+        favouritesService.addFavourite(userId, listingId).block();
+
+        webTestClient.get()
+                .uri("/api/listings/public/favourites")
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(PAGE_TYPE)
+                .value(page -> {
+                    assertThat(page.totalElements()).isEqualTo(1);
+                    assertThat(page.content()).hasSize(1);
+                    assertThat(page.content().get(0).id()).isEqualTo(listingId);
+                    assertThat(page.content().get(0).isFavourite()).isTrue();
+                });
+    }
+
+    @Test
+    void getFavouritesListings_returnsEmptyWhenNoFavourites() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+
+        webTestClient.get()
+                .uri("/api/listings/public/favourites")
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(PAGE_TYPE)
+                .value(page -> {
+                    assertThat(page.totalElements()).isEqualTo(0);
+                    assertThat(page.content()).isEmpty();
+                });
+    }
+
+    @Test
+    void getFavouritesListings_paginatesCorrectly() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+
+        CarListing listing1 = carListingService.create(userId).block();
+        CarListing listing2 = carListingService.create(userId).block();
+        CarListing listing3 = carListingService.create(userId).block();
+
+        listing1 = carListingService.update(listing1, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        listing2 = carListingService.update(listing2, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        listing3 = carListingService.update(listing3, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+
+        carListingService.updateStatus(listing1, ListingStatus.PUBLISHED).block();
+        carListingService.updateStatus(listing2, ListingStatus.PUBLISHED).block();
+        carListingService.updateStatus(listing3, ListingStatus.PUBLISHED).block();
+
+        favouritesService.addFavourite(userId, listing1.id()).block();
+        favouritesService.addFavourite(userId, listing2.id()).block();
+        favouritesService.addFavourite(userId, listing3.id()).block();
+
+        long listing1Id = listing1.id();
+        long listing2Id = listing2.id();
+        long listing3Id = listing3.id();
+
+        webTestClient.get()
+                .uri("/api/listings/public/favourites?offset=0&size=2")
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(PAGE_TYPE)
+                .value(page -> {
+                    assertThat(page.totalElements()).isEqualTo(3);
+                    assertThat(page.content()).hasSize(2);
+                    assertThat(page.content().get(0).id()).isEqualTo(listing1Id);
+                    assertThat(page.content().get(1).id()).isEqualTo(listing2Id);
+                });
+
+        webTestClient.get()
+                .uri("/api/listings/public/favourites?offset=2&size=2")
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(PAGE_TYPE)
+                .value(page -> {
+                    assertThat(page.totalElements()).isEqualTo(3);
+                    assertThat(page.content()).hasSize(1);
+                    assertThat(page.content().get(0).id()).isEqualTo(listing3Id);
+                });
     }
 }

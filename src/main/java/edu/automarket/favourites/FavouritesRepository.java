@@ -9,7 +9,7 @@ public class FavouritesRepository {
     //language=postgresql
     private static final String INSERT_FAVOURITE = """
             INSERT INTO favourites (user_id, listing_id, created_at)
-            VALUES (:userId, :listingId, NOW())
+            VALUES (:userId, :listingId, EXTRACT(EPOCH FROM NOW())::bigint * 1000)
             """;
 
     //language=postgresql

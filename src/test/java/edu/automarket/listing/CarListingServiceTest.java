@@ -2,6 +2,8 @@ package edu.automarket.listing;
 
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.common.ApiException;
+import edu.automarket.favourites.FavouritesRepository;
+import edu.automarket.favourites.FavouritesService;
 import edu.automarket.listing.dto.CarListingPromotionPeriod;
 import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
 import edu.automarket.listing.dto.PublicCarListingItemDTO;
@@ -34,6 +36,9 @@ class CarListingServiceTest extends AbstractIntegrationTest {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private FavouritesService favouritesService;
 
     @Test
     void createReturnsDraftListingWithCorrectUserId() {
@@ -533,6 +538,32 @@ class CarListingServiceTest extends AbstractIntegrationTest {
                     assertThat(updated.status()).isEqualTo(ListingStatus.PUBLISHED);
                     assertThat(updated.title()).isNotNull();
                 })
+                .verifyComplete();
+    }
+
+    @Test
+    void getFavouritesListingsReturnsPublishedFavourites() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+        long listingId = listing.id();
+
+        favouritesService.addFavourite(userId, listingId).block();
+
+        StepVerifier.create(carListingService.getFavouritesListings(userId, 0, 20))
+                .assertNext(dto -> {
+                    assertThat(dto.id()).isEqualTo(listingId);
+                    assertThat(dto.isFavourite()).isTrue();
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void getFavouritesListingsReturnsEmptyWhenNoFavourites() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+
+        StepVerifier.create(carListingService.getFavouritesListings(userId, 0, 20))
                 .verifyComplete();
     }
 }

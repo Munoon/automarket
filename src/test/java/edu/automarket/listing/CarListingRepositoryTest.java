@@ -1,6 +1,8 @@
 package edu.automarket.listing;
 
 import edu.automarket.AbstractIntegrationTest;
+import edu.automarket.favourites.FavouritesRepository;
+import edu.automarket.favourites.FavouritesService;
 import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
 import edu.automarket.listing.model.BodyType;
 import edu.automarket.listing.model.CarBrand;
@@ -26,6 +28,9 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private FavouritesService favouritesService;
 
     @Test
     void createPersistsListingAndAssignsId() {
@@ -970,6 +975,123 @@ class CarListingRepositoryTest extends AbstractIntegrationTest {
                     assertThat(dto.id()).isEqualTo(listing2.id());
                     assertThat(dto.isPromoted()).isFalse();
                 })
+                .verifyComplete();
+    }
+
+    // --- isFavourite field ---
+
+    @Test
+    void findPublishedById_withUserId_returnsIsFavouriteTrueWhenFavourited() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+        CarListing listing = carListingRepository.create(userId, now).block();
+        carListingRepository.update(listing.withStatus(ListingStatus.PUBLISHED, now)).block();
+        favouritesService.addFavourite(userId, listing.id()).block();
+
+        StepVerifier.create(carListingRepository.findPublishedById(listing.id(), userId))
+                .assertNext(dto -> assertThat(dto.isFavourite()).isTrue())
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublishedById_withUserId_returnsIsFavouriteFalseWhenNotFavourited() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+        CarListing listing = carListingRepository.create(userId, now).block();
+        carListingRepository.update(listing.withStatus(ListingStatus.PUBLISHED, now)).block();
+
+        StepVerifier.create(carListingRepository.findPublishedById(listing.id(), userId))
+                .assertNext(dto -> assertThat(dto.isFavourite()).isFalse())
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_withUserId_returnsIsFavouriteTrueWhenFavourited() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+        CarListing listing = carListingRepository.create(userId, now).block();
+        carListingRepository.update(listing.withStatus(ListingStatus.PUBLISHED, now)).block();
+        favouritesService.addFavourite(userId, listing.id()).block();
+
+        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO(), userId))
+                .assertNext(dto -> assertThat(dto.isFavourite()).isTrue())
+                .verifyComplete();
+    }
+
+    @Test
+    void findPublished_withUserId_returnsIsFavouriteFalseWhenNotFavourited() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+        CarListing listing = carListingRepository.create(userId, now).block();
+        carListingRepository.update(listing.withStatus(ListingStatus.PUBLISHED, now)).block();
+
+        StepVerifier.create(carListingRepository.findPublished(new GetPublishedListingsRequestDTO(), userId))
+                .assertNext(dto -> assertThat(dto.isFavourite()).isFalse())
+                .verifyComplete();
+    }
+
+    // --- findFavouritesByUserId ---
+
+    @Test
+    void findFavouritesByUserId_returnsPublishedFavouritedListings() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+        CarListing listing = carListingRepository.create(userId, now).block();
+        carListingRepository.update(listing.withStatus(ListingStatus.PUBLISHED, now)).block();
+        favouritesService.addFavourite(userId, listing.id()).block();
+
+        StepVerifier.create(carListingRepository.findFavouritesByUserId(userId, 0, 20))
+                .assertNext(dto -> {
+                    assertThat(dto.id()).isEqualTo(listing.id());
+                    assertThat(dto.isFavourite()).isTrue();
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void findFavouritesByUserId_doesNotReturnUnpublishedListings() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing draft = carListingRepository.create(userId, System.currentTimeMillis()).block();
+        favouritesService.addFavourite(userId, draft.id()).block();
+
+        StepVerifier.create(carListingRepository.findFavouritesByUserId(userId, 0, 20))
+                .verifyComplete();
+    }
+
+    @Test
+    void findFavouritesByUserId_returnsEmptyWhenNoFavourites() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+
+        StepVerifier.create(carListingRepository.findFavouritesByUserId(userId, 0, 20))
+                .verifyComplete();
+    }
+
+    @Test
+    void findFavouritesByUserId_paginatesCorrectly() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long now = System.currentTimeMillis();
+
+        CarListing listing1 = carListingRepository.create(userId, now).block();
+        CarListing listing2 = carListingRepository.create(userId, now + 1).block();
+        CarListing listing3 = carListingRepository.create(userId, now + 2).block();
+
+        carListingRepository.update(listing1.withStatus(ListingStatus.PUBLISHED, now)).block();
+        carListingRepository.update(listing2.withStatus(ListingStatus.PUBLISHED, now + 1)).block();
+        carListingRepository.update(listing3.withStatus(ListingStatus.PUBLISHED, now + 2)).block();
+
+        favouritesService.addFavourite(userId, listing1.id()).block();
+        favouritesService.addFavourite(userId, listing2.id()).block();
+        favouritesService.addFavourite(userId, listing3.id()).block();
+
+        // page 1: 2 results
+        StepVerifier.create(carListingRepository.findFavouritesByUserId(userId, 0, 2))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing1.id()))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing2.id()))
+                .verifyComplete();
+
+        // page 2: 1 result
+        StepVerifier.create(carListingRepository.findFavouritesByUserId(userId, 2, 2))
+                .assertNext(dto -> assertThat(dto.id()).isEqualTo(listing3.id()))
                 .verifyComplete();
     }
 

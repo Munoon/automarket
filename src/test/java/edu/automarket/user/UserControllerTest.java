@@ -4,7 +4,10 @@ import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.authentication.AuthenticationService;
 import edu.automarket.captcha.CaptchaService;
 import edu.automarket.common.ProblemDTO;
+import edu.automarket.favourites.FavouritesRepository;
+import edu.automarket.favourites.FavouritesService;
 import edu.automarket.listing.CarListingService;
+import edu.automarket.listing.model.CarListing;
 import edu.automarket.sms.SmsCodeRepository;
 import edu.automarket.sms.SmsCodeService;
 import edu.automarket.sms.dto.TelegramGatewayAPIRequestDTO;
@@ -56,6 +59,9 @@ class UserControllerTest extends AbstractIntegrationTest {
 
     @Autowired
     private DatabaseClient databaseClient;
+
+    @Autowired
+    private FavouritesService favouritesService;
 
     @MockitoSpyBean
     private SmsCodeService smsCodeService;
@@ -352,6 +358,69 @@ class UserControllerTest extends AbstractIntegrationTest {
 
                     assertThat(dto.ownListingsCount()).isEqualTo(1);
                 });
+    }
+
+    @Test
+    void authenticateReturnsFavouritesCountAndLimit() {
+        smsCodeRepository.saveCode("+380123456789", "123456").block();
+
+        webTestClient.post().uri("/api/users/auth")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new AuthRequestDTO("+380123456789", "123456"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(AuthResponseDTO.class)
+                .value(dto -> {
+                    assertThat(dto.favouritesCount()).isEqualTo(0);
+                    assertThat(dto.limits().favouritesLimitPerUser()).isEqualTo(100);
+                });
+    }
+
+    @Test
+    void authenticateReturnsFavouritesCountWhenFavouritesExist() {
+        User user = userService.getUserByPhoneNumberOrCreate("+380123456789").block();
+        CarListing listing = carListingService.create(user.id()).block();
+        favouritesService.addFavourite(user.id(), listing.id()).block();
+        smsCodeRepository.saveCode("+380123456789", "123456").block();
+
+        webTestClient.post().uri("/api/users/auth")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new AuthRequestDTO("+380123456789", "123456"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(AuthResponseDTO.class)
+                .value(dto -> assertThat(dto.favouritesCount()).isEqualTo(1));
+    }
+
+    @Test
+    void getProfileReturnsFavouritesCountAndLimit() {
+        User user = userService.getUserByPhoneNumberOrCreate("+380123456789").block();
+        String token = authenticationService.generateToken(user.id());
+
+        webTestClient.get().uri("/api/users/profile")
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ProfileResponseDTO.class)
+                .value(dto -> {
+                    assertThat(dto.favouritesCount()).isEqualTo(0);
+                    assertThat(dto.limits().favouritesLimitPerUser()).isEqualTo(100);
+                });
+    }
+
+    @Test
+    void getProfileReturnsFavouritesCountWhenFavouritesExist() {
+        User user = userService.getUserByPhoneNumberOrCreate("+380123456789").block();
+        String token = authenticationService.generateToken(user.id());
+        CarListing listing = carListingService.create(user.id()).block();
+        favouritesService.addFavourite(user.id(), listing.id()).block();
+
+        webTestClient.get().uri("/api/users/profile")
+                .header("Authorization", "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ProfileResponseDTO.class)
+                .value(dto -> assertThat(dto.favouritesCount()).isEqualTo(1));
     }
 
     @Test
