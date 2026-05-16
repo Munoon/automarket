@@ -251,7 +251,6 @@
         });
 
         return () => {
-            clearTimer();
             captchaToken = null;
             pendingSend = false;
             if (captchaWidgetId !== null) {
