@@ -118,7 +118,7 @@ public class OwnCarListingController {
                         throw new ApiException(HttpStatus.BAD_REQUEST, "/problems/status-already-set", "Status already set");
                     }
 
-                    return carListingService.updateStatus(listing, newStatus);
+                    return carListingService.updateStatus(listing, newStatus).then();
                 });
     }
 

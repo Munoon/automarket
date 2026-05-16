@@ -36,6 +36,10 @@ public class FavouritesService {
         return repository.removeFavourite(userId, listingId);
     }
 
+    public Mono<Void> removeFavouritesByListingId(long listingId) {
+        return repository.removeFavouritesByListingId(listingId);
+    }
+
     public int favouritesLimitPerUser() {
         return favouritesLimitPerUser;
     }

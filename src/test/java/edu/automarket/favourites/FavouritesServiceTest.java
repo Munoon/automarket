@@ -80,6 +80,21 @@ class FavouritesServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void removeFavouriteByListingIdDeletesEntry() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+
+        favouritesService.addFavourite(userId, listing.id()).block();
+
+        StepVerifier.create(favouritesService.removeFavouritesByListingId(listing.id()))
+                .verifyComplete();
+
+        StepVerifier.create(favouritesService.countFavouritesByUser(userId))
+                .assertNext(count -> assertThat(count).isEqualTo(0))
+                .verifyComplete();
+    }
+
+    @Test
     void countFavouritesByUserReturnsCorrectCount() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing1 = carListingService.create(userId).block();

@@ -19,6 +19,12 @@ public class FavouritesRepository {
             """;
 
     //language=postgresql
+    private static final String DELETE_FAVOURITES_BY_LISTING_ID = """
+            DELETE FROM favourites
+            WHERE listing_id = :listingId
+            """;
+
+    //language=postgresql
     private static final String COUNT_FAVOURITES_BY_USER = """
             SELECT COUNT(*)
             FROM favourites
@@ -41,6 +47,12 @@ public class FavouritesRepository {
     public Mono<Void> removeFavourite(long userId, long listingId) {
         return databaseClient.sql(DELETE_FAVOURITE)
                 .bind("userId", userId)
+                .bind("listingId", listingId)
+                .then();
+    }
+
+    public Mono<Void> removeFavouritesByListingId(long listingId) {
+        return databaseClient.sql(DELETE_FAVOURITES_BY_LISTING_ID)
                 .bind("listingId", listingId)
                 .then();
     }

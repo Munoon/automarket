@@ -2,6 +2,7 @@ package edu.automarket.listing;
 
 import edu.automarket.common.ApiException;
 import edu.automarket.common.PageDTO;
+import edu.automarket.favourites.FavouritesService;
 import edu.automarket.listing.dto.AuthorPhoneDTO;
 import edu.automarket.listing.dto.CarListingPromotionPeriod;
 import edu.automarket.listing.dto.GetPublishedListingsRequestDTO;
@@ -16,19 +17,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 
 @Service
 public class CarListingService {
     private final CarListingRepository carListingRepository;
+    private final FavouritesService favouritesService;
     private final long listingRepublishCooldownMS;
     private final int listingsCountPerAuthorLimit;
 
     public CarListingService(CarListingRepository carListingRepository,
+                             FavouritesService favouritesService,
                              @Value("${app.listing.republishCooldown:3d}") Duration listingRepublishCooldouwn,
                              @Value("${app.listing.countLimitPerAuthor:30}") int listingsCountPerAuthorLimit) {
         this.carListingRepository = carListingRepository;
+        this.favouritesService = favouritesService;
         this.listingRepublishCooldownMS = listingRepublishCooldouwn.toMillis();
         this.listingsCountPerAuthorLimit = listingsCountPerAuthorLimit;
     }
@@ -64,7 +69,7 @@ public class CarListingService {
         return carListingRepository.deleteById(id);
     }
 
-    public Mono<Void> updateStatus(CarListing listing, ListingStatus newStatus) {
+    public Mono<CarListing> updateStatus(CarListing listing, ListingStatus newStatus) {
         long publishedAt = newStatus == ListingStatus.PUBLISHED
                 ? System.currentTimeMillis()
                 : listing.publishedAt();
@@ -75,9 +80,14 @@ public class CarListingService {
                         "Listing publishing cooldown in progress");
             }
             listing.validatePublishedListingFields();
+        } else if (listing.status() == ListingStatus.PUBLISHED) { // unpublish
+            favouritesService.removeFavouritesByListingId(listing.id())
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .subscribe();
         }
 
-        return carListingRepository.update(listing.withStatus(newStatus, publishedAt));
+        CarListing updatedListing = listing.withStatus(newStatus, publishedAt);
+        return carListingRepository.update(updatedListing).thenReturn(updatedListing);
     }
 
     public Mono<CarListing> update(CarListing carListing, UpdateCarListingRequestDTO request) {

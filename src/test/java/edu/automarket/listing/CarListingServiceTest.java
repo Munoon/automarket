@@ -261,6 +261,29 @@ class CarListingServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void updateStatusRemoveFavouritesOnUnpublish() throws InterruptedException {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        listing = carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
+
+        favouritesService.addFavourite(userId, listing.id()).block();
+
+        assertThat(favouritesService.countFavouritesByUser(userId).block()).isEqualTo(1);
+        carListingService.updateStatus(listing, ListingStatus.ARCHIVED).block();
+
+        int count = 1;
+        for (int i = 0; i < 5; i++) {
+            count = favouritesService.countFavouritesByUser(userId).block();
+            if (count == 0) {
+                break;
+            }
+            Thread.sleep(100);
+        }
+        assertThat(count).isEqualTo(0);
+    }
+
+    @Test
     void getPublishedListingByIdOrThrowReturnsPublishedListing() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();

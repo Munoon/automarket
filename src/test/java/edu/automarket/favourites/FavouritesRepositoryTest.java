@@ -59,6 +59,47 @@ class FavouritesRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void removeFavouritesByListingIdDeletesEntry() {
+        long userId1 = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        long userId2 = userService.getUserByPhoneNumberOrCreate("+380123456780").block().id();
+        CarListing listing1 = carListingService.create(userId1).block();
+        CarListing listing2 = carListingService.create(userId1).block();
+
+        favouritesRepository.addFavourite(userId1, listing1.id()).block();
+        favouritesRepository.addFavourite(userId1, listing2.id()).block();
+        favouritesRepository.addFavourite(userId2, listing1.id()).block();
+
+        StepVerifier.create(favouritesRepository.removeFavouritesByListingId(listing1.id()))
+                .verifyComplete();
+
+        StepVerifier.create(favouritesRepository.countFavourites(userId1))
+                .assertNext(count -> assertThat(count).isEqualTo(1))
+                .verifyComplete();
+        StepVerifier.create(favouritesRepository.countFavourites(userId2))
+                .assertNext(count -> assertThat(count).isEqualTo(0))
+                .verifyComplete();
+
+        StepVerifier.create(favouritesRepository.removeFavouritesByListingId(listing2.id()))
+                .verifyComplete();
+
+        StepVerifier.create(favouritesRepository.countFavourites(userId1))
+                .assertNext(count -> assertThat(count).isEqualTo(0))
+                .verifyComplete();
+        StepVerifier.create(favouritesRepository.countFavourites(userId2))
+                .assertNext(count -> assertThat(count).isEqualTo(0))
+                .verifyComplete();
+    }
+
+    @Test
+    void removeFavouritesByListingIdCompletesEvenWhenEntryDoesNotExist() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+
+        StepVerifier.create(favouritesRepository.removeFavouritesByListingId(listing.id()))
+                .verifyComplete();
+    }
+
+    @Test
     void countFavouritesReturnsZeroForUserWithNoFavourites() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
 
