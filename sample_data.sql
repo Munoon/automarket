@@ -108,3 +108,20 @@ UPDATE car_listings SET image_keys = '{}' WHERE title = 'Mazda 6 2.5 AT 2019';
 UPDATE car_listings SET image_keys = '{}' WHERE title = 'Honda Civic 1.5T MT 2020';
 UPDATE car_listings SET image_keys = '{}' WHERE title = 'Nissan Leaf 40kWh AT 2022';
 UPDATE car_listings SET image_keys = '{}' WHERE title = 'Ford Explorer 3.0 AT 2021';
+
+-- car_listing_analytics: daily data for each listing over the last 3 months (2026-02-16 – 2026-05-15)
+-- impressions/views vary by listing using a deterministic tier ((id * 7) % 11) plus random daily noise
+INSERT INTO car_listing_analytics (listing_id, impressions_count, views_count, phone_requests_count, favourites_count, ts)
+SELECT
+    l.id,
+    GREATEST(10, (80 + ((l.id * 7) % 11) * 20 + FLOOR(RANDOM() * 100))::INT) AS impressions_count,
+    GREATEST(1,  (12 + ((l.id * 3) % 7)  * 4  + FLOOR(RANDOM() * 20))::INT) AS views_count,
+    GREATEST(0, FLOOR(RANDOM() * 5)::INT) AS phone_requests_count,
+    GREATEST(0, FLOOR(RANDOM() * 4)::INT) AS favourites_count,
+    d.ts
+FROM car_listings l
+CROSS JOIN generate_series(
+    (NOW() - INTERVAL '3 months')::TIMESTAMP,
+    NOW()::TIMESTAMP,
+    '1 day'::INTERVAL
+) AS d(ts);
