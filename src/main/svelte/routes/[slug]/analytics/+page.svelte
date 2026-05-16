@@ -58,13 +58,18 @@
   // Fill gaps so every day in the range has a data point (zeros for missing days).
   let filledAnalytics = $derived.by(() => {
     if (!analytics || analytics.length === 0) return analytics ?? [];
-    const secondsInDay = 86400;
     const byTs = new Map(analytics.map(d => [d.ts, d]));
     const min = analytics[0].ts;
     const max = analytics[analytics.length - 1].ts;
     const result: ListingAnalyticsDay[] = [];
-    for (let ts = min; ts <= max; ts += secondsInDay) {
+    // Use setDate(+1) so DST transitions are handled correctly — the backend
+    // groups by local midnight (via date_trunc with the user's timezone), so
+    // two consecutive days can differ by 23 h or 25 h, not always 86 400 s.
+    const date = new Date(min * 1000);
+    while (date.getTime() / 1000 <= max) {
+      const ts = date.getTime() / 1000;
       result.push(byTs.get(ts) ?? { ts, impressionsCount: 0, viewsCount: 0, phoneRequestsCount: 0, favouritesCount: 0 });
+      date.setDate(date.getDate() + 1);
     }
     return result;
   });
