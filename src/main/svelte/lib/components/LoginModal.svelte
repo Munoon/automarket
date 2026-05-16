@@ -1,6 +1,7 @@
 <script lang="ts">
     import { browser } from '$app/environment';
-	import { Modal, Button, Input, Label, Alert, Progressbar, Helper } from 'flowbite-svelte';
+    import { fade } from 'svelte/transition';
+	import { Button, Input, Label, Alert, Progressbar, Helper } from 'flowbite-svelte';
 	import { ExclamationCircleOutline } from 'flowbite-svelte-icons';
 	import { t } from '$lib/i18n';
 	import { apiClient, type AuthResponse, type ProblemException } from '$lib/apiClient';
@@ -29,7 +30,7 @@
     let captchaToken: string | null = $state(null);
     let captchaContainer: HTMLDivElement | undefined = $state();
     let pendingSend: boolean = false;
-    
+
 	function startTimer(totalSeconds: number) {
 		totalTimeToLive = totalSeconds;
 		timeRemaining = totalSeconds;
@@ -225,10 +226,7 @@
 	}
 
 	$effect(() => {
-        // Reading $pendingAuthAction makes this effect re-run when the modal opens/closes,
-        // which handles the case where flowbite hides the modal with CSS (captchaContainer
-        // never changes to undefined, so bind:this alone wouldn't trigger a re-run).
-        if (!captchaEnabled || !captchaContainer || $pendingAuthAction === null) return;
+        if (!captchaEnabled || !captchaContainer) return;
 
         captchaWidgetId = hcaptcha.render(captchaContainer, {
             sitekey: window.__config.hcaptchaSitekey,
@@ -261,180 +259,199 @@
 	});
 </script>
 
-<Modal
-	open={$pendingAuthAction != null}
-    onclose={handleClose}
-	outsideclose={false}
-	size="xs"
-	placement="center"
-    class="m-auto">
-	<div class="space-y-6">
-		<div class="flex items-center justify-between">
-			<h3 class="text-xl font-semibold text-primary">
+<svelte:window onkeydown={(e) => { if (e.key === 'Escape' && $pendingAuthAction !== null) handleClose(); }} />
+
+{#if $pendingAuthAction != null}
+    <!-- z-50 keeps us in the normal stacking context so hCaptcha's z-index:2147483647 wins -->
+    <div
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 dark:bg-gray-900/80"
+        transition:fade={{ duration: 150 }}
+    >
+        <div
+            role="dialog"
+            aria-modal="true"
+            class="relative w-full max-w-md rounded-lg bg-white shadow-xl p-6 dark:bg-gray-800"
+        >
+            <button
+                type="button"
+                onclick={handleClose}
+                class="absolute top-3 right-3 ms-auto inline-flex h-8 w-8 items-center justify-center rounded-lg bg-transparent text-sm text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white"
+                aria-label="Close"
+            >
+                <svg class="h-3 w-3" aria-hidden="true" fill="none" viewBox="0 0 14 14">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                </svg>
+            </button>
+
+            <div class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-semibold text-primary">
+                        {#if stage === 'phone'}
+                            {$t('auth.signIn')}
+                        {:else if stage === 'code'}
+                            {$t('auth.verifyCode')}
+                        {:else if stage === 'displayName'}
+                            {$t('auth.displayName')}
+                        {/if}
+                    </h3>
+                </div>
+
+                {#if error}
+                    <Alert border class="text-red-600 border-red-600">
+                        {#snippet icon()}<ExclamationCircleOutline class="h-5 w-5" />{/snippet}
+                        {error}
+                    </Alert>
+                {/if}
+
                 {#if stage === 'phone'}
-                    {$t('auth.signIn')}
+                    <form class="space-y-4" onsubmit={handleSendCode}>
+                        <div class="flex">
+                            <div class="z-10 inline-flex shrink-0 items-center rounded-s-lg border border-r-0 border-gray-300 bg-gray-100 px-3 py-2 text-center text-sm font-medium text-muted dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-gray-700">
+                                🇺🇦 +380
+                            </div>
+                            <Input
+                                type="tel"
+                                name="phone-number"
+                                inputmode="numeric"
+                                placeholder="967584954"
+                                class="rounded-l-none! placeholder-gray-500"
+                                required
+                                autofocus
+                                disabled={isLoading}
+                                bind:value={phoneNumber}
+                                />
+                        </div>
+                        <Helper class="mt-2 text-sm">{$t('auth.weWillSendCode')}</Helper>
+                        {#if captchaEnabled}
+                            <div bind:this={captchaContainer}
+                                data-size='normal'
+                                data-theme={prefersLightScheme ? 'light' : 'dark'}></div>
+                        {/if}
+                        <Button
+                            class="my-2 w-full text-sm"
+                            color="blue"
+                            type="submit"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? $t('auth.sending') : $t('auth.sendCode')}
+                        </Button>
+                    </form>
                 {:else if stage === 'code'}
-                    {$t('auth.verifyCode')}
+                    <form class="space-y-4" onsubmit={handleVerifyCode}>
+                        <div>
+                            <Label class="mb-2 block">{$t('auth.verificationCode')}</Label>
+                            <div class='flex gap-2 items-center justify-center' bind:this={verificationCodeInputsDiv}>
+                                <Input
+                                    type="text"
+                                    name="code-1"
+                                    disabled={isLoading}
+                                    bind:value={verificationCode[0]}
+                                    class='size-12! text-center text-lg'
+                                    required
+                                    autofocus
+                                    oninput={(e) => handleVerificationCodeInput(e, 1)}
+                                    onkeydown={(e) => handleVerificationCodeKeyDown(e, 1)}
+                                    />
+                                <Input
+                                    type="text"
+                                    name="code-2"
+                                    disabled={isLoading}
+                                    bind:value={verificationCode[1]}
+                                    class='size-12! text-center text-lg'
+                                    required
+                                    oninput={(e) => handleVerificationCodeInput(e, 2)}
+                                    onkeydown={(e) => handleVerificationCodeKeyDown(e, 2)}
+                                    />
+                                <Input
+                                    type="text"
+                                    name="code-3"
+                                    disabled={isLoading}
+                                    bind:value={verificationCode[2]}
+                                    class='size-12! text-center text-lg'
+                                    required
+                                    oninput={(e) => handleVerificationCodeInput(e, 3)}
+                                    onkeydown={(e) => handleVerificationCodeKeyDown(e, 3)}
+                                    />
+                                <Input
+                                    type="text"
+                                    name="code-4"
+                                    disabled={isLoading}
+                                    bind:value={verificationCode[3]}
+                                    class='size-12! text-center text-lg'
+                                    required
+                                    oninput={(e) => handleVerificationCodeInput(e, 4)}
+                                    onkeydown={(e) => handleVerificationCodeKeyDown(e, 4)}
+                                    />
+                                <Input
+                                    type="text"
+                                    name="code-5"
+                                    disabled={isLoading}
+                                    bind:value={verificationCode[4]}
+                                    class='size-12! text-center text-lg'
+                                    required
+                                    oninput={(e) => handleVerificationCodeInput(e, 5)}
+                                    onkeydown={(e) => handleVerificationCodeKeyDown(e, 5)}
+                                    />
+                                <Input
+                                    type="text"
+                                    name="code-6"
+                                    disabled={isLoading}
+                                    bind:value={verificationCode[5]}
+                                    class='size-12! text-center text-lg'
+                                    required
+                                    oninput={(e) => handleVerificationCodeInput(e, 6)}
+                                    onkeydown={(e) => handleVerificationCodeKeyDown(e, 6)}
+                                    />
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <span class="text-sm font-medium text-body">
+                                {$t('auth.codeExpiresIn')}
+                                <span class="font-semibold">{timeRemaining}s</span>
+                            </span>
+                            <Progressbar
+                                progress={(timeRemaining / totalTimeToLive) * 100}
+                                color='blue'
+                                />
+                        </div>
+
+                        <Button
+                            disabled={isLoading}
+                            color='blue'
+                            class="w-full"
+                            type="submit"
+                        >
+                            {isLoading ? $t('auth.verifying') : $t('auth.verify')}
+                        </Button>
+                    </form>
                 {:else if stage === 'displayName'}
-                    {$t('auth.displayName')}
+                    <form class="space-y-4" onsubmit={handleSaveDisplayName}>
+                        <div>
+                            <Label class="mb-2 block">{$t('auth.displayNameLabel')}</Label>
+                            <Input
+                                type="text"
+                                name="display-name"
+                                disabled={isLoading}
+                                bind:value={displayName}
+                                placeholder={$t('auth.displayNamePlaceholder')}
+                                required
+                                autofocus
+                                />
+                            <Helper class="mt-2 text-sm">{$t('auth.displayNameHint')}</Helper>
+                        </div>
+
+                        <Button
+                            disabled={isLoading}
+                            color='blue'
+                            class="w-full"
+                            type="submit"
+                        >
+                            {isLoading ? $t('auth.saving') : $t('auth.save')}
+                        </Button>
+                    </form>
                 {/if}
-			</h3>
-		</div>
-
-		{#if error}
-			<Alert border class="text-red-600 border-red-600">
-                {#snippet icon()}<ExclamationCircleOutline class="h-5 w-5" />{/snippet}
-                {error}
-			</Alert>
-		{/if}
-
-		{#if stage === 'phone'}
-			<form class="space-y-4" onsubmit={handleSendCode}>
-                <div class="flex">
-                    <div class="z-10 inline-flex shrink-0 items-center rounded-s-lg border border-r-0 border-gray-300 bg-gray-100 px-3 py-2 text-center text-sm font-medium text-muted dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-gray-700">
-                        🇺🇦 +380
-                    </div>
-                    <Input
-                        type="tel"
-                        name="phone-number"
-                        inputmode="numeric"
-                        placeholder="967584954"
-                        class="rounded-l-none! placeholder-gray-500"
-                        required
-                        autofocus
-                        disabled={isLoading}
-                        bind:value={phoneNumber}
-                        />
-                </div>
-                <Helper class="mt-2 text-sm">{$t('auth.weWillSendCode')}</Helper>
-                {#if captchaEnabled}
-                    <div bind:this={captchaContainer}
-                        data-size='normal'
-                        data-theme={prefersLightScheme ? 'light' : 'dark'}></div>
-                {/if}
-                <Button
-                    class="my-2 w-full text-sm"
-                    color="blue"
-                    type="submit"
-					disabled={isLoading}
-                >
-                    {isLoading ? $t('auth.sending') : $t('auth.sendCode')}
-                </Button>
-			</form>
-		{:else if stage === 'code'}
-			<form class="space-y-4" onsubmit={handleVerifyCode}>
-				<div>
-					<Label class="mb-2 block">{$t('auth.verificationCode')}</Label>
-                    <div class='flex gap-2 items-center justify-center' bind:this={verificationCodeInputsDiv}>
-                        <Input
-                            type="text"
-                            name="code-1"
-                            disabled={isLoading}
-                            bind:value={verificationCode[0]}
-                            class='size-12! text-center text-lg'
-                            required
-                            autofocus
-                            oninput={(e) => handleVerificationCodeInput(e, 1)}
-                            onkeydown={(e) => handleVerificationCodeKeyDown(e, 1)}
-                            />
-                        <Input
-                            type="text"
-                            name="code-2"
-                            disabled={isLoading}
-                            bind:value={verificationCode[1]}
-                            class='size-12! text-center text-lg'
-                            required
-                            oninput={(e) => handleVerificationCodeInput(e, 2)}
-                            onkeydown={(e) => handleVerificationCodeKeyDown(e, 2)}
-                            />
-                        <Input
-                            type="text"
-                            name="code-3"
-                            disabled={isLoading}
-                            bind:value={verificationCode[2]}
-                            class='size-12! text-center text-lg'
-                            required
-                            oninput={(e) => handleVerificationCodeInput(e, 3)}
-                            onkeydown={(e) => handleVerificationCodeKeyDown(e, 3)}
-                            />
-                        <Input
-                            type="text"
-                            name="code-4"
-                            disabled={isLoading}
-                            bind:value={verificationCode[3]}
-                            class='size-12! text-center text-lg'
-                            required
-                            oninput={(e) => handleVerificationCodeInput(e, 4)}
-                            onkeydown={(e) => handleVerificationCodeKeyDown(e, 4)}
-                            />
-                        <Input
-                            type="text"
-                            name="code-5"
-                            disabled={isLoading}
-                            bind:value={verificationCode[4]}
-                            class='size-12! text-center text-lg'
-                            required
-                            oninput={(e) => handleVerificationCodeInput(e, 5)}
-                            onkeydown={(e) => handleVerificationCodeKeyDown(e, 5)}
-                            />
-                        <Input
-                            type="text"
-                            name="code-6"
-                            disabled={isLoading}
-                            bind:value={verificationCode[5]}
-                            class='size-12! text-center text-lg'
-                            required
-                            oninput={(e) => handleVerificationCodeInput(e, 6)}
-                            onkeydown={(e) => handleVerificationCodeKeyDown(e, 6)}
-                            />
-                    </div>
-				</div>
-
-				<div class="space-y-2">
-                    <span class="text-sm font-medium text-body">
-                        {$t('auth.codeExpiresIn')}
-                        <span class="font-semibold">{timeRemaining}s</span>
-                    </span>
-                    <Progressbar
-                        progress={(timeRemaining / totalTimeToLive) * 100}
-                        color='blue'
-                        />
-                </div>
-
-				<Button
-                    disabled={isLoading}
-                    color='blue'
-                    class="w-full"
-                    type="submit"
-                >
-                    {isLoading ? $t('auth.verifying') : $t('auth.verify')}
-                </Button>
-			</form>
-		{:else if stage === 'displayName'}
-			<form class="space-y-4" onsubmit={handleSaveDisplayName}>
-				<div>
-					<Label class="mb-2 block">{$t('auth.displayNameLabel')}</Label>
-                    <Input
-                        type="text"
-                        name="display-name"
-                        disabled={isLoading}
-                        bind:value={displayName}
-                        placeholder={$t('auth.displayNamePlaceholder')}
-                        required
-                        autofocus
-                        />
-                    <Helper class="mt-2 text-sm">{$t('auth.displayNameHint')}</Helper>
-				</div>
-
-				<Button
-                    disabled={isLoading}
-                    color='blue'
-                    class="w-full"
-                    type="submit"
-                >
-                    {isLoading ? $t('auth.saving') : $t('auth.save')}
-                </Button>
-			</form>
-		{/if}
-	</div>
-</Modal>
+            </div>
+        </div>
+    </div>
+{/if}
