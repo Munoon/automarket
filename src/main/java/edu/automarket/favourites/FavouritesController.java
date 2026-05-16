@@ -1,7 +1,11 @@
 package edu.automarket.favourites;
 
 import edu.automarket.analytics.CarListingAnalyticsService;
+import edu.automarket.common.ApiException;
 import edu.automarket.favourites.dto.FavouriteRequestDTO;
+import edu.automarket.listing.CarListingService;
+import edu.automarket.listing.model.ListingStatus;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,11 +18,14 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/api/favourites")
 public class FavouritesController {
     private final FavouritesService favouritesService;
+    private final CarListingService carListingService;
     private final CarListingAnalyticsService carListingAnalyticsService;
 
     public FavouritesController(FavouritesService favouritesService,
+                                CarListingService carListingService,
                                 CarListingAnalyticsService carListingAnalyticsService) {
         this.favouritesService = favouritesService;
+        this.carListingService = carListingService;
         this.carListingAnalyticsService = carListingAnalyticsService;
     }
 
@@ -26,7 +33,15 @@ public class FavouritesController {
     public Mono<Void> addFavourite(@AuthenticationPrincipal long userId,
                                    @RequestBody FavouriteRequestDTO request) {
         long listingId = request.listingId();
-        return favouritesService.addFavourite(userId, listingId)
+        return carListingService.getListingByIdOrThrow(listingId)
+                .flatMap(listing -> {
+                    if (listing.status() != ListingStatus.PUBLISHED) {
+                        throw new ApiException(HttpStatus.NOT_FOUND,
+                                "/problems/listing-not-found", "Listing not found");
+                    }
+
+                    return favouritesService.addFavourite(userId, listingId);
+                })
                 .doOnSuccess(_ -> carListingAnalyticsService.recordListingAddedToFavourity(listingId));
     }
 

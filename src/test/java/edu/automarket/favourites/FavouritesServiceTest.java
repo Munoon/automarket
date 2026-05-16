@@ -30,13 +30,10 @@ class FavouritesServiceTest extends AbstractIntegrationTest {
     @Autowired
     private CarListingService carListingService;
 
-    @Autowired
-    private CarListingRepository carListingRepository;
-
     @Test
     void addFavouritePersistsEntry() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
-        CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
+        CarListing listing = carListingService.create(userId).block();
 
         StepVerifier.create(favouritesService.addFavourite(userId, listing.id()))
                 .verifyComplete();
@@ -59,7 +56,7 @@ class FavouritesServiceTest extends AbstractIntegrationTest {
             favouritesService.addFavourite(userId, listing.id()).block();
         }
 
-        CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
+        CarListing listing = carListingService.create(userId).block();
 
         StepVerifier.create(favouritesService.addFavourite(userId, listing.id()))
                 .expectErrorMatches(e -> e instanceof ApiException ex
@@ -70,7 +67,7 @@ class FavouritesServiceTest extends AbstractIntegrationTest {
     @Test
     void removeFavouriteDeletesEntry() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
-        CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
+        CarListing listing = carListingService.create(userId).block();
 
         favouritesService.addFavourite(userId, listing.id()).block();
 
@@ -85,8 +82,8 @@ class FavouritesServiceTest extends AbstractIntegrationTest {
     @Test
     void countFavouritesByUserReturnsCorrectCount() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
-        CarListing listing1 = carListingRepository.create(userId, System.currentTimeMillis()).block();
-        CarListing listing2 = carListingRepository.create(userId, System.currentTimeMillis() + 1).block();
+        CarListing listing1 = carListingService.create(userId).block();
+        CarListing listing2 = carListingService.create(userId).block();
 
         favouritesService.addFavourite(userId, listing1.id()).block();
         favouritesService.addFavourite(userId, listing2.id()).block();

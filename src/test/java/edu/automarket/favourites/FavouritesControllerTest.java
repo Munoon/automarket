@@ -6,7 +6,6 @@ import edu.automarket.analytics.CarListingAnalyticsService;
 import edu.automarket.authentication.AuthenticationService;
 import edu.automarket.common.ProblemDTO;
 import edu.automarket.favourites.dto.FavouriteRequestDTO;
-import edu.automarket.listing.CarListingRepository;
 import edu.automarket.listing.CarListingService;
 import edu.automarket.listing.model.CarListing;
 import edu.automarket.listing.model.ListingStatus;
@@ -15,10 +14,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import static edu.automarket.listing.CarListingTestUtils.UPDATE_CAR_LISTING_REQUEST_DTO;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.after;
+import static org.mockito.Mockito.verify;
 
 class FavouritesControllerTest extends AbstractIntegrationTest {
 
@@ -32,15 +35,12 @@ class FavouritesControllerTest extends AbstractIntegrationTest {
     private AuthenticationService authenticationService;
 
     @Autowired
-    private CarListingRepository carListingRepository;
-
-    @Autowired
     private CarListingService carListingService;
 
     @Autowired
     private FavouritesService favouritesService;
 
-    @Autowired
+    @MockitoSpyBean
     private CarListingAnalyticsService analyticsService;
 
     // --- POST /api/favourites ---
@@ -65,7 +65,9 @@ class FavouritesControllerTest extends AbstractIntegrationTest {
     void addFavouriteSuccessfullyAdds() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         String token = authenticationService.generateToken(userId);
-        CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
         webTestClient.post()
                 .uri("/api/favourites")
@@ -105,13 +107,17 @@ class FavouritesControllerTest extends AbstractIntegrationTest {
                     assertThat(problem.type()).isEqualTo("/problems/favourites-limit-reached");
                     assertThat(problem.status()).isEqualTo(403);
                 });
+
+        verify(analyticsService, after(500).never()).recordListingAddedToFavourity(anyLong());
     }
 
     @Test
     void addFavouritesRecordsToAnalytics() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         String token = authenticationService.generateToken(userId);
-        CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
+        CarListing listing = carListingService.create(userId).block();
+        listing = carListingService.update(listing, UPDATE_CAR_LISTING_REQUEST_DTO).block();
+        carListingService.updateStatus(listing, ListingStatus.PUBLISHED).block();
 
         webTestClient.post()
                 .uri("/api/favourites")
@@ -126,6 +132,51 @@ class FavouritesControllerTest extends AbstractIntegrationTest {
         AggregatedListingsAnalyticsDTO dto = AggregatedListingsAnalyticsDTO.compute(analyticsService, listing.id());
         assertThat(dto).isNotNull();
         assertThat(dto.favouritesCount()).isEqualTo(1);
+    }
+
+    @Test
+    void addFavouritesRecordsToAnalytics_listingNotFound() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+
+        webTestClient.post()
+                .uri("/api/favourites")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new FavouriteRequestDTO(999))
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-not-found");
+                    assertThat(problem.status()).isEqualTo(404);
+                });
+
+        verify(analyticsService, after(500).never()).recordListingAddedToFavourity(anyLong());
+    }
+
+    @Test
+    void addFavouritesRecordsToAnalytics_listingNotPublished() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        String token = authenticationService.generateToken(userId);
+        CarListing listing = carListingService.create(userId).block();
+
+        webTestClient.post()
+                .uri("/api/favourites")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new FavouriteRequestDTO(listing.id()))
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectHeader().contentType("application/problem+json")
+                .expectBody(ProblemDTO.class)
+                .value(problem -> {
+                    assertThat(problem.type()).isEqualTo("/problems/listing-not-found");
+                    assertThat(problem.status()).isEqualTo(404);
+                });
+
+        verify(analyticsService, after(500).never()).recordListingAddedToFavourity(anyLong());
     }
 
     // --- DELETE /api/favourites ---
@@ -150,7 +201,7 @@ class FavouritesControllerTest extends AbstractIntegrationTest {
     void removeFavouriteSuccessfullyRemoves() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         String token = authenticationService.generateToken(userId);
-        CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
+        CarListing listing = carListingService.create(userId).block();
 
         favouritesService.addFavourite(userId, listing.id()).block();
 

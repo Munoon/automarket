@@ -2,6 +2,7 @@ package edu.automarket.favourites;
 
 import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.listing.CarListingRepository;
+import edu.automarket.listing.CarListingService;
 import edu.automarket.listing.model.CarListing;
 import edu.automarket.user.UserService;
 import org.junit.jupiter.api.Test;
@@ -19,12 +20,12 @@ class FavouritesRepositoryTest extends AbstractIntegrationTest {
     private UserService userService;
 
     @Autowired
-    private CarListingRepository carListingRepository;
+    private CarListingService carListingService;
 
     @Test
     void addFavouriteInsertsEntry() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
-        CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
+        CarListing listing = carListingService.create(userId).block();
 
         StepVerifier.create(favouritesRepository.addFavourite(userId, listing.id()))
                 .verifyComplete();
@@ -37,7 +38,7 @@ class FavouritesRepositoryTest extends AbstractIntegrationTest {
     @Test
     void removeFavouriteDeletesEntry() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
-        CarListing listing = carListingRepository.create(userId, System.currentTimeMillis()).block();
+        CarListing listing = carListingService.create(userId).block();
 
         favouritesRepository.addFavourite(userId, listing.id()).block();
 
@@ -70,8 +71,8 @@ class FavouritesRepositoryTest extends AbstractIntegrationTest {
     void countFavouritesOnlyCountsForSpecificUser() {
         long userId1 = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         long userId2 = userService.getUserByPhoneNumberOrCreate("+380123456780").block().id();
-        CarListing listing1 = carListingRepository.create(userId1, System.currentTimeMillis()).block();
-        CarListing listing2 = carListingRepository.create(userId1, System.currentTimeMillis() + 1).block();
+        CarListing listing1 = carListingService.create(userId1).block();
+        CarListing listing2 = carListingService.create(userId1).block();
 
         favouritesRepository.addFavourite(userId1, listing1.id()).block();
         favouritesRepository.addFavourite(userId1, listing2.id()).block();
