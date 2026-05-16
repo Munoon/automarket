@@ -10,6 +10,7 @@ public class FavouritesRepository {
     private static final String INSERT_FAVOURITE = """
             INSERT INTO favourites (user_id, listing_id, created_at)
             VALUES (:userId, :listingId, EXTRACT(EPOCH FROM NOW())::bigint * 1000)
+            ON CONFLICT (user_id, listing_id) DO NOTHING
             """;
 
     //language=postgresql

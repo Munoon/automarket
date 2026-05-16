@@ -36,6 +36,21 @@ class FavouritesRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void addFavouriteTwiceDoesNotThrow() {
+        long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
+        CarListing listing = carListingService.create(userId).block();
+
+        StepVerifier.create(favouritesRepository.addFavourite(userId, listing.id()))
+                .verifyComplete();
+        StepVerifier.create(favouritesRepository.addFavourite(userId, listing.id()))
+                .verifyComplete();
+
+        StepVerifier.create(favouritesRepository.countFavourites(userId))
+                .assertNext(count -> assertThat(count).isEqualTo(1))
+                .verifyComplete();
+    }
+
+    @Test
     void removeFavouriteDeletesEntry() {
         long userId = userService.getUserByPhoneNumberOrCreate("+380123456789").block().id();
         CarListing listing = carListingService.create(userId).block();
