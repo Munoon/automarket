@@ -455,17 +455,15 @@ export class ApiClient {
 			headers.set('Content-Type', 'application/json');
 		}
 
-		if (requiresAuth) {
-			const token = options.token || authStore.getToken();
-			if (token) {
-				headers.set('Authorization', `Bearer ${token}`);
-			} else {
-				throw new ProblemException({
-					type: '/problems/authentication-required',
-					title: 'Authentication Required',
-					status: 401
-				});
-			}
+		const token = options.token || authStore.getToken();
+		if (token) {
+			headers.set('Authorization', `Bearer ${token}`);
+		} else if (requiresAuth) {
+			throw new ProblemException({
+				type: '/problems/authentication-required',
+				title: 'Authentication Required',
+				status: 401
+			});
 		}
 
 		const response = await fetch(this.buildUrl(path, queryParams), {

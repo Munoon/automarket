@@ -24,9 +24,14 @@ export interface AuthStore {
 const AUTH_TOKEN_STORAGE_KEY = 'automarket_auth_token';
 
 function createAuthStore(): AuthStore {
+	// Load token from localStorage
+	const storedToken = typeof localStorage !== 'undefined'
+		? localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
+		: null;
+
 	let currentState: AuthState = {
 		initialized: false,
-		token: null,
+		token: storedToken,
 		profile: null,
 		limits: null,
 		ownListingsCount: null
@@ -87,17 +92,13 @@ function createAuthStore(): AuthStore {
 		initialize: async (fetchProfile: (options: RequestOptions) => Promise<ProfileResponse>) => {
 			if (currentState.initialized) return;
 
-			// Load token from localStorage
-			const storedToken = typeof localStorage !== 'undefined'
-				? localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
-				: null;
-			if (storedToken) {
+			if (currentState.token) {
 				// Load profile
 				try {
-					const profile = await fetchProfile({ token: storedToken });
+					const profile = await fetchProfile({ token: currentState.token });
 					currentState = {
 						initialized: true,
-						token: storedToken,
+						token: currentState.token,
 						profile: profile.user,
 						limits: profile.limits,
 						ownListingsCount: profile.ownListingsCount
