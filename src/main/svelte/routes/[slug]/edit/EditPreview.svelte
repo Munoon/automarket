@@ -13,7 +13,8 @@
     ...listing,
     imageUrls: listing.images?.map(image => image.url ?? '') ?? null,
     authorDisplayName: $authStore.profile?.displayName ?? null,
-    isPromoted: listing.promotedUntil > Date.now()
+    isPromoted: listing.promotedUntil > Date.now(),
+    isFavourite: false
   });
 </script>
 

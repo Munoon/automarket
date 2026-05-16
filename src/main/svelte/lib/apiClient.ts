@@ -31,6 +31,7 @@ export interface ProfileResponse {
 	user: UserProfile;
 	limits: Limits;
 	ownListingsCount: number;
+	favouritesCount: number;
 }
 
 export interface UserProfile {
@@ -44,6 +45,7 @@ export interface UserProfile {
 export interface Limits {
 	listingRepublishCooldownMS: number;
 	listingsCountLimitPerAuthor: number;
+	favouritesLimitPerUser: number;
 }
 
 export interface AuthRequest {
@@ -66,6 +68,7 @@ export interface AuthResponse {
 	profile: UserProfile;
 	limits: Limits;
 	ownListingsCount: number;
+	favouritesCount: number;
 }
 
 export interface UpdateDisplayNameRequest {
@@ -210,6 +213,7 @@ export interface PublicCarListing {
 	ownersCount: number | null;
 	publishedAt: number;
 	isPromoted: boolean;
+	isFavourite: boolean;
 }
 
 export interface PublicCarListingItem {
@@ -223,6 +227,7 @@ export interface PublicCarListingItem {
 	city: City | null;
 	year: number | null;
 	isPromoted: boolean;
+	isFavourite: boolean;
 }
 
 export interface GetPublicListingsRequest {
@@ -252,6 +257,10 @@ export interface GetPublicListingsRequest {
 	engineVolumeMax?: number;
 	minOwnersCount?: number;
 	maxOwnersCount?: number;
+}
+
+export interface FavouriteRequest {
+	listingId: number;
 }
 
 export interface AuthorPhone {
@@ -382,6 +391,14 @@ export class ApiClient {
 		options: RequestOptions = {}
 	): Promise<Page<PublicCarListingItem>> {
 		return this.send<Page<PublicCarListingItem>>('GET', '/api/listings/public', undefined, body, options);
+	}
+
+	public async addFavourite(body: FavouriteRequest, options: RequestOptions = {}): Promise<void> {
+		await this.sendAuthenticated<void>('POST', '/api/favourites', body, undefined, options);
+	}
+
+	public async removeFavourite(body: FavouriteRequest, options: RequestOptions = {}): Promise<void> {
+		await this.sendAuthenticated<void>('DELETE', `/api/favourites`, body, undefined, options);
 	}
 
 	public async generateSignedUrl(

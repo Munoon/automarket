@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { Badge, Button, Carousel, Controls, CarouselIndicators } from 'flowbite-svelte';
+  import { Badge, Button, Carousel, Controls, CarouselIndicators, Tooltip } from 'flowbite-svelte';
   import {
     MapPinOutline, CalendarMonthOutline, UserCircleOutline,
-    PhoneOutline, CartOutline, InfoCircleOutline, StarOutline
+    PhoneOutline, CartOutline, InfoCircleOutline, StarOutline,
+    HeartOutline, HeartSolid
   } from 'flowbite-svelte-icons';
   import GaugeIcon from '$lib/components/icons/GaugeIcon.svelte';
   import DetailRow from '$lib/components/DetailRow.svelte';
@@ -15,6 +16,8 @@
   import { t, language } from '$lib/i18n';
   import { toastStore } from '$lib/stores/toastStore';
   import { authStore } from '$lib/stores/authStore';
+  import { useFavourite } from '$lib/composables/useFavourite.svelte';
+  import { untrack } from 'svelte';
 
   let { listing, preview = false }: { listing: PublicCarListing, preview?: boolean } = $props();
 
@@ -28,6 +31,8 @@
 
   let phoneState = $state<'idle' | 'loading' | 'done'>('idle');
   let phoneNumber = $state<string | null>(null);
+
+  const favourite = useFavourite(untrack(() => listing.id), untrack(() => listing.isFavourite));
 
   $effect(() => {
     if (preview) {
@@ -102,6 +107,26 @@
           ? listing.price.toLocaleString('uk-UA', { maximumFractionDigits: 0 }) + ' ' + $t('currency.uah')
           : '—'}
       </p>
+      <button
+        id="favourite-details-btn"
+        onclick={favourite.toggle}
+        disabled={favourite.loading || preview || (favourite.limitReached && !favourite.isFavourite)}
+        class="mt-3 flex items-center gap-1.5 text-sm ml-auto px-3 py-1.5 rounded-full border font-medium transition-all
+          disabled:opacity-50 disabled:cursor-not-allowed
+          {favourite.isFavourite
+            ? 'border-red-200 bg-red-50 text-red-500 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/60 dark:hover:bg-red-900/60'
+            : 'border-gray-200 bg-white text-muted hover:border-red-200 hover:text-red-500 hover:bg-red-50 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-red-800 dark:hover:bg-red-950/40'}"
+      >
+        {#if favourite.isFavourite}
+          <HeartSolid class="w-4 h-4 shrink-0" />
+        {:else}
+          <HeartOutline class="w-4 h-4 shrink-0" />
+        {/if}
+        {favourite.isFavourite ? $t('listing.removeFromFavourites') : $t('listing.addToFavourites')}
+      </button>
+      {#if favourite.limitReached && !favourite.isFavourite}
+        <Tooltip triggeredBy="#favourite-details-btn">{$t('listing.favouritesLimitReached')}</Tooltip>
+      {/if}
     </div>
   </div>
 

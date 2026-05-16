@@ -15,6 +15,8 @@ spring:
 #    countLimitPerAuthor: 30
 #    analytics:
 #      storageDuration: 365d
+#  favourites:
+#    limitPerUser: 100
 #  sms:
 #    telegramApiToken: XXX
 #    authCodeTtl: 1m

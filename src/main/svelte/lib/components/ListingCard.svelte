@@ -1,12 +1,14 @@
 <script lang="ts">
   import { Card, Badge, Carousel, Controls, Tooltip } from 'flowbite-svelte';
-  import { MapPinOutline, StarOutline } from 'flowbite-svelte-icons';
+  import { MapPinOutline, StarOutline, HeartOutline, HeartSolid } from 'flowbite-svelte-icons';
   import GaugeIcon from '$lib/components/icons/GaugeIcon.svelte';
   import noImageUrl from '$lib/assets/listing_no_image.svg?url';
   import type { PublicCarListingItem } from '$lib/apiClient';
   import { listingSlug, fuelTypeKey, transmissionKey, cityKey } from '$lib/utils/listing';
   import { goto } from '$app/navigation';
   import { t } from '$lib/i18n';
+  import { useFavourite } from '$lib/composables/useFavourite.svelte';
+  import { untrack } from 'svelte';
 
   let { listing, preview = false }: { listing: PublicCarListingItem, preview?: boolean } = $props();
 
@@ -18,6 +20,8 @@
 
     return listing.imageUrls.map(url => ({ src: url, alt: listing.title ?? 'Car photo' }));
   });
+
+  const favourite = useFavourite(untrack(() => listing.id), untrack(() => listing.isFavourite));
 
   function handleClick() {
     if (!preview) {
@@ -40,6 +44,25 @@
         <StarOutline id="promoted-icon-{listing.id}" class="w-5 h-5 text-yellow-400 fill-yellow-400 drop-shadow" />
         <Tooltip triggeredBy="#promoted-icon-{listing.id}">{$t('listing.promoted')}</Tooltip>
       </div>
+    {/if}
+    <button
+      id="favourite-card-btn-{listing.id}"
+      onclick={(e) => { e.stopPropagation(); favourite.toggle(); }}
+      disabled={favourite.loading || preview || (favourite.limitReached && !favourite.isFavourite)}
+      class="absolute top-2 left-2 z-50 p-1.5 rounded-full backdrop-blur-sm transition-all
+        disabled:opacity-50 disabled:cursor-not-allowed
+        {favourite.isFavourite
+          ? 'bg-red-50/90 text-red-500 dark:bg-red-950/80'
+          : 'bg-white/80 text-gray-400 hover:text-red-500 dark:bg-gray-900/70 dark:hover:text-red-400'}"
+    >
+      {#if favourite.isFavourite}
+        <HeartSolid class="w-4 h-4" />
+      {:else}
+        <HeartOutline class="w-4 h-4" />
+      {/if}
+    </button>
+    {#if favourite.limitReached && !favourite.isFavourite}
+      <Tooltip triggeredBy="#favourite-card-btn-{listing.id}">{$t('listing.favouritesLimitReached')}</Tooltip>
     {/if}
   </div>
 

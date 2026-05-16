@@ -8,6 +8,7 @@ export interface AuthState {
 	profile: UserProfile | null;
 	limits: Limits | null;
 	ownListingsCount: number | null;
+	favouritesCount: number | null;
 }
 
 export interface AuthStore {
@@ -19,6 +20,8 @@ export interface AuthStore {
 	initialize: (fetchProfile: (options: RequestOptions) => Promise<ProfileResponse>) => Promise<void>;
 	incrementOwnListingsCount: () => void;
 	decrementOwnListingsCount: () => void;
+	incrementFavouritesCount: () => void;
+	decrementFavouritesCount: () => void;
 }
 
 const AUTH_TOKEN_STORAGE_KEY = 'automarket_auth_token';
@@ -34,7 +37,8 @@ function createAuthStore(): AuthStore {
 		token: storedToken,
 		profile: null,
 		limits: null,
-		ownListingsCount: null
+		ownListingsCount: null,
+		favouritesCount: null
 	};
 
 	const { subscribe, set } = writable<AuthState>(currentState);
@@ -42,7 +46,7 @@ function createAuthStore(): AuthStore {
 	const api = {
 		subscribe,
 		setAuth: (authResponse: AuthResponse) => {
-			const { token, profile, limits, ownListingsCount } = authResponse;
+			const { token, profile, limits, ownListingsCount, favouritesCount } = authResponse;
 			if (typeof localStorage !== 'undefined') {
 				localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
 			}
@@ -51,7 +55,8 @@ function createAuthStore(): AuthStore {
 				token,
 				profile,
 				limits,
-				ownListingsCount
+				ownListingsCount,
+				favouritesCount
 			};
 			set(currentState);
 		},
@@ -72,7 +77,8 @@ function createAuthStore(): AuthStore {
 				token: null,
 				profile: null,
 				limits: null,
-				ownListingsCount: null
+				ownListingsCount: null,
+				favouritesCount: null
 			};
 			set(currentState);
 		},
@@ -89,6 +95,16 @@ function createAuthStore(): AuthStore {
 			currentState = { ...currentState, ownListingsCount: currentState.ownListingsCount - 1 };
 			set(currentState);
 		},
+		incrementFavouritesCount: () => {
+			if (currentState.favouritesCount === null) return;
+			currentState = { ...currentState, favouritesCount: currentState.favouritesCount + 1 };
+			set(currentState);
+		},
+		decrementFavouritesCount: () => {
+			if (currentState.favouritesCount === null) return;
+			currentState = { ...currentState, favouritesCount: currentState.favouritesCount - 1 };
+			set(currentState);
+		},
 		initialize: async (fetchProfile: (options: RequestOptions) => Promise<ProfileResponse>) => {
 			if (currentState.initialized) return;
 
@@ -101,7 +117,8 @@ function createAuthStore(): AuthStore {
 						token: currentState.token,
 						profile: profile.user,
 						limits: profile.limits,
-						ownListingsCount: profile.ownListingsCount
+						ownListingsCount: profile.ownListingsCount,
+						favouritesCount: profile.favouritesCount
 					};
 					set(currentState);
 				} catch (error) {
@@ -115,7 +132,8 @@ function createAuthStore(): AuthStore {
 					token: null,
 					profile: null,
 					limits: null,
-					ownListingsCount: null
+					ownListingsCount: null,
+					favouritesCount: null
 				};
 				set(currentState);
 			}
