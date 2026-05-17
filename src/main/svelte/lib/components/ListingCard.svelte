@@ -10,9 +10,10 @@
   import { useFavourite } from '$lib/composables/useFavourite.svelte';
   import { untrack } from 'svelte';
 
-  let { listing, preview = false }: { listing: PublicCarListingItem, preview?: boolean } = $props();
+  let { listing, preview = false, size = 'lg' }: { listing: PublicCarListingItem, preview?: boolean, size?: 'sm' | 'lg' } = $props();
 
   const href = $derived(`/${listingSlug(listing.id, listing.title)}`);
+  const sm = $derived(size === 'sm');
   const images = $derived.by(() => {
     if (!listing.imageUrls || listing.imageUrls.length === 0) {
       return [{ src: noImageUrl, alt: listing.title ?? 'Car photo' }];
@@ -30,9 +31,9 @@
   }
 </script>
 
-<Card class="w-72 p-0 overflow-hidden flex flex-col cursor-pointer hover:border-blue-500 transition-colors" onclick={handleClick}>
-  <div class="h-48 shrink-0 overflow-hidden relative">
-    <Carousel {images} classes={{ slide: 'object-cover w-full h-48' }} class="h-48!">
+<Card class="{sm ? 'w-58' : 'w-72'} shrink-0 p-0 overflow-hidden flex flex-col cursor-pointer hover:border-blue-500 transition-colors" onclick={handleClick}>
+  <div class="{sm ? 'h-42' : 'h-48'} shrink-0 overflow-hidden relative">
+    <Carousel {images} classes={{ slide: `object-cover w-full ${sm ? 'h-42' : 'h-48'}` }} class={sm ? 'h-42!' : 'h-48!'}>
       {#if images.length > 1}
         <div role="presentation" onclick={(e) => e.stopPropagation()}>
           <Controls />
@@ -75,21 +76,23 @@
       {listing.price != null ? listing.price.toLocaleString('uk-UA', { maximumFractionDigits: 0 }) + ' ' + $t('currency.uah') : '—'}
     </p>
 
-    <div class="flex gap-2 flex-wrap">
-      <Badge color="gray" class="text-xs">{listing.fuelType != null ? $t(fuelTypeKey(listing.fuelType)) : '—'}</Badge>
-      <Badge color="gray" class="text-xs">{listing.transmission != null ? $t(transmissionKey(listing.transmission)) : '—'}</Badge>
-      <Badge color="indigo" class="text-xs">{listing.year ?? '—'}</Badge>
-    </div>
+    {#if !sm}
+      <div class="flex gap-2 flex-wrap">
+        <Badge color="gray" class="text-xs">{listing.fuelType != null ? $t(fuelTypeKey(listing.fuelType)) : '—'}</Badge>
+        <Badge color="gray" class="text-xs">{listing.transmission != null ? $t(transmissionKey(listing.transmission)) : '—'}</Badge>
+        <Badge color="indigo" class="text-xs">{listing.year ?? '—'}</Badge>
+      </div>
 
-    <div class="mt-auto pt-2 border-t border-gray-100 dark:border-gray-700 flex flex-col gap-1">
-      <span class="text-xs text-muted icon-row">
-        <GaugeIcon class="w-3.5 h-3.5 shrink-0" />
-        {listing.mileage != null ? listing.mileage.toLocaleString() + ' ' + $t('mileage.km') : '—'}
-      </span>
-      <span class="text-xs text-muted icon-row">
-        <MapPinOutline class="w-3.5 h-3.5 shrink-0" />
-        {listing.city != null ? $t(cityKey(listing.city)) : '—'}
-      </span>
-    </div>
+      <div class="mt-auto pt-2 border-t border-gray-100 dark:border-gray-700 flex flex-col gap-1">
+        <span class="text-xs text-muted icon-row">
+          <GaugeIcon class="w-3.5 h-3.5 shrink-0" />
+          {listing.mileage != null ? listing.mileage.toLocaleString() + ' ' + $t('mileage.km') : '—'}
+        </span>
+        <span class="text-xs text-muted icon-row">
+          <MapPinOutline class="w-3.5 h-3.5 shrink-0" />
+          {listing.city != null ? $t(cityKey(listing.city)) : '—'}
+        </span>
+      </div>
+    {/if}
   </div>
 </Card>

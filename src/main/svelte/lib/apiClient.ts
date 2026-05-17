@@ -176,6 +176,11 @@ export interface GetOwnListingsRequest {
 	size?: number;
 }
 
+export interface GetFavouritesRequest {
+	offset?: number;
+	size?: number;
+}
+
 export interface GetOwnListingAnalyticsRequest {
 	timezone?: string;
 }
@@ -399,6 +404,10 @@ export class ApiClient {
 
 	public async removeFavourite(body: FavouriteRequest, options: RequestOptions = {}): Promise<void> {
 		await this.sendAuthenticated<void>('DELETE', `/api/favourites`, body, undefined, options);
+	}
+
+	public async getFavourites(body: GetFavouritesRequest, options: RequestOptions = {}): Promise<Page<PublicCarListingItem>> {
+		return this.sendAuthenticated<Page<PublicCarListingItem>>('GET', '/api/listings/public/favourites', undefined, body, options);
 	}
 
 	public async generateSignedUrl(
