@@ -31,7 +31,7 @@
   }
 </script>
 
-<Card class="{sm ? 'w-58' : 'w-72'} shrink-0 p-0 overflow-hidden flex flex-col cursor-pointer hover:border-blue-500 transition-colors" onclick={handleClick}>
+<Card class="{sm ? 'w-58' : 'w-72'} shrink-0 p-0 overflow-hidden flex flex-col cursor-pointer hover:border-blue-500 transition-colors group" onclick={handleClick}>
   <div class="{sm ? 'h-42' : 'h-48'} shrink-0 overflow-hidden relative">
     <Carousel {images} classes={{ slide: `object-cover w-full ${sm ? 'h-42' : 'h-48'}` }} class={sm ? 'h-42!' : 'h-48!'}>
       {#if images.length > 1}
@@ -52,6 +52,7 @@
       disabled={favourite.loading || preview || (favourite.limitReached && !favourite.isFavourite)}
       class="absolute top-2 left-2 z-50 p-1.5 rounded-full backdrop-blur-sm transition-all
         disabled:opacity-50 disabled:cursor-not-allowed
+        {favourite.isFavourite ? 'opacity-100' : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'}
         {favourite.isFavourite
           ? 'bg-red-50/90 text-red-500 dark:bg-red-950/80'
           : 'bg-white/80 text-gray-400 hover:text-red-500 dark:bg-gray-900/70 dark:hover:text-red-400'}"
