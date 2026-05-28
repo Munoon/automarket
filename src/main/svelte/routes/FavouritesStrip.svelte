@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Button } from 'flowbite-svelte';
-  import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
+  import { ChevronLeftOutline, ChevronRightOutline, ScaleBalancedOutline } from 'flowbite-svelte-icons';
+  import { goto } from '$app/navigation';
   import ListingCard from '$lib/components/ListingCard.svelte';
   import ListingCardSkeleton from '$lib/components/ListingCardSkeleton.svelte';
   import { authStore } from '$lib/stores/authStore';
@@ -72,6 +73,10 @@
     <div class="flex items-center justify-between mb-3">
       <h2 class="text-sm font-semibold text-muted">{$t('favourites.title')}</h2>
       <div class="flex gap-1">
+        <Button color="light" size="xs" onclick={() => goto('/favourites')} aria-label="Compare favourites">
+          {$t('favourites.compare')}
+          <ScaleBalancedOutline class="w-4 h-4 ml-1" />
+        </Button>
         <Button color="light" size="xs" class="p-1!" onclick={() => scroll(-1)} aria-label="Scroll left">
           <ChevronLeftOutline class="w-4 h-4" />
         </Button>
