@@ -9,7 +9,7 @@ public record SendVerificationCodeRequestDTO(
         @Pattern(regexp = "^\\+\\d{12}$", message = "Phone number must be in format +XXXXXXXXXXXX")
         String phoneNumber,
 
-        @Size(max = 1024)
+        @Size(max = 4096)
         String captchaToken
 ) {
 }
