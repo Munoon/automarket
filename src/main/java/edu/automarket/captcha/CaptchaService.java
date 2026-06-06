@@ -18,15 +18,18 @@ public class CaptchaService {
     private final String captchaSiteKey;
     private final String captchaSecret;
     private final String captchaEndpoint;
+    private final String remoteIpHeader;
     private final WebClient webClient;
 
     public CaptchaService(@Value("${app.captcha.sitekey:}") String captchaSiteKey,
                           @Value("${app.captcha.secret:}") String captchaSecret,
                           @Value("${app.captcha.endpoint:https://api.hcaptcha.com/siteverify}") String captchaEndpoint,
+                          @Value("${app.remoteIpHeader:#{null}}") String remoteIpHeader,
                           WebClient webClient) {
         this.captchaSiteKey = captchaSiteKey != null ? captchaSiteKey : "";
         this.captchaSecret = captchaSecret != null ? captchaSecret : "";
         this.captchaEndpoint = captchaEndpoint != null ? captchaEndpoint : "";
+        this.remoteIpHeader = remoteIpHeader;
         this.webClient = webClient;
 
         if (!enabled()) {
@@ -49,12 +52,17 @@ public class CaptchaService {
         builder.part("sitekey", captchaSiteKey);
         builder.part("response", token);
 
-        InetSocketAddress remoteAddress = httpRequest.getRemoteAddress();
-        if (remoteAddress != null) {
-            String ip = remoteAddress.getAddress().getHostAddress();
-            if (ip != null && !"127.0.0.1".equals(ip)) {
-                builder.part("remoteip", ip);
+        String ip = null;
+        if (remoteIpHeader != null) {
+            ip = httpRequest.getHeaders().getFirst(remoteIpHeader);
+        } else {
+            InetSocketAddress remoteAddress = httpRequest.getRemoteAddress();
+            if (remoteAddress != null) {
+                ip = remoteAddress.getAddress().getHostAddress();
             }
+        }
+        if (ip != null && !"127.0.0.1".equals(ip)) {
+            builder.part("remoteip", ip);
         }
 
         return webClient.post()
