@@ -21,7 +21,8 @@ public class CarListingAnalyticsRepository {
     private static final String UPSERT_QUERY = """
             INSERT INTO car_listing_analytics (
                 listing_id, impressions_count, views_count, phone_requests_count, favourites_count, ts
-            ) VALUES ($1, $2, $3, $4, $5, $6)
+            ) SELECT $1, $2, $3, $4, $5, $6
+              WHERE EXISTS (SELECT 1 FROM car_listings WHERE id = $1)
             ON CONFLICT (listing_id, ts) DO UPDATE
                 SET impressions_count    = car_listing_analytics.impressions_count + EXCLUDED.impressions_count,
                     views_count          = car_listing_analytics.views_count + EXCLUDED.views_count,
