@@ -4,13 +4,12 @@ import edu.automarket.AbstractIntegrationTest;
 import edu.automarket.authentication.AuthenticationService;
 import edu.automarket.captcha.CaptchaService;
 import edu.automarket.common.ProblemDTO;
-import edu.automarket.favourites.FavouritesRepository;
 import edu.automarket.favourites.FavouritesService;
 import edu.automarket.listing.CarListingService;
 import edu.automarket.listing.model.CarListing;
-import edu.automarket.sms.SmsCodeRepository;
 import edu.automarket.sms.SmsCodeService;
-import edu.automarket.sms.dto.TelegramGatewayAPIRequestDTO;
+import edu.automarket.sms.dto.PreludeSendRequestDTO;
+import edu.automarket.sms.dto.PreludeVerifyResponseDTO;
 import edu.automarket.user.dto.AuthRequestDTO;
 import edu.automarket.user.dto.AuthResponseDTO;
 import edu.automarket.user.dto.ProfileResponseDTO;
@@ -27,15 +26,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
-import java.util.Map;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,9 +46,6 @@ class UserControllerTest extends AbstractIntegrationTest {
 
     @Autowired
     private AuthenticationService authenticationService;
-
-    @Autowired
-    private SmsCodeRepository smsCodeRepository;
 
     @Autowired
     private CarListingService carListingService;
@@ -85,28 +78,16 @@ class UserControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void sendVerificationCodeInsertsCodeToDbAndCallsTelegramApi() {
-        long before = System.currentTimeMillis();
-
+    void sendVerificationCodeCallsPreludeApi() {
         webTestClient.post().uri("/api/users/send-verification-code")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new SendVerificationCodeRequestDTO("+380123456789", null))
                 .exchange()
                 .expectStatus().isOk();
 
-        Map<String, Object> row = databaseClient
-                .sql("SELECT code, created_at FROM sms_verification_codes WHERE phone_number = :phone")
-                .bind("phone", "+380123456789")
-                .fetch().one()
-                .block();
-
-        assertThat(row).isNotNull();
-        assertThat((String) row.get("code")).matches("^[0-9]{6}$");
-        assertThat((Long) row.get("created_at")).isGreaterThanOrEqualTo(before);
-
-        ArgumentCaptor<TelegramGatewayAPIRequestDTO> captor = ArgumentCaptor.forClass(TelegramGatewayAPIRequestDTO.class);
-        verify(telegramRequestBodySpec, timeout(500)).bodyValue(captor.capture());
-        assertThat(captor.getValue().phoneNumber()).isEqualTo("+380123456789");
+        ArgumentCaptor<PreludeSendRequestDTO> captor = ArgumentCaptor.forClass(PreludeSendRequestDTO.class);
+        verify(webClientBodySpec).bodyValue(captor.capture());
+        assertThat(captor.getValue().target().value()).isEqualTo("+380123456789");
     }
 
     @Test
@@ -183,8 +164,6 @@ class UserControllerTest extends AbstractIntegrationTest {
 
     @Test
     void authenticateWithValidCodeCreatesAndReturnsToken() {
-        smsCodeRepository.saveCode("+380123456789", "123456").block();
-
         webTestClient.post().uri("/api/users/auth")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new AuthRequestDTO("+380123456789", "123456"))
@@ -207,7 +186,6 @@ class UserControllerTest extends AbstractIntegrationTest {
     @Test
     void authenticateWithValidCodeReturnsExistingUser() {
         User existing = userService.getUserByPhoneNumberOrCreate("+380123456789").block();
-        smsCodeRepository.saveCode("+380123456789", "123456").block();
         carListingService.create(existing.id()).block();
 
         webTestClient.post().uri("/api/users/auth")
@@ -224,6 +202,9 @@ class UserControllerTest extends AbstractIntegrationTest {
 
     @Test
     void authenticateWithInvalidCodeReturns401() {
+        when(responseSpec.bodyToMono(PreludeVerifyResponseDTO.class))
+                .thenReturn(Mono.just(new PreludeVerifyResponseDTO("invalid_code")));
+
         webTestClient.post().uri("/api/users/auth")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new AuthRequestDTO("+380123456789", "000000"))
@@ -260,7 +241,6 @@ class UserControllerTest extends AbstractIntegrationTest {
         databaseClient.sql("UPDATE users SET is_active = false WHERE phone_number = :phone")
                 .bind("phone", "+380123456789")
                 .fetch().rowsUpdated().block();
-        smsCodeRepository.saveCode("+380123456789", "123456").block();
 
         webTestClient.post().uri("/api/users/auth")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -362,8 +342,6 @@ class UserControllerTest extends AbstractIntegrationTest {
 
     @Test
     void authenticateReturnsFavouritesCountAndLimit() {
-        smsCodeRepository.saveCode("+380123456789", "123456").block();
-
         webTestClient.post().uri("/api/users/auth")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new AuthRequestDTO("+380123456789", "123456"))
@@ -381,7 +359,6 @@ class UserControllerTest extends AbstractIntegrationTest {
         User user = userService.getUserByPhoneNumberOrCreate("+380123456789").block();
         CarListing listing = carListingService.create(user.id()).block();
         favouritesService.addFavourite(user.id(), listing.id()).block();
-        smsCodeRepository.saveCode("+380123456789", "123456").block();
 
         webTestClient.post().uri("/api/users/auth")
                 .contentType(MediaType.APPLICATION_JSON)

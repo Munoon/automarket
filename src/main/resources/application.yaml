@@ -6,6 +6,10 @@ spring:
     username: automarket
     password: automarket
 
+app:
+  sms:
+    preludeApiToken: sk_YowpYjFfGoBldKV3NmapvSA4ic3t9Svv
+
 #app:
 #  jwt:
 #    secret: base64-encoded-secret
@@ -18,8 +22,8 @@ spring:
 #  favourites:
 #    limitPerUser: 100
 #  sms:
-#    telegramApiToken: XXX
-#    authCodeTtl: 1m
+#    preludeApiToken: XXX
+#    authCodeTtl: 5m
 #  captcha:
 #    sitekey:
 #    secret:
